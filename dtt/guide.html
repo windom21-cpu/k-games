@@ -1,0 +1,430 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>DTT-mini 攻略ガイド.txt</title>
+<link rel="stylesheet" href="98.css">
+<style>
+  body, .title-bar, .title-bar-text, .window, button, input, label, legend,
+  li[role=tab], option, select, table, textarea, ul.tree-view, h1, h2, h3, h4,
+  fieldset, .status-bar-field, p, li {
+    font-family: "MS UI Gothic", "ＭＳ Ｕ Ｐゴシック", "MS Gothic", "ＭＳ ゴシック", "MSUIGothic", Osaka, sans-serif;
+    font-feature-settings: "palt" 0;
+    -webkit-font-smoothing: none;
+    -moz-osx-font-smoothing: grayscale;
+  }
+  /* 半角数字・記号もレトロビットマップ系で揃える（monospace fallback防止） */
+  table td.num, table th, code, code *, pre, pre.ascii, kbd, samp,
+  .status-bar-field, .signature {
+    font-family: "MS Gothic", "ＭＳ ゴシック", "MS UI Gothic", "ＭＳ Ｕ Ｐゴシック", "Osaka-Mono", "Courier New", monospace !important;
+    font-variant-numeric: tabular-nums;
+    -webkit-font-smoothing: none;
+  }
+  body {
+    background: #008080;
+    margin: 0;
+    padding: 16px;
+    min-height: 100vh;
+  }
+  .container {
+    max-width: 860px;
+    margin: 0 auto;
+  }
+  .window + .window { margin-top: 14px; }
+  .window-body p { margin: 6px 0; line-height: 1.5; }
+  .window-body h3 { margin: 10px 0 6px; font-size: 14px; }
+  .window-body h4 { margin: 8px 0 4px; font-size: 13px; }
+  fieldset { margin-bottom: 10px; }
+  fieldset:last-child { margin-bottom: 0; }
+  legend { padding: 0 6px; font-weight: bold; }
+  table { width: 100%; border-collapse: collapse; font-size: 12px; }
+  table th, table td { padding: 3px 8px; border: 1px solid #888; }
+  table th { background: silver; text-align: center; }
+  table td.num { text-align: right; }
+  pre.ascii {
+    white-space: pre;
+    line-height: 1.1;
+    font-size: 11px;
+    background: #fff;
+    padding: 10px;
+    margin: 8px 0;
+    box-shadow: inset -1px -1px #fff,inset 1px 1px grey,inset -2px -2px #dfdfdf,inset 2px 2px #0a0a0a;
+    overflow-x: auto;
+  }
+  .hl { color: #c00; font-weight: bold; }
+  .ok { color: #008000; font-weight: bold; }
+  .note { color: #008; }
+  ul, ol { margin: 4px 0 8px 22px; padding: 0; }
+  li { margin: 2px 0; }
+  .toc-link { color: #00f; text-decoration: underline; cursor: pointer; }
+  .signature { font-size: 11px; color: #555; text-align: right; margin-top: 12px; }
+  a { color: #00f; }
+  details { margin: 4px 0; }
+  summary { cursor: pointer; font-weight: bold; }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <!-- メインウィンドウ -->
+  <div class="window">
+    <div class="title-bar">
+      <div class="title-bar-text">DTT-mini 攻略ガイド.txt - メモ帳</div>
+      <div class="title-bar-controls">
+        <button aria-label="Minimize"></button>
+        <button aria-label="Maximize"></button>
+        <button aria-label="Close"></button>
+      </div>
+    </div>
+    <div class="window-body">
+      <h2 style="margin:0 0 4px">DTT-mini 攻略ガイド</h2>
+      <p style="margin:0; font-size:12px; color:#444">
+        2007年Flash名作 Desktop Tower Defense のシンプル復刻版。<br>
+        スコアアタック型・クリア条件なし・何ウェーブまで耐えられるかの挑戦。
+      </p>
+      <ul style="margin-top:8px">
+        <li><a href="#overview">▼ ゲーム概要</a></li>
+        <li><a href="#core">▼ 戦略の核：大砲スタック × 早期召喚バースト</a></li>
+        <li><a href="#phases">▼ ビルド進行（Phase 1〜4）</a></li>
+        <li><a href="#tower">▼ タワー比較・コスト早見表</a></li>
+        <li><a href="#enemy">▼ 敵キャラ早見表</a></li>
+        <li><a href="#layout">▼ 推奨マップレイアウト</a></li>
+        <li><a href="#tips">▼ 注意点・落とし穴</a></li>
+        <li><a href="#score">▼ 推定到達ライン</a></li>
+        <li><a href="#rumor" style="color:#888">▼ ???（未確認情報）</a></li>
+      </ul>
+    </div>
+    <div class="status-bar">
+      <p class="status-bar-field">最終更新: 2026-04-29</p>
+      <p class="status-bar-field">行 1, 列 1</p>
+      <p class="status-bar-field">100%</p>
+    </div>
+  </div>
+
+  <!-- 概要 -->
+  <div class="window" id="overview">
+    <div class="title-bar"><div class="title-bar-text">概要</div></div>
+    <div class="window-body">
+      <fieldset>
+        <legend>マップ</legend>
+        <p>20×15 グリッド。左中央 (0,7) = IN（緑）、右中央 (19,7) = OUT（茶）。<br>
+        経路を完全に塞ぐ配置は禁止（飛行敵は経路無視で例外）。</p>
+      </fieldset>
+      <fieldset>
+        <legend>初期値</legend>
+        <p>お金 $75 / ライフ 20 / 第1ウェーブまで20秒、ウェーブ間10秒（自動開始）</p>
+      </fieldset>
+      <fieldset>
+        <legend>操作</legend>
+        <p><b>PC版:</b> 左クリックで設置／タワー選択、右クリックで即時売却（70%返金）。<br>
+        <b>iPad/タブレット版:</b> タップで選択、下バーから強化／売却。</p>
+      </fieldset>
+    </div>
+  </div>
+
+  <!-- 戦略の核 -->
+  <div class="window" id="core">
+    <div class="title-bar"><div class="title-bar-text">戦略の核</div></div>
+    <div class="window-body">
+      <h3>大砲スタック × 早期召喚バースト</h3>
+      <p>このゲームで最も強い戦法。理由は3つ：</p>
+      <ol>
+        <li>早期召喚（進行中に「次のウェーブ」ボタンを押す）で<span class="hl">敵全員がSTART座標に重なって出現</span>する</li>
+        <li>大砲は splash 範囲攻撃 → <span class="hl">範囲内の敵全員にフルダメージ</span></li>
+        <li>大砲N本を「STARTを射程に入れた位置」に並べると、1ボレーで <b>N×ダメージ</b> が群れ全員に乗る</li>
+      </ol>
+      <p class="note">例：W30 Lv4大砲（220ダメージ・範囲72）を5本 → 1.5秒で 220×5×3 = 3,300 ダメージを 66体全員に同時付与 → basic（HP 425）を2ボレーで全滅。</p>
+
+      <fieldset>
+        <legend>ターゲティング仕様の活用</legend>
+        <p>タワーは「GOALに最も近い敵」を撃つ仕様。<br>
+        → 集団の<b>先頭（GOAL寄り）</b>に大砲射程を被せると効率最大化。<br>
+        → 後続もsplashで一緒にヒット。</p>
+      </fieldset>
+    </div>
+  </div>
+
+  <!-- ビルド進行 -->
+  <div class="window" id="phases">
+    <div class="title-bar"><div class="title-bar-text">ビルド進行</div></div>
+    <div class="window-body">
+      <fieldset>
+        <legend>Phase 1: W1〜W10（基礎）</legend>
+        <ul>
+          <li>最初の20秒で <b>大砲1本＋射撃2〜3本</b> を設置</li>
+          <li>「STARTから出てすぐ大砲射程に入る」配置を最優先</li>
+          <li>迷路は最低限</li>
+          <li><span class="hl">W4までに対空1本</span>（飛行敵対策、Lv1の$25）</li>
+        </ul>
+      </fieldset>
+      <fieldset>
+        <legend>Phase 2: W10〜W30（大砲スタック構築）</legend>
+        <ul>
+          <li>大砲を <b>4〜6本</b>、START を射程に重ねて配置</li>
+          <li>大砲はLv3まで上げる（累計$205で攻80・splash60）</li>
+          <li>蛇腹迷路で path を 30〜40 セルに伸ばす（敵滞在時間稼ぎ）</li>
+          <li>W25あたりから<span class="hl">早期召喚連打</span>でWave消化を加速 → お金を貯める</li>
+        </ul>
+      </fieldset>
+      <fieldset>
+        <legend>Phase 3: W30〜W60（Lv段階解禁ラッシュ）</legend>
+        <ul>
+          <li>HPは6Wave毎に2倍ペース → <b>各Lv解禁wave到達ごとに最低1〜2本を即上げ</b></li>
+          <li>優先順：大砲 &gt; 対空 &gt; 射撃</li>
+          <li>連打すると早期召喚ボーナス $5+2w が積み上がる（W50で1回 $105）</li>
+        </ul>
+      </fieldset>
+      <fieldset>
+        <legend>Phase 4: W60〜（Lv7総動員）</legend>
+        <ul>
+          <li>大砲Lv7（splash 115）を <b>STARTを覆うように6〜10本</b></li>
+          <li>対空Lv7を 2〜3本（飛行はSTART〜GOAL線上に被せる）</li>
+          <li>射撃Lv7は補助（空きマス）</li>
+          <li>HP指数成長に DPS が追いつかなくなるラインまで耐える</li>
+        </ul>
+      </fieldset>
+    </div>
+  </div>
+
+  <!-- タワー比較 -->
+  <div class="window" id="tower">
+    <div class="title-bar"><div class="title-bar-text">タワー比較・コスト早見表</div></div>
+    <div class="window-body">
+      <fieldset>
+        <legend>Lv7（最終形）DPS / 累計コスト</legend>
+        <table>
+          <thead><tr><th>種別</th><th>累計$</th><th>攻撃</th><th>連射</th><th>DPS</th><th>射程</th><th>備考</th></tr></thead>
+          <tbody>
+            <tr><td>射撃</td><td class="num">$2,948</td><td class="num">2200</td><td class="num">0.10s</td><td class="num">22,000</td><td class="num">140</td><td>単体</td></tr>
+            <tr><td>大砲</td><td class="num">$7,485</td><td class="num">5500</td><td class="num">0.45s</td><td class="num">12,222</td><td class="num">205</td><td>splash 115</td></tr>
+            <tr><td>対空</td><td class="num">$5,975</td><td class="num">4800</td><td class="num">0.18s</td><td class="num">26,667</td><td class="num">200</td><td>飛行のみ</td></tr>
+          </tbody>
+        </table>
+      </fieldset>
+      <fieldset>
+        <legend>Lv解禁とジャンプアップ</legend>
+        <table>
+          <thead><tr><th>Lv</th><th>解禁</th><th>射撃 累計</th><th>大砲 累計</th><th>対空 累計</th></tr></thead>
+          <tbody>
+            <tr><td>Lv3</td><td class="num">最初から</td><td class="num">$68</td><td class="num">$205</td><td class="num">$155</td></tr>
+            <tr><td>Lv4</td><td class="num">W30</td><td class="num">$168</td><td class="num">$485</td><td class="num">$375</td></tr>
+            <tr><td>Lv5</td><td class="num">W40</td><td class="num">$448</td><td class="num">$1,185</td><td class="num">$975</td></tr>
+            <tr><td>Lv6</td><td class="num">W50</td><td class="num">$1,148</td><td class="num">$2,985</td><td class="num">$2,475</td></tr>
+            <tr><td>Lv7</td><td class="num">W60</td><td class="num">$2,948</td><td class="num">$7,485</td><td class="num">$5,975</td></tr>
+          </tbody>
+        </table>
+        <p class="note">売却は累計の70%返金。「Lv1射撃を売って大砲に置き換え」も実用的。</p>
+      </fieldset>
+      <fieldset>
+        <legend>DPS/$（コスパ）</legend>
+        <table>
+          <thead><tr><th>Lv7</th><th>DPS</th><th>DPS/$</th><th>splash込み（敵N体）</th></tr></thead>
+          <tbody>
+            <tr><td>射撃</td><td class="num">22,000</td><td class="num">7.46</td><td>—</td></tr>
+            <tr><td>大砲</td><td class="num">12,222</td><td class="num">1.63</td><td class="num">×N</td></tr>
+            <tr><td>対空</td><td class="num">26,667</td><td class="num">4.46</td><td>飛行のみ</td></tr>
+          </tbody>
+        </table>
+        <p class="hl">敵が3体以上 splash に同時に入れば大砲が射撃を超える。バースト戦法では常に20体超 → 大砲圧勝。</p>
+      </fieldset>
+    </div>
+  </div>
+
+  <!-- 敵 -->
+  <div class="window" id="enemy">
+    <div class="title-bar"><div class="title-bar-text">敵キャラ早見表</div></div>
+    <div class="window-body">
+      <table>
+        <thead><tr><th>種類</th><th>HP</th><th>速度</th><th>報酬</th><th>出現</th><th>備考</th></tr></thead>
+        <tbody>
+          <tr><td>basic</td><td class="num">22</td><td class="num">50</td><td class="num">$3</td><td class="num">W1〜</td><td>通常</td></tr>
+          <tr><td>fast</td><td class="num">14</td><td class="num">95</td><td class="num">$4</td><td class="num">W3〜</td><td>速い</td></tr>
+          <tr><td>flying</td><td class="num">32</td><td class="num">70</td><td class="num">$6</td><td class="num">W4〜</td><td><span class="hl">経路無視で直線飛行</span></td></tr>
+          <tr><td>tank</td><td class="num">110</td><td class="num">28</td><td class="num">$9</td><td class="num">W5〜</td><td>HP高（×5）</td></tr>
+          <tr><td>bonus</td><td class="num">44</td><td class="num">45</td><td class="num">$15</td><td class="num">W5,10,15...</td><td>5wave毎に1体・金色</td></tr>
+        </tbody>
+      </table>
+      <fieldset style="margin-top:8px">
+        <legend>スケーリング</legend>
+        <ul>
+          <li>HP: <code>1 + (w-1) × 0.18</code>、w &gt; 20で <code>× 1.12^(w-20)</code> の複利</li>
+          <li>速度: w &gt; 20で <code>1 + (w-20) × 0.025</code>（最大1.6倍）</li>
+          <li>報酬: w &gt; 20で 4wave毎に +$1</li>
+          <li>出現数: <code>6 + w × 2</code></li>
+        </ul>
+        <p class="hl">HPは6Wave毎に約2倍に成長。タワー側はLv7キャップ。<br>
+        → W60までにLv7化できないと指数HPに押し負ける。</p>
+      </fieldset>
+    </div>
+  </div>
+
+  <!-- マップレイアウト -->
+  <div class="window" id="layout">
+    <div class="title-bar"><div class="title-bar-text">推奨マップレイアウト</div></div>
+    <div class="window-body">
+      <h4>初期配置（W1〜W5）：START近傍に大砲集中</h4>
+<pre class="ascii">. . . . . . . . . . . . . . . . . . . .
+. . . . . . . . . . . . . . . . . . . .
+. . C C . . . . . . . . . . . . . . . .
+. . C C . . . . . . . . . . . . . . . .
+IN→─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─→OUT
+. . C C . . . . . . . . . . . . . . . .
+. . C C . . . . . . . . . . . . . . . .
+. . . . . . . . . . . . . . . . . . . .
+
+C = 大砲（START を全部射程内に入れる）</pre>
+
+      <h4>中盤（W15〜W30）：蛇腹迷路で path を伸ばす</h4>
+<pre class="ascii">. . . . . . . . . . . . . . . . . . . .
+. . C C . . X . . X . . X . . X . . . .
+. . C C . . X . . X . . X . . X . . . .
+. . C C . . X . . X . . X . . X . . . .
+IN→─ ─ ─ ─ ─┐    │    ┐    │    ┐  →OUT
+. . C C . . │    │    │    │    │    .
+. . C C . . X . . X . . X . . X . . . .
+. . . . . . X . . X . . X . . X . . . .
+
+X = 射撃（道沿いに配置）／C = 大砲（START集中）</pre>
+      <p class="note">迷路の「曲がり角」では敵が密集する → 大砲スプラッシュが刺さりやすい。</p>
+    </div>
+  </div>
+
+  <!-- 注意点 -->
+  <div class="window" id="tips">
+    <div class="title-bar"><div class="title-bar-text">注意点・落とし穴</div></div>
+    <div class="window-body">
+      <fieldset>
+        <legend>やってはいけないこと</legend>
+        <ul>
+          <li><span class="hl">早期過投資NG</span>：W1から大砲Lv3にすると初期破産。Lv1で並べて広域火力。</li>
+          <li><span class="hl">対空忘れNG</span>：W4から飛行が出る。1本でも必須。</li>
+          <li><span class="hl">経路完全封鎖は不可</span>：BFSチェックで設置自体できない。</li>
+          <li><span class="hl">Lv強化の遅延</span>：HPは6wave毎に倍。1サイクル遅れると一気に押される。</li>
+        </ul>
+      </fieldset>
+      <fieldset>
+        <legend>やると得すること</legend>
+        <ul>
+          <li><span class="ok">序盤の射撃→中盤に売却して大砲に置き換え</span>（70%返金で実質OK）</li>
+          <li><span class="ok">W25〜29は耐え時</span>：Lv3で凌いでW30到達でLv4にジャンプアップ</li>
+          <li><span class="ok">早期召喚連打で資金加速</span>：$5+2w/click が積み上がる</li>
+          <li><span class="ok">ライフ20を活かす</span>：bonus敵以外はライフ-1なら見逃しても可</li>
+        </ul>
+      </fieldset>
+      <fieldset>
+        <legend>判定の細かい仕様</legend>
+        <ul>
+          <li>タワーは「GOALに最も近い敵」を狙う（pathIndexではない） → 飛行敵も狙う</li>
+          <li>対空タワーは <code>antiAir: true</code> で地上敵を完全無視（射程内でも撃たない）</li>
+          <li>大砲のsplashは「弾が着弾した位置」から半径内全敵にフルダメージ</li>
+          <li>セーブはウェーブ間のみ自動（進行中はセーブされない）</li>
+        </ul>
+      </fieldset>
+    </div>
+  </div>
+
+  <!-- 推定到達ライン -->
+  <div class="window" id="score">
+    <div class="title-bar"><div class="title-bar-text">推定到達ライン</div></div>
+    <div class="window-body">
+      <table>
+        <thead><tr><th>プレイレベル</th><th>到達Wave</th><th>備考</th></tr></thead>
+        <tbody>
+          <tr><td>普通プレイ</td><td class="num">W80前後</td><td>大砲配置を意識する程度</td></tr>
+          <tr><td>バースト戦法を使いこなす</td><td class="num">W100〜W110</td><td>大砲スタック＋早期召喚連打</td></tr>
+          <tr><td>完璧プレイ＋運</td><td class="num">W120前後</td><td>敵構成・配置の最適化</td></tr>
+          <tr><td>理論上限</td><td class="num">W130付近</td><td>tank HP が 200M 超で詰み</td></tr>
+        </tbody>
+      </table>
+      <p class="note">Lv7解禁（W60）以降はタワー側の伸びが止まるため、<b>W60〜W90が勝負どころ</b>。<br>
+      Lv7完備の状態で W90+ に突入できれば、あとは敵の物量と HP に押し切られるまでの粘り。</p>
+    </div>
+    <div class="status-bar">
+      <p class="status-bar-field">Good luck, commander.</p>
+    </div>
+  </div>
+
+  <!-- 噂・未確認情報 -->
+  <div class="window" id="rumor">
+    <div class="title-bar">
+      <div class="title-bar-text">RUMOR.DAT - 未確認情報</div>
+      <div class="title-bar-controls">
+        <button aria-label="Help"></button>
+        <button aria-label="Close"></button>
+      </div>
+    </div>
+    <div class="window-body">
+      <fieldset>
+        <legend>■ 都市伝説 / Urban Legend</legend>
+        <p style="font-size:12px;">
+          ある匿名掲示板のログから発掘された書き込み。真偽は不明。<br>
+          自己責任で検証されたし。
+        </p>
+<pre class="ascii" style="background:#000; color:#0f0; box-shadow:none;">&gt;&gt; 名無しさん @2008/03/14(金) 03:47
+
+ガチで効く裏技見つけたかも…
+
+map の <span style="color:#ff0">隅っこ</span> 全部に <span style="color:#ff0">同じタイプ</span>
+置いたら画面下に何か出た。
+$9999 とかいう数字が見えた気がする。
+気のせい？
+
+種類は… えっと、空飛ぶやつ撃つ用の。
+レベルは1じゃダメで、ちょい上げる必要あり。
+
+詳細書こうとしたら板落ちた。
+
+────────────────────────────────
+&gt;&gt; 名無しさん @2008/03/14(金) 04:02
+&gt;&gt;1
+mjd? ちなみにLvいくつ？
+
+&gt;&gt; 名無しさん @2008/03/14(金) 04:11
+&gt;&gt;2
+2 だった気がする。確か。
+
+&gt;&gt; 名無しさん @2008/03/14(金) 04:55
+4隅 × ??? × Lv? = JACKPOT…？
+誰か検証ヨロ
+────────────────────────────────</pre>
+        <p class="note" style="font-size:11px; margin-top:6px;">
+          ※ このログ以降、続報は途絶えている。<br>
+          ※ 1ゲームに1度しか発動しないとも、複数回発動するとも言われている。<br>
+          ※ 配置のヒント：マップの「四つの極点」、特定の役割を持つ防衛タワー、レベルは下から二番目。
+        </p>
+      </fieldset>
+
+      <fieldset>
+        <legend>■ ヒント図解</legend>
+<pre class="ascii">★ . . . . . . . . . . . . . . . . . . ★
+. . . . . . . . . . . . . . . . . . . .
+. . . . . . . . . . . . . . . . . . . .
+. . . . . . . . . . . . . . . . . . . .
+. . . . . . . . . . . . . . . . . . . .
+. . . . . . . . . . . . . . . . . . . .
+. . . . . . . . . . . . . . . . . . . .
+IN→. . . . . . . . . . . . . . . . . . →OUT
+. . . . . . . . . . . . . . . . . . . .
+. . . . . . . . . . . . . . . . . . . .
+. . . . . . . . . . . . . . . . . . . .
+. . . . . . . . . . . . . . . . . . . .
+. . . . . . . . . . . . . . . . . . . .
+. . . . . . . . . . . . . . . . . . . .
+★ . . . . . . . . . . . . . . . . . . ★
+
+★の位置に、空のものを叩く防衛具を、Lv●●で…？</pre>
+      </fieldset>
+    </div>
+    <div class="status-bar">
+      <p class="status-bar-field">情報源: 不明</p>
+      <p class="status-bar-field">最終更新: 2008/03/14</p>
+      <p class="status-bar-field">真偽: ???</p>
+    </div>
+  </div>
+
+  <p class="signature">© DTT-mini · 攻略ガイド v1.0 · Powered by 98.css</p>
+
+</div>
+</body>
+</html>

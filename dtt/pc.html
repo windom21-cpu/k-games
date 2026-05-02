@@ -1,0 +1,1328 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<title>DTT-mini</title>
+<style>
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0;
+    height: 100%;
+    overflow: hidden;
+    background: #1a1a1a;
+    color: #eee;
+    font-family: -apple-system, "Segoe UI", sans-serif;
+    user-select: none;
+  }
+  #game {
+    display: flex;
+    gap: 12px;
+    width: 100%;
+    height: 100%;
+    padding: 12px;
+  }
+  #canvas-wrap {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 0;
+    min-height: 0;
+    position: relative;
+  }
+  canvas {
+    background: #2a2a2a;
+    cursor: crosshair;
+    display: block;
+  }
+  #gameover-overlay {
+    position: absolute;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.78);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10;
+    padding: 12px;
+  }
+  #gameover-overlay.hidden { display: none; }
+  .gameover-card {
+    background: #2a2a2a;
+    border: 2px solid #888;
+    padding: 28px 36px;
+    border-radius: 12px;
+    text-align: center;
+  }
+  .gameover-title {
+    font-size: 36px;
+    font-weight: bold;
+    color: #ff6b6b;
+    margin-bottom: 8px;
+    letter-spacing: 3px;
+  }
+  .gameover-sub {
+    font-size: 17px;
+    color: #ddd;
+    margin-bottom: 22px;
+  }
+  #restart-btn {
+    padding: 12px 32px;
+    background: #2a8a4a;
+    color: #fff;
+    border: 0;
+    border-radius: 6px;
+    font-size: 16px;
+    font-weight: bold;
+    cursor: pointer;
+  }
+  #restart-btn:hover { background: #38a05a; }
+  #restart-btn:active { background: #226e3a; }
+  .btn-row {
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+  .btn-row button {
+    padding: 12px 22px;
+    border: 0;
+    border-radius: 6px;
+    font-size: 15px;
+    font-weight: bold;
+    color: #fff;
+    cursor: pointer;
+  }
+  #resume-btn { background: #2a8a4a; }
+  #resume-btn:hover { background: #38a05a; }
+  #newgame-btn { background: #555; }
+  #newgame-btn:hover { background: #666; }
+  #resume-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.85);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 100;
+    padding: 12px;
+  }
+  #resume-overlay.hidden { display: none; }
+  .hiscores {
+    text-align: left;
+    margin: 0 auto 18px;
+    font-size: 14px;
+    color: #ccc;
+    max-width: 260px;
+  }
+  .hiscores .row { display: flex; justify-content: space-between; padding: 3px 8px; }
+  .hiscores .row.new { background: #4a3a1f; color: #ffe; border-radius: 4px; font-weight: bold; }
+  .hiscores .rank { color: #aaa; min-width: 36px; }
+  .hiscores .empty { color: #888; text-align: center; padding: 8px; }
+  #ui { width: 240px; flex-shrink: 0; overflow-y: auto; }
+  h2 { margin: 0 0 12px 0; }
+  .stat { margin: 6px 0; font-size: 15px; padding: 1px 4px; border-radius: 3px; }
+  .stat.damaged {
+    animation: livesPulse 0.6s ease-out;
+  }
+  @keyframes livesPulse {
+    0% { background: rgba(255, 0, 0, 0.7); color: #fff; box-shadow: 0 0 8px rgba(255, 0, 0, 0.8); }
+    40% { background: rgba(255, 80, 80, 0.5); color: #fff; }
+    100% { background: transparent; color: inherit; box-shadow: none; }
+  }
+  .tower-btn {
+    display: block;
+    width: 100%;
+    margin: 6px 0;
+    padding: 10px;
+    background: #333;
+    color: #eee;
+    border: 2px solid #555;
+    cursor: pointer;
+    text-align: left;
+    font-size: 14px;
+    border-radius: 4px;
+  }
+  .tower-btn small { color: #aaa; }
+  .tower-btn.selected { border-color: #6cf; background: #1f3a4a; }
+  .tower-btn:hover { background: #444; }
+  #wave-btn {
+    display: block;
+    width: 100%;
+    padding: 12px;
+    background: #2a8a4a;
+    color: #fff;
+    border: 0;
+    cursor: pointer;
+    font-size: 16px;
+    margin-top: 16px;
+    border-radius: 4px;
+    font-weight: bold;
+  }
+  #wave-btn:disabled { background: #555; cursor: not-allowed; }
+  #mute-btn {
+    display: block;
+    width: 100%;
+    padding: 8px;
+    background: #333;
+    color: #eee;
+    border: 1px solid #555;
+    border-radius: 4px;
+    margin-top: 8px;
+    font-size: 14px;
+    cursor: pointer;
+  }
+  #mute-btn.muted { background: #5a2a2a; border-color: #a55; }
+  #help-link {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 22px;
+    height: 22px;
+    background: transparent;
+    color: #888;
+    border: 1px solid #555;
+    border-radius: 50%;
+    text-decoration: none;
+    font-size: 12px;
+    font-weight: bold;
+    margin-top: 8px;
+    cursor: pointer;
+  }
+  #help-link:hover { color: #ccc; border-color: #888; }
+  #msg { margin-top: 12px; min-height: 24px; color: #fc6; font-size: 14px; }
+  hr { border: 0; border-top: 1px solid #444; margin: 12px 0; }
+  small.hint { color: #888; line-height: 1.6; }
+  #tower-info-content { font-size: 13px; line-height: 1.5; margin-bottom: 8px; }
+  .action-btn {
+    width: 100%;
+    padding: 9px;
+    margin: 4px 0;
+    border: 0;
+    border-radius: 4px;
+    color: #fff;
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: bold;
+  }
+  #upgrade-btn { background: #4a7; }
+  #upgrade-btn:disabled { background: #555; cursor: not-allowed; }
+  #sell-btn { background: #b63; }
+  #sell-btn:disabled { background: #555; cursor: not-allowed; }
+</style>
+</head>
+<body>
+<div id="game">
+  <div id="canvas-wrap">
+    <canvas id="canvas" width="600" height="450"></canvas>
+    <div id="gameover-overlay" class="hidden">
+      <div class="gameover-card">
+        <div class="gameover-title">GAME OVER</div>
+        <div class="gameover-sub" id="gameover-wave"></div>
+        <div class="hiscores" id="gameover-hiscores"></div>
+        <button id="restart-btn">もう一度プレイ</button>
+      </div>
+    </div>
+  </div>
+  <div id="ui">
+    <h2>DTT-mini</h2>
+    <div class="stat">💰 お金: <span id="money">0</span></div>
+    <div class="stat">❤️ ライフ: <span id="lives">0</span></div>
+    <div class="stat">🌊 ウェーブ: <span id="wave">0</span></div>
+    <div class="stat">⭐ ベスト: W<span id="best">0</span></div>
+    <div id="debug-badge" class="stat" style="display:none; color:#f80; font-weight:bold;">🔧 DEBUG MODE</div>
+    <hr>
+    <button class="tower-btn selected" data-type="pellet">
+      射撃タワー ($10)<br>
+      <small>射程:近 / 連射:速</small>
+    </button>
+    <button class="tower-btn" data-type="cannon">
+      大砲タワー ($30)<br>
+      <small>射程:中 / 範囲攻撃</small>
+    </button>
+    <button class="tower-btn" data-type="aa">
+      対空タワー ($25)<br>
+      <small>飛行敵のみ / 高DPS</small>
+    </button>
+    <button id="wave-btn">ウェーブ開始</button>
+    <button id="mute-btn">🔊 効果音 ON</button>
+    <a id="help-link" href="guide.html" target="_blank" rel="noopener" title="攻略ガイド">?</a>
+    <div id="msg"></div>
+    <div id="tower-info" style="display:none">
+      <hr>
+      <div id="tower-info-content"></div>
+      <button id="upgrade-btn" class="action-btn">強化</button>
+      <button id="sell-btn" class="action-btn">売却</button>
+    </div>
+    <hr>
+    <small class="hint">
+      左クリック: 設置 / タワー選択<br>
+      右クリック: 即時売却<br>
+      敵の経路を全部ふさぐ配置は禁止です。
+    </small>
+  </div>
+</div>
+<div id="resume-overlay" class="hidden">
+  <div class="gameover-card">
+    <div class="gameover-title">続きから?</div>
+    <div class="gameover-sub" id="resume-info"></div>
+    <div class="btn-row">
+      <button id="resume-btn">続きから</button>
+      <button id="newgame-btn">最初から</button>
+    </div>
+  </div>
+</div>
+<script>
+const COLS = 20, ROWS = 15, CELL = 30;
+const canvas = document.getElementById('canvas');
+const ctx = canvas.getContext('2d');
+
+const audio = (() => {
+  let actx = null;
+  let muted = localStorage.getItem('dtt-muted') === '1';
+  let frameBudget = 0;
+  function ensureCtx() {
+    if (!actx) {
+      const AC = window.AudioContext || window.webkitAudioContext;
+      if (!AC) return null;
+      actx = new AC();
+    }
+    if (actx.state === 'suspended') actx.resume();
+    return actx;
+  }
+  function play(type) {
+    if (muted) return;
+    if (frameBudget >= 4) return;
+    const c = ensureCtx();
+    if (!c || c.state !== 'running') return;
+    frameBudget++;
+    const now = c.currentTime;
+    const osc = c.createOscillator();
+    const gain = c.createGain();
+    osc.connect(gain); gain.connect(c.destination);
+    if (type === 'pellet') {
+      osc.type = 'square';
+      osc.frequency.setValueAtTime(880, now);
+      osc.frequency.exponentialRampToValueAtTime(660, now + 0.04);
+      gain.gain.setValueAtTime(0.0001, now);
+      gain.gain.exponentialRampToValueAtTime(0.10, now + 0.005);
+      gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.05);
+      osc.start(now); osc.stop(now + 0.06);
+    } else if (type === 'cannon') {
+      osc.type = 'sawtooth';
+      osc.frequency.setValueAtTime(140, now);
+      osc.frequency.exponentialRampToValueAtTime(55, now + 0.15);
+      gain.gain.setValueAtTime(0.0001, now);
+      gain.gain.exponentialRampToValueAtTime(0.22, now + 0.01);
+      gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.18);
+      osc.start(now); osc.stop(now + 0.2);
+    } else if (type === 'aa') {
+      osc.type = 'triangle';
+      osc.frequency.setValueAtTime(720, now);
+      osc.frequency.exponentialRampToValueAtTime(360, now + 0.08);
+      gain.gain.setValueAtTime(0.0001, now);
+      gain.gain.exponentialRampToValueAtTime(0.13, now + 0.005);
+      gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.09);
+      osc.start(now); osc.stop(now + 0.1);
+    }
+  }
+  function tick() { frameBudget = 0; }
+  function toggleMute() {
+    muted = !muted;
+    localStorage.setItem('dtt-muted', muted ? '1' : '0');
+    if (!muted) ensureCtx();
+    return muted;
+  }
+  function isMuted() { return muted; }
+  return { play, tick, toggleMute, isMuted, ensureCtx };
+})();
+function unlockAudio() { audio.ensureCtx(); }
+document.addEventListener('pointerdown', unlockAudio, { once: true });
+document.addEventListener('keydown', unlockAudio, { once: true });
+
+const START = { x: 0, y: 7 };
+const GOAL = { x: COLS - 1, y: 7 };
+
+const TOWER_TYPES = {
+  pellet: {
+    name: '射撃',
+    levels: [
+      { cost: 10,   range: 75,  damage: 5,    fireRate: 0.35, color: '#6cf', bulletColor: '#fff', splash: 0, bulletSpeed: 480 },
+      { cost: 18,   range: 88,  damage: 12,   fireRate: 0.28, color: '#3af', bulletColor: '#fff', splash: 0, bulletSpeed: 520 },
+      { cost: 40,   range: 100, damage: 26,   fireRate: 0.22, color: '#08c', bulletColor: '#cdf', splash: 0, bulletSpeed: 560 },
+      { cost: 100,  range: 110, damage: 70,   fireRate: 0.18, color: '#069', bulletColor: '#cef', splash: 0, bulletSpeed: 620, unlockWave: 30 },
+      { cost: 280,  range: 120, damage: 220,  fireRate: 0.15, color: '#057', bulletColor: '#cef', splash: 0, bulletSpeed: 700, unlockWave: 40 },
+      { cost: 700,  range: 130, damage: 700,  fireRate: 0.12, color: '#046', bulletColor: '#fff', splash: 0, bulletSpeed: 800, unlockWave: 50 },
+      { cost: 1800, range: 140, damage: 2200, fireRate: 0.10, color: '#024', bulletColor: '#dcf', splash: 0, bulletSpeed: 900, unlockWave: 60 }
+    ]
+  },
+  cannon: {
+    name: '大砲',
+    levels: [
+      { cost: 30,   range: 105, damage: 14,   fireRate: 1.10, color: '#fc6', bulletColor: '#f80', splash: 38,  bulletSpeed: 320 },
+      { cost: 55,   range: 122, damage: 34,   fireRate: 0.95, color: '#f93', bulletColor: '#f60', splash: 48,  bulletSpeed: 360 },
+      { cost: 120,  range: 142, damage: 80,   fireRate: 0.85, color: '#c60', bulletColor: '#f40', splash: 60,  bulletSpeed: 400 },
+      { cost: 280,  range: 158, damage: 220,  fireRate: 0.75, color: '#c50', bulletColor: '#f60', splash: 72,  bulletSpeed: 440, unlockWave: 30 },
+      { cost: 700,  range: 175, damage: 600,  fireRate: 0.65, color: '#a30', bulletColor: '#f40', splash: 85,  bulletSpeed: 480, unlockWave: 40 },
+      { cost: 1800, range: 190, damage: 1700, fireRate: 0.55, color: '#800', bulletColor: '#f30', splash: 100, bulletSpeed: 520, unlockWave: 50 },
+      { cost: 4500, range: 205, damage: 5500, fireRate: 0.45, color: '#500', bulletColor: '#f80', splash: 115, bulletSpeed: 560, unlockWave: 60 }
+    ]
+  },
+  aa: {
+    name: '対空',
+    levels: [
+      { cost: 25,   range: 110, damage: 18,   fireRate: 0.40, color: '#b8e', bulletColor: '#dcf', splash: 0, bulletSpeed: 600, antiAir: true },
+      { cost: 40,   range: 125, damage: 38,   fireRate: 0.35, color: '#96d', bulletColor: '#dcf', splash: 0, bulletSpeed: 650, antiAir: true },
+      { cost: 90,   range: 140, damage: 75,   fireRate: 0.30, color: '#74b', bulletColor: '#ecf', splash: 0, bulletSpeed: 700, antiAir: true },
+      { cost: 220,  range: 155, damage: 180,  fireRate: 0.27, color: '#62a', bulletColor: '#fcf', splash: 0, bulletSpeed: 760, antiAir: true, unlockWave: 30 },
+      { cost: 600,  range: 170, damage: 550,  fireRate: 0.24, color: '#418', bulletColor: '#fcf', splash: 0, bulletSpeed: 820, antiAir: true, unlockWave: 40 },
+      { cost: 1500, range: 185, damage: 1600, fireRate: 0.21, color: '#205', bulletColor: '#fdf', splash: 0, bulletSpeed: 880, antiAir: true, unlockWave: 50 },
+      { cost: 3500, range: 200, damage: 4800, fireRate: 0.18, color: '#103', bulletColor: '#ecf', splash: 0, bulletSpeed: 940, antiAir: true, unlockWave: 60 }
+    ]
+  }
+};
+
+function towerStats(t) { return TOWER_TYPES[t.type].levels[t.level - 1]; }
+function nextUpgrade(t) { return TOWER_TYPES[t.type].levels[t.level] || null; }
+function totalInvested(t) {
+  const ls = TOWER_TYPES[t.type].levels;
+  let s = 0;
+  for (let i = 0; i < t.level; i++) s += ls[i].cost;
+  return s;
+}
+function sellValue(t) { return Math.floor(totalInvested(t) * 0.7); }
+function computeHpScale(w) {
+  let s = 1 + (w - 1) * 0.18;
+  if (w > 20) s *= Math.pow(1.12, w - 20);
+  return s;
+}
+function computeSpeedMul(w) {
+  return w > 20 ? Math.min(1.6, 1 + (w - 20) * 0.025) : 1;
+}
+
+const ENEMY_TYPES = {
+  basic:  { hp: 22, speed: 50, color: '#e44', reward: 3, size: 10 },
+  fast:   { hp: 14, speed: 95, color: '#fff', reward: 4, size: 8  },
+  tank:   { hp: 110, speed: 28, color: '#aaa', reward: 9, size: 13 },
+  flying: { hp: 32, speed: 70, color: '#9cf', reward: 6, size: 9, flying: true },
+  bonus:  { hp: 44, speed: 45, color: '#fc0', reward: 15, size: 12, bonus: true }
+};
+
+let grid = Array.from({ length: ROWS }, () => new Array(COLS).fill(0));
+let towers = [];
+let enemies = [];
+let bullets = [];
+let explosions = [];
+
+let money = 75;
+let lives = 20;
+let wave = 0;
+let inWave = false;
+let spawnQueue = [];
+let spawnTimer = 0;
+let gameEnded = false;
+let nextWaveTimer = 20;
+const FIRST_WAVE_DELAY = 20;
+const NEXT_WAVE_DELAY = 10;
+
+let selectedTowerType = 'pellet';
+let selectedTower = null;
+let mouseX = -1, mouseY = -1;
+let paused = false;
+let cornerBonusTriggered = false;
+let debugMode = false;
+const SAVE_KEY = 'dtt-save';
+const BEST_KEY = 'dtt-hiscores';
+
+// --- BFS ---
+function findPath(sx, sy, gx, gy, isBlocked) {
+  if (isBlocked(sx, sy) && !(sx === START.x && sy === START.y)) return null;
+  const visited = new Uint8Array(ROWS * COLS);
+  const parent = new Int32Array(ROWS * COLS).fill(-1);
+  const queue = [sy * COLS + sx];
+  visited[sy * COLS + sx] = 1;
+  let head = 0;
+  while (head < queue.length) {
+    const cur = queue[head++];
+    const x = cur % COLS, y = (cur / COLS) | 0;
+    if (x === gx && y === gy) {
+      const path = [];
+      let c = cur;
+      while (c !== -1) {
+        path.push({ x: c % COLS, y: (c / COLS) | 0 });
+        c = parent[c];
+      }
+      path.reverse();
+      return path;
+    }
+    const dirs = [[1,0],[-1,0],[0,1],[0,-1]];
+    for (const [dx, dy] of dirs) {
+      const nx = x + dx, ny = y + dy;
+      if (nx < 0 || nx >= COLS || ny < 0 || ny >= ROWS) continue;
+      const ni = ny * COLS + nx;
+      if (visited[ni]) continue;
+      if (isBlocked(nx, ny)) continue;
+      visited[ni] = 1;
+      parent[ni] = cur;
+      queue.push(ni);
+    }
+  }
+  return null;
+}
+
+const isBlockedNow = (x, y) => grid[y][x] === 1;
+const isBlockedWith = (tx, ty) => (x, y) => (x === tx && y === ty) || grid[y][x] === 1;
+
+function enemyCell(e) {
+  return { x: Math.floor(e.x / CELL), y: Math.floor(e.y / CELL) };
+}
+
+function canPlaceTower(cx, cy) {
+  if (cx < 0 || cx >= COLS || cy < 0 || cy >= ROWS) return false;
+  if (grid[cy][cx] !== 0) return false;
+  if (cx === START.x && cy === START.y) return false;
+  if (cx === GOAL.x && cy === GOAL.y) return false;
+  for (const e of enemies) {
+    if (e.flying) continue;
+    const c = enemyCell(e);
+    if (c.x === cx && c.y === cy) return false;
+  }
+  const blocked = isBlockedWith(cx, cy);
+  if (!findPath(START.x, START.y, GOAL.x, GOAL.y, blocked)) return false;
+  for (const e of enemies) {
+    if (e.flying) continue;
+    const c = enemyCell(e);
+    if (!findPath(c.x, c.y, GOAL.x, GOAL.y, blocked)) return false;
+  }
+  return true;
+}
+
+function recomputePaths() {
+  for (const e of enemies) {
+    if (e.flying) continue;
+    const c = enemyCell(e);
+    const path = findPath(c.x, c.y, GOAL.x, GOAL.y, isBlockedNow);
+    if (path) {
+      e.path = path;
+      e.pathIndex = Math.min(1, path.length - 1);
+    }
+  }
+}
+
+// --- input ---
+canvas.addEventListener('contextmenu', e => e.preventDefault());
+canvas.addEventListener('mousedown', e => {
+  if (gameEnded) return;
+  const rect = canvas.getBoundingClientRect();
+  const mx = (e.clientX - rect.left) / rect.width * (COLS * CELL);
+  const my = (e.clientY - rect.top) / rect.height * (ROWS * CELL);
+  const cx = Math.floor(mx / CELL);
+  const cy = Math.floor(my / CELL);
+  if (cx < 0 || cx >= COLS || cy < 0 || cy >= ROWS) return;
+
+  if (e.button === 2) {
+    const idx = towers.findIndex(t => t.x === cx && t.y === cy);
+    if (idx >= 0) {
+      const refund = sellValue(towers[idx]);
+      money += refund;
+      if (selectedTower === towers[idx]) selectedTower = null;
+      towers.splice(idx, 1);
+      grid[cy][cx] = 0;
+      recomputePaths();
+      updateUI();
+    }
+    return;
+  }
+
+  const existing = towers.find(t => t.x === cx && t.y === cy);
+  if (existing) {
+    selectedTower = existing;
+    updateUI();
+    return;
+  }
+
+  selectedTower = null;
+  const t0 = TOWER_TYPES[selectedTowerType].levels[0];
+  const placeCost = debugMode ? 0 : t0.cost;
+  if (money < placeCost) { showMsg('お金が足りません'); updateUI(); return; }
+  if (!canPlaceTower(cx, cy)) { showMsg('ここには置けません'); updateUI(); return; }
+  money -= placeCost;
+  grid[cy][cx] = 1;
+  towers.push({ x: cx, y: cy, type: selectedTowerType, level: 1, cooldown: 0 });
+  recomputePaths();
+  checkDebugMode();
+  checkCornerBonus();
+  updateUI();
+});
+
+canvas.addEventListener('mousemove', e => {
+  const rect = canvas.getBoundingClientRect();
+  mouseX = (e.clientX - rect.left) / rect.width * (COLS * CELL);
+  mouseY = (e.clientY - rect.top) / rect.height * (ROWS * CELL);
+});
+canvas.addEventListener('mouseleave', () => { mouseX = -1; mouseY = -1; });
+
+document.querySelectorAll('.tower-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.tower-btn').forEach(b => b.classList.remove('selected'));
+    btn.classList.add('selected');
+    selectedTowerType = btn.dataset.type;
+    selectedTower = null;
+    updateUI();
+  });
+});
+
+document.getElementById('wave-btn').addEventListener('click', startWave);
+
+const muteBtn = document.getElementById('mute-btn');
+function refreshMuteBtn() {
+  const m = audio.isMuted();
+  muteBtn.textContent = m ? '🔇 効果音 OFF' : '🔊 効果音 ON';
+  muteBtn.classList.toggle('muted', m);
+}
+muteBtn.addEventListener('click', () => {
+  audio.toggleMute();
+  refreshMuteBtn();
+});
+refreshMuteBtn();
+
+document.getElementById('upgrade-btn').addEventListener('click', () => {
+  if (!selectedTower) return;
+  const next = nextUpgrade(selectedTower);
+  if (!next) return;
+  if (!debugMode && next.unlockWave && wave < next.unlockWave) {
+    showMsg('Wave ' + next.unlockWave + ' で解禁');
+    return;
+  }
+  const upCost = debugMode ? 0 : next.cost;
+  if (money < upCost) { showMsg('お金が足りません'); return; }
+  money -= upCost;
+  selectedTower.level++;
+  showMsg(TOWER_TYPES[selectedTower.type].name + ' Lv' + selectedTower.level + ' に強化');
+  checkDebugMode();
+  checkCornerBonus();
+  updateUI();
+});
+
+document.getElementById('sell-btn').addEventListener('click', () => {
+  if (!selectedTower) return;
+  const idx = towers.indexOf(selectedTower);
+  if (idx < 0) { selectedTower = null; updateUI(); return; }
+  const refund = sellValue(selectedTower);
+  money += refund;
+  grid[selectedTower.y][selectedTower.x] = 0;
+  towers.splice(idx, 1);
+  selectedTower = null;
+  recomputePaths();
+  checkDebugMode();
+  showMsg('売却 +$' + refund);
+  updateUI();
+});
+
+// --- waves ---
+function startWave() {
+  if (gameEnded) return;
+  const earlyCall = inWave;
+  wave++;
+  inWave = true;
+  nextWaveTimer = 0;
+  if (earlyCall) {
+    const bonus = 5 + wave * 2;
+    money += bonus;
+    showMsg('早期召喚ボーナス +$' + bonus);
+  }
+  const count = 6 + wave * 2;
+  const types = [];
+  for (let i = 0; i < count; i++) {
+    let type = 'basic';
+    if (wave >= 3 && i % 4 === 0) type = 'fast';
+    if (wave >= 4 && i % 5 === 2) type = 'flying';
+    if (wave >= 5 && i % 6 === 0) type = 'tank';
+    if (wave >= 8 && i % 3 === 0) type = 'fast';
+    types.push(type);
+  }
+  if (wave % 5 === 0) types.push('bonus');
+  if (earlyCall) {
+    while (spawnQueue.length > 0) {
+      const next = spawnQueue.shift();
+      spawnEnemy(next.type, next.wave);
+    }
+    for (const type of types) spawnEnemy(type, wave);
+  } else {
+    const delay = Math.max(0.35, 0.7 - wave * 0.02);
+    for (const type of types) spawnQueue.push({ type, delay, wave });
+  }
+  spawnTimer = 0;
+  updateUI();
+}
+
+function spawnEnemy(type, w) {
+  if (w === undefined) w = wave;
+  const e = ENEMY_TYPES[type];
+  const hp = Math.round(e.hp * computeHpScale(w));
+  const speed = e.speed * computeSpeedMul(w);
+  const reward = e.reward + (w > 20 ? Math.floor((w - 20) / 4) : 0);
+  const jitter = 18;
+  const base = {
+    x: START.x * CELL + CELL / 2 + (Math.random() - 0.5) * jitter,
+    y: START.y * CELL + CELL / 2 + (Math.random() - 0.5) * jitter,
+    hp, maxHp: hp,
+    speed,
+    color: e.color,
+    size: e.size,
+    reward,
+    bonus: !!e.bonus
+  };
+  if (e.flying) {
+    enemies.push({
+      ...base,
+      flying: true,
+      goalX: GOAL.x * CELL + CELL / 2,
+      goalY: GOAL.y * CELL + CELL / 2,
+      reachedGoal: false
+    });
+    return;
+  }
+  const path = findPath(START.x, START.y, GOAL.x, GOAL.y, isBlockedNow);
+  if (!path) return;
+  enemies.push({ ...base, path, pathIndex: 1 });
+}
+
+// --- save / load ---
+function checkCornerBonus() {
+  if (cornerBonusTriggered) return;
+  const corners = [[0, 0], [COLS - 1, 0], [0, ROWS - 1], [COLS - 1, ROWS - 1]];
+  for (const [cx, cy] of corners) {
+    const t = towers.find(t => t.x === cx && t.y === cy);
+    if (!t || t.type !== 'aa' || t.level < 2) return;
+  }
+  cornerBonusTriggered = true;
+  money += 9999;
+  showMsg('🎰 ジャックポット！ 四隅対空ボーナス +$9999');
+}
+function checkDebugMode() {
+  const corners = [[0, 0], [COLS - 1, 0], [0, ROWS - 1], [COLS - 1, ROWS - 1]];
+  const allPellet = corners.every(([cx, cy]) => {
+    const t = towers.find(t => t.x === cx && t.y === cy);
+    return t && t.type === 'pellet';
+  });
+  if (allPellet !== debugMode) {
+    debugMode = allPellet;
+    showMsg(debugMode ? '🔧 DEBUG MODE ON' : '🔧 DEBUG MODE OFF');
+  }
+}
+function saveGame() {
+  if (gameEnded || paused) return;
+  if (inWave || spawnQueue.length > 0 || enemies.length > 0) return;
+  const data = {
+    v: 2, ts: Date.now(),
+    wave, money, lives, nextWaveTimer,
+    cornerBonus: cornerBonusTriggered,
+    towers: towers.map(t => ({ x: t.x, y: t.y, type: t.type, level: t.level }))
+  };
+  try { localStorage.setItem(SAVE_KEY, JSON.stringify(data)); } catch (e) {}
+}
+function loadSave() {
+  try {
+    const raw = localStorage.getItem(SAVE_KEY);
+    if (!raw) return null;
+    const d = JSON.parse(raw);
+    if (!d || (d.v !== 1 && d.v !== 2)) return null;
+    if (typeof d.wave !== 'number' || typeof d.money !== 'number' || typeof d.lives !== 'number') return null;
+    if (!Array.isArray(d.towers)) return null;
+    return d;
+  } catch (e) { return null; }
+}
+function applySave(d) {
+  grid = Array.from({ length: ROWS }, () => new Array(COLS).fill(0));
+  towers = d.towers
+    .filter(t => TOWER_TYPES[t.type] && t.level >= 1 && t.level <= TOWER_TYPES[t.type].levels.length
+                 && Number.isInteger(t.x) && Number.isInteger(t.y)
+                 && t.x >= 0 && t.x < COLS && t.y >= 0 && t.y < ROWS)
+    .map(t => ({ x: t.x, y: t.y, type: t.type, level: t.level, cooldown: 0 }));
+  for (const t of towers) grid[t.y][t.x] = 1;
+  enemies = [];
+  bullets = [];
+  explosions = [];
+  money = d.money;
+  lives = d.lives;
+  wave = d.wave;
+  inWave = false;
+  spawnQueue = [];
+  spawnTimer = 0;
+  gameEnded = false;
+  cornerBonusTriggered = !!d.cornerBonus;
+  debugMode = false;
+  checkDebugMode();
+  nextWaveTimer = (typeof d.nextWaveTimer === 'number' ? d.nextWaveTimer : NEXT_WAVE_DELAY);
+  selectedTower = null;
+  selectedTowerType = 'pellet';
+  document.querySelectorAll('.tower-btn').forEach(b => b.classList.remove('selected'));
+  const pelletBtn = document.querySelector('.tower-btn[data-type="pellet"]');
+  if (pelletBtn) pelletBtn.classList.add('selected');
+}
+function clearSave() { try { localStorage.removeItem(SAVE_KEY); } catch (e) {} }
+function loadHiscores() {
+  try {
+    const raw = localStorage.getItem(BEST_KEY);
+    if (!raw) return [];
+    const arr = JSON.parse(raw);
+    return Array.isArray(arr) ? arr.filter(x => x && typeof x.wave === 'number').slice(0, 5) : [];
+  } catch (e) { return []; }
+}
+function saveHiscore(w) {
+  const arr = loadHiscores();
+  const newEntry = { wave: w, ts: Date.now() };
+  arr.push(newEntry);
+  arr.sort((a, b) => b.wave - a.wave || a.ts - b.ts);
+  arr.length = Math.min(arr.length, 5);
+  try { localStorage.setItem(BEST_KEY, JSON.stringify(arr)); } catch (e) {}
+  return { list: arr, newEntry };
+}
+function getBest() {
+  const arr = loadHiscores();
+  return arr.length > 0 ? arr[0].wave : 0;
+}
+function renderHiscoreList(arr, newEntry) {
+  if (arr.length === 0) return '<div class="empty">記録なし</div>';
+  return arr.map((r, i) =>
+    '<div class="row' + (newEntry && r === newEntry ? ' new' : '') + '">' +
+    '<span class="rank">' + (i + 1) + '位</span>' +
+    '<span>ウェーブ ' + r.wave + '</span>' +
+    '</div>'
+  ).join('');
+}
+
+// --- main loop ---
+let lastTime = performance.now();
+function loop(now) {
+  const dt = Math.min((now - lastTime) / 1000, 0.05);
+  lastTime = now;
+  if (!gameEnded) update(dt);
+  draw();
+  requestAnimationFrame(loop);
+}
+
+function update(dt) {
+  if (paused) return;
+  audio.tick();
+  if (!inWave && !gameEnded && nextWaveTimer > 0) {
+    nextWaveTimer -= dt;
+    if (nextWaveTimer <= 0) {
+      nextWaveTimer = 0;
+      startWave();
+    }
+  }
+
+  if (inWave && spawnQueue.length > 0) {
+    spawnTimer -= dt;
+    if (spawnTimer <= 0) {
+      const next = spawnQueue.shift();
+      spawnEnemy(next.type, next.wave);
+      spawnTimer = next.delay;
+    }
+  }
+
+  for (const e of enemies) {
+    if (e.flying) {
+      const dx = e.goalX - e.x, dy = e.goalY - e.y;
+      const dist = Math.hypot(dx, dy);
+      const move = e.speed * dt;
+      if (dist <= move) {
+        e.x = e.goalX; e.y = e.goalY;
+        e.reachedGoal = true;
+      } else {
+        e.x += dx / dist * move;
+        e.y += dy / dist * move;
+      }
+      continue;
+    }
+    if (!e.path || e.pathIndex >= e.path.length) continue;
+    const target = e.path[e.pathIndex];
+    const tx = target.x * CELL + CELL / 2;
+    const ty = target.y * CELL + CELL / 2;
+    const dx = tx - e.x, dy = ty - e.y;
+    const dist = Math.hypot(dx, dy);
+    const move = e.speed * dt;
+    if (dist <= move) {
+      e.x = tx; e.y = ty;
+      e.pathIndex++;
+    } else {
+      e.x += dx / dist * move;
+      e.y += dy / dist * move;
+    }
+  }
+
+  let livesLostThisFrame = 0;
+  for (let i = enemies.length - 1; i >= 0; i--) {
+    const e = enemies[i];
+    const reached = e.flying ? e.reachedGoal : (e.path && e.pathIndex >= e.path.length);
+    if (reached) {
+      enemies.splice(i, 1);
+      lives--;
+      livesLostThisFrame++;
+      if (lives <= 0) gameOver();
+    }
+  }
+  if (livesLostThisFrame > 0) flashLives(livesLostThisFrame);
+
+  for (const t of towers) {
+    t.cooldown -= dt;
+    if (t.cooldown <= 0) {
+      const tt = towerStats(t);
+      const cx = t.x * CELL + CELL / 2;
+      const cy = t.y * CELL + CELL / 2;
+      let target = null;
+      let bestGoalDist = Infinity;
+      const gx = GOAL.x * CELL + CELL / 2;
+      const gy = GOAL.y * CELL + CELL / 2;
+      for (const e of enemies) {
+        if (tt.antiAir && !e.flying) continue;
+        const d = Math.hypot(e.x - cx, e.y - cy);
+        if (d > tt.range) continue;
+        const gd = Math.hypot(e.x - gx, e.y - gy);
+        if (gd < bestGoalDist) {
+          bestGoalDist = gd;
+          target = e;
+        }
+      }
+      if (target) {
+        bullets.push({
+          x: cx, y: cy,
+          target,
+          damage: tt.damage,
+          splash: tt.splash,
+          color: tt.bulletColor,
+          speed: tt.bulletSpeed
+        });
+        audio.play(t.type);
+        t.cooldown = tt.fireRate;
+      }
+    }
+  }
+
+  for (let i = bullets.length - 1; i >= 0; i--) {
+    const b = bullets[i];
+    if (b.target.hp <= 0) { bullets.splice(i, 1); continue; }
+    const dx = b.target.x - b.x;
+    const dy = b.target.y - b.y;
+    const dist = Math.hypot(dx, dy);
+    const move = b.speed * dt;
+    if (dist <= move) {
+      if (b.splash > 0) {
+        explosions.push({ x: b.target.x, y: b.target.y, radius: b.splash, age: 0 });
+        for (const e of enemies) {
+          const d = Math.hypot(e.x - b.target.x, e.y - b.target.y);
+          if (d <= b.splash) e.hp -= b.damage;
+        }
+      } else {
+        b.target.hp -= b.damage;
+      }
+      bullets.splice(i, 1);
+    } else {
+      b.x += dx / dist * move;
+      b.y += dy / dist * move;
+    }
+  }
+
+  for (let i = enemies.length - 1; i >= 0; i--) {
+    if (enemies[i].hp <= 0) {
+      money += enemies[i].reward;
+      enemies.splice(i, 1);
+    }
+  }
+
+  for (let i = explosions.length - 1; i >= 0; i--) {
+    explosions[i].age += dt;
+    if (explosions[i].age >= 0.45) explosions.splice(i, 1);
+  }
+
+  if (inWave && spawnQueue.length === 0 && enemies.length === 0) {
+    inWave = false;
+    const bonus = 20 + wave * 5;
+    money += bonus;
+    nextWaveTimer = NEXT_WAVE_DELAY;
+    showMsg('ウェーブ ' + wave + ' クリア！ +$' + bonus);
+    saveGame();
+  }
+
+  updateUI();
+}
+
+// --- draw ---
+function draw() {
+  ctx.fillStyle = '#2a2a2a';
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+  ctx.strokeStyle = '#333';
+  ctx.lineWidth = 1;
+  for (let x = 0; x <= COLS; x++) {
+    ctx.beginPath();
+    ctx.moveTo(x * CELL + 0.5, 0);
+    ctx.lineTo(x * CELL + 0.5, ROWS * CELL);
+    ctx.stroke();
+  }
+  for (let y = 0; y <= ROWS; y++) {
+    ctx.beginPath();
+    ctx.moveTo(0, y * CELL + 0.5);
+    ctx.lineTo(COLS * CELL, y * CELL + 0.5);
+    ctx.stroke();
+  }
+
+  ctx.fillStyle = '#1f5a3a';
+  ctx.fillRect(START.x * CELL, START.y * CELL, CELL, CELL);
+  ctx.fillStyle = '#5a3a1f';
+  ctx.fillRect(GOAL.x * CELL, GOAL.y * CELL, CELL, CELL);
+  ctx.fillStyle = '#fff';
+  ctx.font = 'bold 11px sans-serif';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText('IN', START.x * CELL + CELL/2, START.y * CELL + CELL/2);
+  ctx.fillText('OUT', GOAL.x * CELL + CELL/2, GOAL.y * CELL + CELL/2);
+
+  for (const t of towers) {
+    const tt = towerStats(t);
+    ctx.fillStyle = tt.color;
+    ctx.fillRect(t.x * CELL + 4, t.y * CELL + 4, CELL - 8, CELL - 8);
+    ctx.strokeStyle = '#000';
+    ctx.lineWidth = 1;
+    ctx.strokeRect(t.x * CELL + 4, t.y * CELL + 4, CELL - 8, CELL - 8);
+    const dotSpacing = t.level <= 3 ? 6 : 3.2;
+    const dotSize = t.level <= 3 ? 1.6 : 1.3;
+    const dotColor = t.level >= 6 ? '#f88' : (t.level >= 4 ? '#fc6' : '#ffe');
+    for (let i = 0; i < t.level; i++) {
+      ctx.fillStyle = dotColor;
+      ctx.beginPath();
+      ctx.arc(t.x * CELL + 8 + i * dotSpacing, t.y * CELL + 8, dotSize, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  }
+
+  if (selectedTower) {
+    const tt = towerStats(selectedTower);
+    const cx = selectedTower.x * CELL + CELL / 2;
+    const cy = selectedTower.y * CELL + CELL / 2;
+    ctx.strokeStyle = '#ff6';
+    ctx.lineWidth = 2;
+    ctx.strokeRect(selectedTower.x * CELL + 2, selectedTower.y * CELL + 2, CELL - 4, CELL - 4);
+    ctx.strokeStyle = 'rgba(255,255,128,0.55)';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.arc(cx, cy, tt.range, 0, Math.PI * 2);
+    ctx.stroke();
+  }
+
+  if (debugMode) {
+    ctx.strokeStyle = 'rgba(255, 128, 0, 0.25)';
+    ctx.lineWidth = 1;
+    for (const t of towers) {
+      if (t === selectedTower) continue;
+      const tt = towerStats(t);
+      ctx.beginPath();
+      ctx.arc(t.x * CELL + CELL / 2, t.y * CELL + CELL / 2, tt.range, 0, Math.PI * 2);
+      ctx.stroke();
+    }
+  }
+
+  if (mouseX >= 0) {
+    const cx = Math.floor(mouseX / CELL);
+    const cy = Math.floor(mouseY / CELL);
+    if (cx >= 0 && cx < COLS && cy >= 0 && cy < ROWS) {
+      const existingTower = towers.find(t => t.x === cx && t.y === cy);
+      if (existingTower) {
+        if (existingTower !== selectedTower) {
+          const tt = towerStats(existingTower);
+          ctx.strokeStyle = 'rgba(255,255,255,0.5)';
+          ctx.lineWidth = 1;
+          ctx.beginPath();
+          ctx.arc(cx * CELL + CELL/2, cy * CELL + CELL/2, tt.range, 0, Math.PI * 2);
+          ctx.stroke();
+        }
+      } else {
+        const ok = canPlaceTower(cx, cy);
+        const tt = TOWER_TYPES[selectedTowerType].levels[0];
+        ctx.fillStyle = ok ? 'rgba(108,204,255,0.25)' : 'rgba(255,80,80,0.3)';
+        ctx.fillRect(cx * CELL, cy * CELL, CELL, CELL);
+        if (ok) {
+          ctx.strokeStyle = 'rgba(255,255,255,0.4)';
+          ctx.lineWidth = 1;
+          ctx.beginPath();
+          ctx.arc(cx * CELL + CELL/2, cy * CELL + CELL/2, tt.range, 0, Math.PI * 2);
+          ctx.stroke();
+        }
+      }
+    }
+  }
+
+  for (const e of enemies) {
+    if (e.flying) {
+      ctx.fillStyle = 'rgba(0,0,0,0.35)';
+      ctx.beginPath();
+      ctx.ellipse(e.x, e.y + e.size + 4, e.size * 0.9, e.size * 0.35, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = e.color;
+      ctx.beginPath();
+      ctx.moveTo(e.x + e.size, e.y);
+      ctx.lineTo(e.x, e.y - e.size);
+      ctx.lineTo(e.x - e.size, e.y);
+      ctx.lineTo(e.x, e.y + e.size);
+      ctx.closePath();
+      ctx.fill();
+      ctx.strokeStyle = '#000';
+      ctx.lineWidth = 1;
+      ctx.stroke();
+    } else if (e.bonus) {
+      ctx.fillStyle = 'rgba(255,210,80,0.35)';
+      ctx.beginPath();
+      ctx.arc(e.x, e.y, e.size + 5, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = e.color;
+      ctx.beginPath();
+      ctx.arc(e.x, e.y, e.size, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.strokeStyle = '#a60';
+      ctx.lineWidth = 2;
+      ctx.stroke();
+      ctx.fillStyle = '#000';
+      ctx.font = 'bold 13px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText('$', e.x, e.y);
+    } else {
+      ctx.fillStyle = e.color;
+      ctx.beginPath();
+      ctx.arc(e.x, e.y, e.size, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.strokeStyle = '#000';
+      ctx.lineWidth = 1;
+      ctx.stroke();
+    }
+    const w = 22, h = 3;
+    ctx.fillStyle = '#400';
+    ctx.fillRect(e.x - w/2, e.y - e.size - 7, w, h);
+    ctx.fillStyle = '#3f3';
+    ctx.fillRect(e.x - w/2, e.y - e.size - 7, w * (e.hp / e.maxHp), h);
+  }
+
+  for (const b of bullets) {
+    if (b.splash > 0) {
+      ctx.fillStyle = 'rgba(255, 180, 60, 0.35)';
+      ctx.beginPath();
+      ctx.arc(b.x, b.y, 9, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = b.color;
+      ctx.beginPath();
+      ctx.arc(b.x, b.y, 5, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.strokeStyle = '#400';
+      ctx.lineWidth = 1;
+      ctx.stroke();
+      ctx.fillStyle = '#fff';
+      ctx.beginPath();
+      ctx.arc(b.x - 1.2, b.y - 1.2, 1.2, 0, Math.PI * 2);
+      ctx.fill();
+    } else {
+      ctx.fillStyle = b.color;
+      ctx.beginPath();
+      ctx.arc(b.x, b.y, 3, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  }
+
+  for (const ex of explosions) {
+    const t = Math.min(1, ex.age / 0.45);
+    const alpha = 1 - t;
+    const r = ex.radius * (0.35 + t * 0.7);
+    ctx.fillStyle = 'rgba(255, 180, 60, ' + (alpha * 0.32).toFixed(3) + ')';
+    ctx.beginPath();
+    ctx.arc(ex.x, ex.y, r, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(255, 230, 110, ' + alpha.toFixed(3) + ')';
+    ctx.lineWidth = 2 + (1 - t) * 2;
+    ctx.beginPath();
+    ctx.arc(ex.x, ex.y, r, 0, Math.PI * 2);
+    ctx.stroke();
+    if (t < 0.4) {
+      const flashR = ex.radius * 0.25 * (1 - t / 0.4);
+      const flashA = (1 - t / 0.4);
+      ctx.fillStyle = 'rgba(255, 255, 220, ' + flashA.toFixed(3) + ')';
+      ctx.beginPath();
+      ctx.arc(ex.x, ex.y, flashR, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  }
+
+}
+
+function updateUI() {
+  document.getElementById('money').textContent = money;
+  document.getElementById('lives').textContent = lives;
+  document.getElementById('wave').textContent = wave;
+  document.getElementById('best').textContent = getBest();
+  const debugBadge = document.getElementById('debug-badge');
+  if (debugBadge) debugBadge.style.display = debugMode ? 'block' : 'none';
+  const btn = document.getElementById('wave-btn');
+  if (gameEnded) {
+    btn.textContent = '—';
+    btn.disabled = true;
+  } else if (paused) {
+    btn.textContent = '一時停止';
+    btn.disabled = true;
+  } else if (inWave) {
+    btn.textContent = '次のウェーブを召喚 (Wave ' + (wave + 1) + ')';
+    btn.disabled = false;
+  } else if (nextWaveTimer > 0) {
+    btn.textContent = '次のウェーブまで ' + Math.ceil(nextWaveTimer) + 's (今すぐ開始)';
+    btn.disabled = false;
+  } else {
+    btn.textContent = 'ウェーブ開始';
+    btn.disabled = false;
+  }
+  if (selectedTower && !towers.includes(selectedTower)) selectedTower = null;
+  const ti = document.getElementById('tower-info');
+  if (selectedTower) {
+    ti.style.display = '';
+    const stats = towerStats(selectedTower);
+    const next = nextUpgrade(selectedTower);
+    document.getElementById('tower-info-content').innerHTML =
+      '<strong>' + TOWER_TYPES[selectedTower.type].name + ' Lv' + selectedTower.level + '</strong><br>' +
+      '<small>攻撃 ' + stats.damage + ' / 射程 ' + stats.range + '<br>' +
+      '連射 ' + stats.fireRate.toFixed(2) + 's' +
+      (stats.splash ? ' / 範囲 ' + stats.splash : '') +
+      (stats.antiAir ? ' / 対空のみ' : '') + '</small>';
+    const upBtn = document.getElementById('upgrade-btn');
+    if (next) {
+      const locked = !debugMode && next.unlockWave && wave < next.unlockWave;
+      if (locked) {
+        upBtn.textContent = 'Wave ' + next.unlockWave + ' で解禁';
+        upBtn.disabled = true;
+      } else {
+        const upCost = debugMode ? 0 : next.cost;
+        upBtn.textContent = '強化 $' + upCost + ' → Lv' + (selectedTower.level + 1);
+        upBtn.disabled = money < upCost;
+      }
+    } else {
+      upBtn.textContent = '最大レベル';
+      upBtn.disabled = true;
+    }
+    document.getElementById('sell-btn').textContent = '売却 +$' + sellValue(selectedTower);
+  } else {
+    ti.style.display = 'none';
+  }
+}
+
+let msgTimer = null;
+function showMsg(text) {
+  document.getElementById('msg').textContent = text;
+  clearTimeout(msgTimer);
+  msgTimer = setTimeout(() => {
+    document.getElementById('msg').textContent = '';
+  }, 2200);
+}
+function flashLives(n) {
+  const livesEl = document.getElementById('lives');
+  if (!livesEl) return;
+  const stat = livesEl.closest('.stat');
+  if (!stat) return;
+  stat.classList.remove('damaged');
+  void stat.offsetWidth;
+  stat.classList.add('damaged');
+  if (n >= 2) showMsg('-' + n + ' ❤️');
+}
+
+function gameOver() {
+  if (gameEnded) return;
+  gameEnded = true;
+  const { list, newEntry } = saveHiscore(wave);
+  const includedNew = list.includes(newEntry);
+  clearSave();
+  document.getElementById('gameover-wave').textContent = 'ウェーブ ' + wave + ' で力尽きた';
+  document.getElementById('gameover-hiscores').innerHTML =
+    renderHiscoreList(list, includedNew ? newEntry : null);
+  document.getElementById('gameover-overlay').classList.remove('hidden');
+  updateUI();
+}
+
+function restartGame() {
+  grid = Array.from({ length: ROWS }, () => new Array(COLS).fill(0));
+  towers = [];
+  enemies = [];
+  bullets = [];
+  explosions = [];
+  money = 75;
+  lives = 20;
+  wave = 0;
+  inWave = false;
+  spawnQueue = [];
+  spawnTimer = 0;
+  gameEnded = false;
+  paused = false;
+  cornerBonusTriggered = false;
+  debugMode = false;
+  nextWaveTimer = FIRST_WAVE_DELAY;
+  selectedTower = null;
+  selectedTowerType = 'pellet';
+  clearSave();
+  document.querySelectorAll('.tower-btn').forEach(b => b.classList.remove('selected'));
+  const pelletBtn = document.querySelector('.tower-btn[data-type="pellet"]');
+  if (pelletBtn) pelletBtn.classList.add('selected');
+  document.getElementById('gameover-overlay').classList.add('hidden');
+  document.getElementById('resume-overlay').classList.add('hidden');
+  clearTimeout(msgTimer);
+  document.getElementById('msg').textContent = '';
+  updateUI();
+}
+document.getElementById('restart-btn').addEventListener('click', restartGame);
+document.getElementById('resume-btn').addEventListener('click', () => {
+  const d = loadSave();
+  if (d) applySave(d);
+  paused = false;
+  document.getElementById('resume-overlay').classList.add('hidden');
+  updateUI();
+});
+document.getElementById('newgame-btn').addEventListener('click', () => {
+  clearSave();
+  paused = false;
+  document.getElementById('resume-overlay').classList.add('hidden');
+  updateUI();
+});
+
+function fitCanvas() {
+  const wrap = canvas.parentElement;
+  const availW = wrap.clientWidth;
+  const availH = wrap.clientHeight;
+  if (availW <= 0 || availH <= 0) return;
+  const aspect = COLS / ROWS;
+  let dispW, dispH;
+  if (availW / availH > aspect) {
+    dispH = availH;
+    dispW = dispH * aspect;
+  } else {
+    dispW = availW;
+    dispH = dispW / aspect;
+  }
+  const dpr = window.devicePixelRatio || 1;
+  canvas.style.width = dispW + 'px';
+  canvas.style.height = dispH + 'px';
+  canvas.width = Math.round(dispW * dpr);
+  canvas.height = Math.round(dispH * dpr);
+  const scale = canvas.width / (COLS * CELL);
+  ctx.setTransform(scale, 0, 0, scale, 0, 0);
+}
+window.addEventListener('resize', fitCanvas);
+fitCanvas();
+
+(function checkResume() {
+  const d = loadSave();
+  if (d) {
+    paused = true;
+    document.getElementById('resume-info').textContent =
+      'ウェーブ ' + d.wave + ' クリア時点 / 💰 $' + d.money + ' / ❤️ ' + d.lives + ' / タワー ' + d.towers.length;
+    document.getElementById('resume-overlay').classList.remove('hidden');
+  }
+})();
+
+updateUI();
+requestAnimationFrame(loop);
+</script>
+</body>
+</html>

@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>DTT-mini  バージョン選択</title>
+</head>
+<body bgcolor="#fffbe6" text="#222222" link="#0033cc" vlink="#660099">
+<center>
+
+<h1>★ DTT-mini ★</h1>
+<p>遊ぶバージョンを選んでください。</p>
+
+<table border="3" cellpadding="12" cellspacing="0" width="90%" bgcolor="#ffffff">
+  <tr bgcolor="#ffe4a0">
+    <th width="22%">バージョン</th>
+    <th width="48%">説明</th>
+    <th width="30%">起動</th>
+  </tr>
+  <tr>
+    <td align="center"><b>PC版</b><br><span id="rec-pc"></span></td>
+    <td>キーボード&amp;マウス向け。広い画面でじっくり遊べます。</td>
+    <td align="center"><a href="./pc.html">▶ PC版で開く</a></td>
+  </tr>
+  <tr>
+    <td align="center"><b>タブレット版</b><br><span id="rec-tablet"></span></td>
+    <td>タッチ操作向け。スマホ・タブレットでの操作に最適化。</td>
+    <td align="center"><a href="./tablet.html">▶ タブレット版で開く</a></td>
+  </tr>
+  <tr>
+    <td align="center"><b>攻略ガイド</b></td>
+    <td>遊び方・コツの解説ページ。</td>
+    <td align="center"><a href="./guide.html">▶ ガイドを開く</a></td>
+  </tr>
+</table>
+
+<p>
+<small>★ = あなたの環境からの推奨</small>
+</p>
+
+<hr width="80%">
+<p><a href="../">← K-games 一覧へもどる</a></p>
+
+</center>
+
+<script>
+(function () {
+  var isTouch = (navigator.maxTouchPoints && navigator.maxTouchPoints > 0)
+             || ('ontouchstart' in window);
+  var mark = '<font color="#cc0000"><b>★おすすめ</b></font>';
+  if (isTouch) {
+    document.getElementById('rec-tablet').innerHTML = mark;
+  } else {
+    document.getElementById('rec-pc').innerHTML = mark;
+  }
+})();
+</script>
+
+</body>
+</html>
