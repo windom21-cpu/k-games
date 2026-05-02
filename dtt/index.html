@@ -4,15 +4,41 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>DTT-mini  バージョン選択</title>
+<style>
+  body {
+    background: #ffffff;
+    color: #222222;
+    font-family: "MS PGothic", "Hiragino Kaku Gothic ProN", sans-serif;
+  }
+  a:link    { color: #0033cc; }
+  a:visited { color: #660099; }
+
+  table.frame {
+    border-collapse: collapse;
+    border: 4px double #000000;
+    background: #ffffff;
+    margin: 0 auto;
+  }
+  table.frame th,
+  table.frame td {
+    border: 1px solid #000000;
+    padding: 8px 14px;
+    vertical-align: middle;
+  }
+  table.frame th {
+    font-weight: bold;
+    text-align: center;
+  }
+</style>
 </head>
-<body bgcolor="#fffbe6" text="#222222" link="#0033cc" vlink="#660099">
+<body>
 <center>
 
 <h1>★ DTT-mini ★</h1>
 <p>遊ぶバージョンを選んでください。</p>
 
-<table border="3" cellpadding="12" cellspacing="0" width="90%" bgcolor="#ffffff">
-  <tr bgcolor="#ffe4a0">
+<table class="frame" width="90%">
+  <tr>
     <th width="22%">バージョン</th>
     <th width="48%">説明</th>
     <th width="30%">起動</th>
@@ -47,7 +73,7 @@
 (function () {
   var isTouch = (navigator.maxTouchPoints && navigator.maxTouchPoints > 0)
              || ('ontouchstart' in window);
-  var mark = '<font color="#cc0000"><b>★おすすめ</b></font>';
+  var mark = '<span style="color:#cc0000"><b>★おすすめ</b></span>';
   if (isTouch) {
     document.getElementById('rec-tablet').innerHTML = mark;
   } else {
