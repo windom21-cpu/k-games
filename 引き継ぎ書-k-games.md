@@ -306,3 +306,4 @@ URL を変えたときだけ焼き直し。現状すべて k-games URL で焼成
 - 2026-05-03 (同日改善): トップ `index.html` のテーブル枠を CSS の `4px double` から HTML 属性 `border="1"`(デフォルト cellspacing=2 で二重線風になる)に変更。`table.frame` 関連 CSS は削除。
 - 2026-05-03 (同日改善): 全公開HTML(`dtt/guide.html` を除く)の `font-family` を `"MS UI Gothic", "ＭＳ ＵＩ Ｇｏｔｈｉｃ", "MSUIGothic", "Hiragino Kaku Gothic ProN", sans-serif` に統一。Windows ではUIゴシック、それ以外は端末既定のヒラギノ/Noto等にフォールバック。
 - 2026-05-03 (新作追加): **しろくろ**(オセロ / リバーシ)を追加。CPU(よわい/ふつう/つよい の3段階)+ 2人プレイ。AI は negamax(α-β、depth=3 hard 時)+ 位置重みテーブル + モビリティ評価。トップ一覧の末尾に挿入。
+- 2026-05-03 (しろくろ v1.0.1): 候補マスのヒントを中央の丸ドット → 角丸四角ハイライトに変更。クリックできる場所が視覚的に分かりやすくなった(CSS のみ)。
