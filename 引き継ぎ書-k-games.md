@@ -1,6 +1,6 @@
 # 引き継ぎ書 — K-games (サイト全体)
 
-最終更新: 2026-05-03(SEO/OGP/canonical/ファビコン/404/テンプレ整備)
+最終更新: 2026-05-03(しろくろ追加 / 全ページ MS UI Gothic 統一 / トップ表をHTML border に変更)
 
 ---
 
@@ -70,12 +70,17 @@ k-games/
 │  ├─ index.html
 │  └─ qr.png                   ← cafe-merge 用QR(k-games URL で焼成済)
 │
+├─ shirokuro/                  ← しろくろ(オセロ)
+│  ├─ index.html
+│  └─ qr.png                   ← shirokuro 用QR(k-games URL で焼成済)
+│
 ├─ 引き継ぎ書-k-games.md       ← このファイル(サイト全体)
 ├─ 引き継ぎ書-DTT-mini.md      ← DTT-mini 詳細
 ├─ 引き継ぎ書-popins.md        ← ポピンズ 詳細
 ├─ 引き継ぎ書-shoot.md         ← 的当て 詳細
 ├─ 引き継ぎ書-ketorus.md       ← けとるす 詳細
-└─ 引き継ぎ書-cafe-merge.md    ← カフェマージ 詳細
+├─ 引き継ぎ書-cafe-merge.md    ← カフェマージ 詳細
+└─ 引き継ぎ書-shirokuro.md     ← しろくろ 詳細
 ```
 
 ⚠ 個別引き継ぎ書(`引き継ぎ書-<game>.md`)の本文中に書かれている「公開URL」は `dtt-mini` 時代の URL のまま。**本サイト URL は `https://windom21-cpu.github.io/k-games/<game>/` に置き換えて読む**こと。両URLとも現状生きているが、新規作業の主軸は `k-games` 側。
@@ -91,6 +96,7 @@ k-games/
 3. 的当て
 4. けとるす
 5. カフェマージ
+6. しろくろ
 
 並べ替えたいときはユーザーに確認してから。
 
@@ -287,6 +293,7 @@ URL を変えたときだけ焼き直し。現状すべて k-games URL で焼成
 | 的当て | `shoot/` | `引き継ぎ書-shoot.md` | https://windom21-cpu.github.io/k-games/shoot/ |
 | けとるす | `ketorus/` | `引き継ぎ書-ketorus.md` | https://windom21-cpu.github.io/k-games/ketorus/ |
 | カフェマージ | `cafe-merge/` | `引き継ぎ書-cafe-merge.md` | https://windom21-cpu.github.io/k-games/cafe-merge/ |
+| しろくろ | `shirokuro/` | `引き継ぎ書-shirokuro.md` | https://windom21-cpu.github.io/k-games/shirokuro/ |
 
 ---
 
@@ -296,3 +303,6 @@ URL を変えたときだけ焼き直し。現状すべて k-games URL で焼成
 - 2026-05-03 (同日改善): テーブル枠を「外枠 4px double / 内部 1px solid / 背景白」に統一。
 - 2026-05-03 (同日改善): 全ページに meta description / OGP / canonical を追加。404.html・README.md・新作テンプレ `_template/` を追加。各ゲーム配下のQRをすべて k-games URL で焼き直し。旧 `dtt-mini` リポジトリにも canonical と移転 README.md を追加(ゲーム本体DOMには手を入れず安全策)。
 - 2026-05-03 (同日改善): ファビコン v3 を採用(`favicon.svg`, `favicon-16/32/48.png`, `apple-touch-icon.png` 180×180, `icon-512.png`)。全ページに `<link rel="icon">` 群と `og:image` を追加(`_template` も同期)。試作版 v1/v2/v4 は削除。
+- 2026-05-03 (同日改善): トップ `index.html` のテーブル枠を CSS の `4px double` から HTML 属性 `border="1"`(デフォルト cellspacing=2 で二重線風になる)に変更。`table.frame` 関連 CSS は削除。
+- 2026-05-03 (同日改善): 全公開HTML(`dtt/guide.html` を除く)の `font-family` を `"MS UI Gothic", "ＭＳ ＵＩ Ｇｏｔｈｉｃ", "MSUIGothic", "Hiragino Kaku Gothic ProN", sans-serif` に統一。Windows ではUIゴシック、それ以外は端末既定のヒラギノ/Noto等にフォールバック。
+- 2026-05-03 (新作追加): **しろくろ**(オセロ / リバーシ)を追加。CPU(よわい/ふつう/つよい の3段階)+ 2人プレイ。AI は negamax(α-β、depth=3 hard 時)+ 位置重みテーブル + モビリティ評価。トップ一覧の末尾に挿入。

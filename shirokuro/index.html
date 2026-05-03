@@ -1,0 +1,537 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+<title>しろくろ — K-games</title>
+<meta name="description" content="ブラウザで遊べるオセロ。CPU対戦(3段階の強さ)と2人プレイに対応。PC/スマホ両対応。">
+<link rel="canonical" href="https://windom21-cpu.github.io/k-games/shirokuro/">
+<meta property="og:type" content="website">
+<meta property="og:title" content="しろくろ | K-games">
+<meta property="og:description" content="ブラウザで遊べるオセロ。CPU対戦(3段階)と2人プレイに対応。">
+<meta property="og:url" content="https://windom21-cpu.github.io/k-games/shirokuro/">
+<meta property="og:site_name" content="K-games">
+<meta name="twitter:card" content="summary">
+<meta property="og:image" content="https://windom21-cpu.github.io/k-games/icon-512.png">
+<meta property="og:image:width" content="512">
+<meta property="og:image:height" content="512">
+<link rel="icon" type="image/svg+xml" href="/k-games/favicon.svg">
+<link rel="icon" type="image/png" sizes="32x32" href="/k-games/favicon-32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="/k-games/favicon-16.png">
+<link rel="apple-touch-icon" href="/k-games/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-title" content="K-games">
+<style>
+  :root {
+    --bg: #1a2233;
+    --fg: #f0f0f0;
+    --muted: #98a0b8;
+    --board-bg: #2f7a4f;
+    --board-line: #173d28;
+    --hint: rgba(255,255,255,0.30);
+    --accent: #ffcc55;
+    --panel: rgba(255,255,255,0.06);
+    --panel-border: #4a5478;
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0; padding: 0;
+    background: var(--bg); color: var(--fg);
+    font-family: "MS UI Gothic", "ＭＳ ＵＩ Ｇｏｔｈｉｃ", "MSUIGothic", "Hiragino Kaku Gothic ProN", sans-serif;
+    -webkit-tap-highlight-color: transparent;
+    user-select: none; -webkit-user-select: none;
+  }
+  body {
+    min-height: 100vh;
+    display: flex; flex-direction: column;
+    align-items: center;
+    padding: 10px 10px 20px;
+    gap: 10px;
+  }
+  .topbar {
+    width: min(95vw, 540px);
+    display: flex; justify-content: space-between; align-items: center;
+    font-size: 13px;
+  }
+  .topbar a { color: var(--accent); text-decoration: none; }
+  .topbar a:hover { text-decoration: underline; }
+  .topbar .ver { color: var(--muted); font-size: 11px; }
+  h1 { font-size: 22px; margin: 0 0 4px; letter-spacing: 0.1em; font-weight: bold; }
+
+  .scores {
+    width: min(95vw, 540px);
+    display: flex; justify-content: space-between; gap: 8px;
+  }
+  .score {
+    flex: 1;
+    background: var(--panel);
+    padding: 6px 12px;
+    border-radius: 8px;
+    display: flex; align-items: center; gap: 8px;
+    border: 2px solid transparent;
+    transition: border-color 0.2s, background 0.2s;
+  }
+  .score.active { border-color: var(--accent); background: rgba(255,204,85,0.08); }
+  .score-disc {
+    width: 22px; height: 22px; border-radius: 50%;
+    flex-shrink: 0; position: relative;
+    box-shadow:
+      inset -1px -2px 3px rgba(0,0,0,0.50),
+      inset 1px 1px 2px rgba(255,255,255,0.25);
+  }
+  .score-disc::after {
+    content: ''; position: absolute;
+    top: 14%; left: 20%;
+    width: 38%; height: 26%; border-radius: 50%;
+    background: rgba(255,255,255,0.55);
+    filter: blur(1px);
+  }
+  .score-disc.black { background-color: #0e0e14; }
+  .score-disc.white { background-color: #f5f3eb; border: 1px solid #b8b3a0; }
+  .score-name { font-size: 14px; }
+  .score-num { font-weight: bold; font-size: 22px; margin-left: auto; min-width: 1.5em; text-align: right; }
+
+  .status {
+    min-height: 22px; font-size: 15px; text-align: center;
+    color: var(--fg);
+  }
+  .status .end { font-size: 18px; font-weight: bold; color: var(--accent); }
+  .status .pass { color: var(--muted); }
+
+  .board {
+    display: grid;
+    grid-template-columns: repeat(8, 1fr);
+    width: min(95vw, 540px);
+    aspect-ratio: 1 / 1;
+    background: var(--board-bg);
+    border: 3px solid #0a2415;
+    border-radius: 4px;
+    box-shadow: 0 6px 18px rgba(0,0,0,0.5);
+    touch-action: manipulation;
+  }
+  .cell {
+    border: 1px solid var(--board-line);
+    position: relative;
+    cursor: default;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .cell.hint { cursor: pointer; }
+  .cell.hint::after {
+    content: '';
+    position: absolute;
+    width: 26%; height: 26%;
+    border-radius: 50%;
+    background: var(--hint);
+    pointer-events: none;
+  }
+  .cell.hint:hover::after { background: rgba(255,255,255,0.55); }
+  .disc {
+    width: 82%; aspect-ratio: 1/1;
+    border-radius: 50%;
+    transition: background-color 0.30s;
+    background-color: #0e0e14;
+    position: relative;
+    box-shadow:
+      0 3px 5px rgba(0,0,0,0.50),                  /* 盤面への落ち影 */
+      0 1px 2px rgba(0,0,0,0.30),
+      inset -3px -4px 8px rgba(0,0,0,0.55),        /* 右下の暗部(球の陰) */
+      inset 3px 3px 6px rgba(255,255,255,0.22);    /* 左上の明部(球の照り) */
+  }
+  .disc::before {
+    /* 主ハイライト(碁石のテカり) */
+    content: ''; position: absolute;
+    top: 8%; left: 16%;
+    width: 44%; height: 32%;
+    border-radius: 50%;
+    background: radial-gradient(ellipse at 45% 45%,
+      rgba(255,255,255,0.90) 0%,
+      rgba(255,255,255,0.40) 40%,
+      rgba(255,255,255,0)    78%);
+    filter: blur(1px);
+    pointer-events: none;
+  }
+  .disc::after {
+    /* 副ハイライト(下部のかすかな光) */
+    content: ''; position: absolute;
+    bottom: 18%; right: 22%;
+    width: 18%; height: 12%;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.28);
+    filter: blur(2px);
+    pointer-events: none;
+  }
+  .disc.black { background-color: #0e0e14; }
+  .disc.white { background-color: #f5f3eb; }
+  .disc.placing { animation: place 0.20s ease-out; }
+  @keyframes place {
+    from { transform: scale(0.2); opacity: 0.3; }
+    to   { transform: scale(1.0); opacity: 1; }
+  }
+
+  .controls {
+    width: min(95vw, 540px);
+    display: flex; flex-wrap: wrap; gap: 6px 10px; justify-content: center;
+    font-size: 13px;
+  }
+  .controls label { display: inline-flex; align-items: center; gap: 4px; }
+  .controls select, .controls button {
+    font: inherit; font-size: 13px;
+    background: #2c3450; color: var(--fg);
+    border: 1px solid var(--panel-border);
+    border-radius: 4px;
+    padding: 5px 10px;
+    min-height: 32px;
+  }
+  .controls button {
+    cursor: pointer; background: var(--accent); color: #1a2233; font-weight: bold;
+    border-color: #b88a30;
+  }
+  .controls button:active { transform: translateY(1px); }
+
+  @media (max-width: 380px) {
+    h1 { font-size: 19px; }
+    .score-num { font-size: 18px; }
+    .controls { font-size: 12px; }
+    .controls select, .controls button { font-size: 12px; padding: 4px 8px; }
+  }
+</style>
+</head>
+<body>
+  <div class="topbar">
+    <a href="../">← K-games 一覧へもどる</a>
+    <span class="ver" id="ver"></span>
+  </div>
+  <h1>★ しろくろ ★</h1>
+
+  <div class="scores">
+    <div class="score" id="score-black">
+      <div class="score-disc black"></div>
+      <span class="score-name">黒</span>
+      <span class="score-num" id="num-black">2</span>
+    </div>
+    <div class="score" id="score-white">
+      <div class="score-disc white"></div>
+      <span class="score-name">白</span>
+      <span class="score-num" id="num-white">2</span>
+    </div>
+  </div>
+
+  <div class="status" id="status">手番: ● 黒</div>
+
+  <div class="board" id="board" aria-label="オセロ盤"></div>
+
+  <div class="controls">
+    <label>モード:
+      <select id="mode">
+        <option value="cpu">CPUと対戦</option>
+        <option value="human">2人プレイ</option>
+      </select>
+    </label>
+    <label id="player-color-label">あなた:
+      <select id="player-color">
+        <option value="B">黒(先手)</option>
+        <option value="W">白(後手)</option>
+      </select>
+    </label>
+    <label id="difficulty-label">強さ:
+      <select id="difficulty">
+        <option value="easy">よわい</option>
+        <option value="normal" selected>ふつう</option>
+        <option value="hard">つよい</option>
+      </select>
+    </label>
+    <button id="reset">最初から</button>
+  </div>
+
+<script>
+'use strict';
+
+const VERSION = 'v1.0.0';
+document.getElementById('ver').textContent = VERSION;
+
+const SIZE = 8;
+const B = 'B', W = 'W', E = null;
+const DIRS = [
+  [-1,-1],[-1,0],[-1,1],
+  [ 0,-1],       [ 0,1],
+  [ 1,-1],[ 1,0],[ 1,1],
+];
+
+const WEIGHTS = [
+  [100,-25, 10,  5,  5, 10,-25,100],
+  [-25,-50,  1,  1,  1,  1,-50,-25],
+  [ 10,  1,  5,  2,  2,  5,  1, 10],
+  [  5,  1,  2,  1,  1,  2,  1,  5],
+  [  5,  1,  2,  1,  1,  2,  1,  5],
+  [ 10,  1,  5,  2,  2,  5,  1, 10],
+  [-25,-50,  1,  1,  1,  1,-50,-25],
+  [100,-25, 10,  5,  5, 10,-25,100],
+];
+
+let board, turn, mode, playerColor, difficulty, gameOver;
+let aiThinking = false;
+let passMessage = '';
+let cellEls = [];
+
+function newBoard() {
+  const b = Array.from({length: SIZE}, () => Array(SIZE).fill(E));
+  b[3][3] = W; b[4][4] = W;
+  b[3][4] = B; b[4][3] = B;
+  return b;
+}
+
+function inBounds(r, c) { return r >= 0 && r < SIZE && c >= 0 && c < SIZE; }
+function opp(p) { return p === B ? W : B; }
+
+function flipsFor(b, r, c, player) {
+  if (b[r][c] !== E) return [];
+  const flips = [];
+  for (const [dr, dc] of DIRS) {
+    const line = [];
+    let rr = r + dr, cc = c + dc;
+    while (inBounds(rr, cc) && b[rr][cc] === opp(player)) {
+      line.push([rr, cc]);
+      rr += dr; cc += dc;
+    }
+    if (line.length > 0 && inBounds(rr, cc) && b[rr][cc] === player) {
+      for (const p of line) flips.push(p);
+    }
+  }
+  return flips;
+}
+
+function validMoves(b, player) {
+  const moves = [];
+  for (let r = 0; r < SIZE; r++) for (let c = 0; c < SIZE; c++) {
+    const f = flipsFor(b, r, c, player);
+    if (f.length > 0) moves.push({r, c, flips: f});
+  }
+  return moves;
+}
+
+function applyMove(b, move, player) {
+  b[move.r][move.c] = player;
+  for (const [r, c] of move.flips) b[r][c] = player;
+}
+
+function cloneBoard(b) { return b.map(row => row.slice()); }
+
+function countDiscs(b) {
+  let bk = 0, wh = 0;
+  for (const row of b) for (const v of row) {
+    if (v === B) bk++;
+    else if (v === W) wh++;
+  }
+  return {B: bk, W: wh};
+}
+
+function evalForPlayer(b, player) {
+  let s = 0;
+  for (let r = 0; r < SIZE; r++) for (let c = 0; c < SIZE; c++) {
+    if (b[r][c] === player) s += WEIGHTS[r][c];
+    else if (b[r][c] === opp(player)) s -= WEIGHTS[r][c];
+  }
+  s += (validMoves(b, player).length - validMoves(b, opp(player)).length) * 3;
+  return s;
+}
+
+function negamax(b, player, depth, alpha, beta) {
+  if (depth === 0) return evalForPlayer(b, player);
+  const moves = validMoves(b, player);
+  if (moves.length === 0) {
+    if (validMoves(b, opp(player)).length === 0) {
+      const cnt = countDiscs(b);
+      const my = player === B ? cnt.B : cnt.W;
+      const op = player === B ? cnt.W : cnt.B;
+      if (my > op) return 100000 + (my - op);
+      if (my < op) return -100000 - (op - my);
+      return 0;
+    }
+    return -negamax(b, opp(player), depth - 1, -beta, -alpha);
+  }
+  let best = -Infinity;
+  for (const m of moves) {
+    const nb = cloneBoard(b);
+    applyMove(nb, m, player);
+    const score = -negamax(nb, opp(player), depth - 1, -beta, -alpha);
+    if (score > best) best = score;
+    if (best > alpha) alpha = best;
+    if (alpha >= beta) break;
+  }
+  return best;
+}
+
+function aiMove() {
+  const moves = validMoves(board, turn);
+  if (moves.length === 0) return null;
+  if (difficulty === 'easy') {
+    return moves[Math.floor(Math.random() * moves.length)];
+  }
+  if (difficulty === 'normal') {
+    let best = -Infinity, picks = [];
+    for (const m of moves) {
+      const score = m.flips.length + WEIGHTS[m.r][m.c];
+      if (score > best) { best = score; picks = [m]; }
+      else if (score === best) picks.push(m);
+    }
+    return picks[Math.floor(Math.random() * picks.length)];
+  }
+  const me = turn;
+  let bestScore = -Infinity, bestMove = moves[0];
+  for (const m of moves) {
+    const nb = cloneBoard(board);
+    applyMove(nb, m, me);
+    const score = -negamax(nb, opp(me), 2, -Infinity, Infinity);
+    if (score > bestScore) { bestScore = score; bestMove = m; }
+  }
+  return bestMove;
+}
+
+function buildBoard() {
+  const boardEl = document.getElementById('board');
+  boardEl.innerHTML = '';
+  cellEls = [];
+  for (let r = 0; r < SIZE; r++) {
+    cellEls[r] = [];
+    for (let c = 0; c < SIZE; c++) {
+      const cell = document.createElement('div');
+      cell.className = 'cell';
+      cell.addEventListener('click', () => onCellClick(r, c));
+      boardEl.appendChild(cell);
+      cellEls[r][c] = cell;
+    }
+  }
+}
+
+function updateBoard() {
+  const showHints = !gameOver && !aiThinking && (mode === 'human' || turn === playerColor);
+  const moves = (gameOver || aiThinking) ? [] : validMoves(board, turn);
+  const moveSet = new Set(moves.map(m => `${m.r},${m.c}`));
+
+  for (let r = 0; r < SIZE; r++) {
+    for (let c = 0; c < SIZE; c++) {
+      const cell = cellEls[r][c];
+      const val = board[r][c];
+      const isHint = showHints && moveSet.has(`${r},${c}`);
+      cell.classList.toggle('hint', isHint);
+
+      let disc = cell.querySelector('.disc');
+      if (val === E) {
+        if (disc) disc.remove();
+      } else {
+        const colorClass = val === B ? 'black' : 'white';
+        if (!disc) {
+          disc = document.createElement('div');
+          disc.className = `disc ${colorClass} placing`;
+          disc.addEventListener('animationend', () => disc.classList.remove('placing'), {once: true});
+          cell.appendChild(disc);
+        } else if (!disc.classList.contains(colorClass)) {
+          disc.classList.remove('black', 'white');
+          disc.classList.add(colorClass);
+        }
+      }
+    }
+  }
+  updateStatus();
+}
+
+function updateStatus() {
+  const cnt = countDiscs(board);
+  document.getElementById('num-black').textContent = cnt.B;
+  document.getElementById('num-white').textContent = cnt.W;
+  document.getElementById('score-black').classList.toggle('active', !gameOver && turn === B);
+  document.getElementById('score-white').classList.toggle('active', !gameOver && turn === W);
+
+  const statusEl = document.getElementById('status');
+  if (gameOver) {
+    let msg;
+    if (cnt.B > cnt.W) msg = `黒の勝ち (${cnt.B}-${cnt.W})`;
+    else if (cnt.W > cnt.B) msg = `白の勝ち (${cnt.W}-${cnt.B})`;
+    else msg = `引き分け (${cnt.B}-${cnt.W})`;
+    statusEl.innerHTML = `<span class="end">ゲーム終了 — ${msg}</span>`;
+    return;
+  }
+  const turnLabel = turn === B ? '● 黒' : '○ 白';
+  let who = '';
+  if (mode === 'cpu') who = (turn === playerColor) ? '(あなた)' : '(CPU)';
+  let prefix = '';
+  if (passMessage) prefix = `<span class="pass">${passMessage} → </span>`;
+  if (aiThinking) {
+    statusEl.innerHTML = `${prefix}CPU 思考中…`;
+  } else {
+    statusEl.innerHTML = `${prefix}手番: ${turnLabel} ${who}`;
+  }
+}
+
+function onCellClick(r, c) {
+  if (gameOver || aiThinking) return;
+  if (mode === 'cpu' && turn !== playerColor) return;
+  const move = validMoves(board, turn).find(m => m.r === r && m.c === c);
+  if (!move) return;
+  doMove(move);
+}
+
+function doMove(move) {
+  passMessage = '';
+  applyMove(board, move, turn);
+  turn = opp(turn);
+  checkPassOrEnd();
+  updateBoard();
+  if (!gameOver && mode === 'cpu' && turn !== playerColor) {
+    scheduleAI();
+  }
+}
+
+function checkPassOrEnd() {
+  if (validMoves(board, turn).length > 0) return;
+  if (validMoves(board, opp(turn)).length === 0) {
+    gameOver = true;
+    return;
+  }
+  passMessage = (turn === B ? '黒' : '白') + 'はパス';
+  turn = opp(turn);
+}
+
+function scheduleAI() {
+  aiThinking = true;
+  updateBoard();
+  const delay = passMessage ? 900 : 450;
+  setTimeout(() => {
+    const move = aiMove();
+    aiThinking = false;
+    if (move) doMove(move);
+    else { checkPassOrEnd(); updateBoard(); }
+  }, delay);
+}
+
+function reset() {
+  board = newBoard();
+  turn = B;
+  gameOver = false;
+  aiThinking = false;
+  passMessage = '';
+  updateBoard();
+  if (mode === 'cpu' && playerColor === W) {
+    scheduleAI();
+  }
+}
+
+function readControls() {
+  mode = document.getElementById('mode').value;
+  playerColor = document.getElementById('player-color').value;
+  difficulty = document.getElementById('difficulty').value;
+  const cpuOnly = mode === 'cpu' ? '' : 'none';
+  document.getElementById('player-color-label').style.display = cpuOnly;
+  document.getElementById('difficulty-label').style.display = cpuOnly;
+}
+
+document.getElementById('mode').addEventListener('change', () => { readControls(); reset(); });
+document.getElementById('player-color').addEventListener('change', () => { readControls(); reset(); });
+document.getElementById('difficulty').addEventListener('change', readControls);
+document.getElementById('reset').addEventListener('click', reset);
+
+buildBoard();
+readControls();
+reset();
+</script>
+</body>
+</html>
