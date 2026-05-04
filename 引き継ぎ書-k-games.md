@@ -1,6 +1,6 @@
 # 引き継ぎ書 — K-games (サイト全体)
 
-最終更新: 2026-05-03(しろくろ追加 / 全ページ MS UI Gothic 統一 / トップ表をHTML border に変更)
+最終更新: 2026-05-04(サイコロ大戦争追加)
 
 ---
 
@@ -74,13 +74,18 @@ k-games/
 │  ├─ index.html
 │  └─ qr.png                   ← shirokuro 用QR(k-games URL で焼成済)
 │
+├─ saikoro-wars/               ← サイコロ大戦争(陣地取り)
+│  ├─ index.html
+│  └─ qr.png                   ← saikoro-wars 用QR(k-games URL で焼成済)
+│
 ├─ 引き継ぎ書-k-games.md       ← このファイル(サイト全体)
 ├─ 引き継ぎ書-DTT-mini.md      ← DTT-mini 詳細
 ├─ 引き継ぎ書-popins.md        ← ポピンズ 詳細
 ├─ 引き継ぎ書-shoot.md         ← 的当て 詳細
 ├─ 引き継ぎ書-ketorus.md       ← けとるす 詳細
 ├─ 引き継ぎ書-cafe-merge.md    ← カフェマージ 詳細
-└─ 引き継ぎ書-shirokuro.md     ← しろくろ 詳細
+├─ 引き継ぎ書-shirokuro.md     ← しろくろ 詳細
+└─ 引き継ぎ書-saikoro-wars.md  ← サイコロ大戦争 詳細
 ```
 
 ⚠ 個別引き継ぎ書(`引き継ぎ書-<game>.md`)の本文中に書かれている「公開URL」は `dtt-mini` 時代の URL のまま。**本サイト URL は `https://windom21-cpu.github.io/k-games/<game>/` に置き換えて読む**こと。両URLとも現状生きているが、新規作業の主軸は `k-games` 側。
@@ -97,6 +102,7 @@ k-games/
 4. けとるす
 5. カフェマージ
 6. しろくろ
+7. サイコロ大戦争
 
 並べ替えたいときはユーザーに確認してから。
 
@@ -294,6 +300,7 @@ URL を変えたときだけ焼き直し。現状すべて k-games URL で焼成
 | けとるす | `ketorus/` | `引き継ぎ書-ketorus.md` | https://windom21-cpu.github.io/k-games/ketorus/ |
 | カフェマージ | `cafe-merge/` | `引き継ぎ書-cafe-merge.md` | https://windom21-cpu.github.io/k-games/cafe-merge/ |
 | しろくろ | `shirokuro/` | `引き継ぎ書-shirokuro.md` | https://windom21-cpu.github.io/k-games/shirokuro/ |
+| サイコロ大戦争 | `saikoro-wars/` | `引き継ぎ書-saikoro-wars.md` | https://windom21-cpu.github.io/k-games/saikoro-wars/ |
 
 ---
 
@@ -307,3 +314,4 @@ URL を変えたときだけ焼き直し。現状すべて k-games URL で焼成
 - 2026-05-03 (同日改善): 全公開HTML(`dtt/guide.html` を除く)の `font-family` を `"MS UI Gothic", "ＭＳ ＵＩ Ｇｏｔｈｉｃ", "MSUIGothic", "Hiragino Kaku Gothic ProN", sans-serif` に統一。Windows ではUIゴシック、それ以外は端末既定のヒラギノ/Noto等にフォールバック。
 - 2026-05-03 (新作追加): **しろくろ**(オセロ / リバーシ)を追加。CPU(よわい/ふつう/つよい の3段階)+ 2人プレイ。AI は negamax(α-β、depth=3 hard 時)+ 位置重みテーブル + モビリティ評価。トップ一覧の末尾に挿入。
 - 2026-05-03 (しろくろ v1.0.1): 候補マスのヒントを中央の丸ドット → 角丸四角ハイライトに変更。クリックできる場所が視覚的に分かりやすくなった(CSS のみ)。
+- 2026-05-04 (新作追加): **サイコロ大戦争**(Dice Wars 風の陣地取り)を追加。関東地方の7都県を六角タイル46マスで表現、4人プレイ(あなた + CPU3体)、CPU 3段階(よわい/ふつう/つよい)。AI は 期待勝率テーブル + 連結領域成長 + 反撃リスク評価。トップ一覧と 404.html(あわせて しろくろ も追加)に登録。

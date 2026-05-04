@@ -1,0 +1,892 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+<title>サイコロ大戦争 — K-games</title>
+<meta name="description" content="関東地方を舞台にしたDice Wars風の陣地取りゲーム。あなた vs CPU3体の4人プレイ、3段階の難度。">
+<link rel="canonical" href="https://windom21-cpu.github.io/k-games/saikoro-wars/">
+<meta property="og:type" content="website">
+<meta property="og:title" content="サイコロ大戦争 | K-games">
+<meta property="og:description" content="関東地方を舞台にしたDice Wars風の陣地取りゲーム。4人プレイ・3段階のCPU難度。">
+<meta property="og:url" content="https://windom21-cpu.github.io/k-games/saikoro-wars/">
+<meta property="og:site_name" content="K-games">
+<meta name="twitter:card" content="summary">
+<meta property="og:image" content="https://windom21-cpu.github.io/k-games/icon-512.png">
+<meta property="og:image:width" content="512">
+<meta property="og:image:height" content="512">
+<link rel="icon" type="image/svg+xml" href="/k-games/favicon.svg">
+<link rel="icon" type="image/png" sizes="32x32" href="/k-games/favicon-32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="/k-games/favicon-16.png">
+<link rel="apple-touch-icon" href="/k-games/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-title" content="K-games">
+<style>
+  :root {
+    --bg: #f0e8d0;
+    --fg: #222;
+    --muted: #666;
+    --board-bg: #d4e7f0;
+    --p0: #d63338;
+    --p1: #2c6ed5;
+    --p2: #2ea64a;
+    --p3: #d49a00;
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0; padding: 0;
+    background: var(--bg); color: var(--fg);
+    font-family: "MS UI Gothic", "ＭＳ ＵＩ Ｇｏｔｈｉｃ", "MSUIGothic", "Hiragino Kaku Gothic ProN", sans-serif;
+    -webkit-tap-highlight-color: transparent;
+    -webkit-text-size-adjust: 100%;
+    user-select: none; -webkit-user-select: none;
+  }
+  body {
+    min-height: 100vh;
+    display: flex; flex-direction: column;
+    align-items: center;
+    padding: 8px 8px 18px;
+    gap: 8px;
+  }
+  .topbar {
+    width: min(96vw, 540px);
+    display: flex; justify-content: space-between; align-items: center;
+    font-size: 13px;
+  }
+  .topbar a { color: #0033cc; text-decoration: none; }
+  .topbar a:visited { color: #660099; }
+  .topbar a:hover { text-decoration: underline; }
+  .topbar .ver { color: var(--muted); font-size: 11px; }
+  h1 { font-size: 22px; margin: 4px 0; letter-spacing: 0.05em; font-weight: bold; }
+  .screen { width: min(96vw, 540px); }
+
+  /* Title screen */
+  #title-screen { padding: 8px 0; text-align: center; }
+  #title-screen h1 { font-size: 28px; }
+  #title-screen .lead { line-height: 1.6; margin: 8px 0; }
+  .rules {
+    background: #fff; border: 2px solid #444;
+    padding: 10px 14px; margin: 10px 0;
+    text-align: left; font-size: 13px; line-height: 1.55;
+  }
+  .rules ul { margin: 4px 0; padding-left: 1.2em; }
+  .diff-pick { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; margin: 14px 0; }
+  .diff-pick button {
+    font-family: inherit; font-size: 16px;
+    padding: 12px 22px;
+    background: #fff; border: 2px solid #444;
+    cursor: pointer; min-width: 100px;
+  }
+  .diff-pick button:hover { background: #ffe0a0; }
+  .diff-pick .easy   { color: #2c6ed5; }
+  .diff-pick .normal { color: #cc6611; }
+  .diff-pick .hard   { color: #cc2222; }
+
+  /* Game screen */
+  .players { display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; margin: 4px 0; }
+  .player {
+    background: #fff; border: 2px solid #888;
+    padding: 4px 4px; font-size: 12px; line-height: 1.25;
+    text-align: center;
+  }
+  .player.active { border-color: #ffc000; background: #ffefb0; font-weight: bold; }
+  .player.dead { opacity: 0.4; text-decoration: line-through; }
+  .player .nm { display: block; font-size: 12px; }
+  .player .st { display: block; font-size: 13px; }
+  .player.p0 .nm { color: var(--p0); }
+  .player.p1 .nm { color: var(--p1); }
+  .player.p2 .nm { color: var(--p2); }
+  .player.p3 .nm { color: var(--p3); }
+
+  .turn-msg {
+    text-align: center; font-size: 15px; font-weight: bold;
+    min-height: 22px; margin: 2px 0;
+  }
+  .log {
+    text-align: center; font-size: 12px; color: var(--muted);
+    min-height: 18px; margin: 0; word-break: break-all;
+  }
+
+  .board-wrap { width: 100%; display: flex; justify-content: center; }
+  svg.board {
+    width: 100%; max-width: 460px; height: auto;
+    background: var(--board-bg);
+    border: 2px solid #555;
+    touch-action: manipulation;
+  }
+  svg.board polygon { cursor: pointer; }
+  svg.board polygon.attack-target {
+    stroke: #fff !important; stroke-width: 2.4 !important;
+    stroke-dasharray: 4 2;
+    animation: pulse 0.7s ease-in-out infinite;
+  }
+  svg.board polygon.selected {
+    stroke: #ffe600 !important; stroke-width: 3.4 !important;
+  }
+  svg.board text { pointer-events: none; }
+  @keyframes pulse {
+    0%, 100% { stroke-opacity: 1; }
+    50% { stroke-opacity: 0.35; }
+  }
+
+  .controls { text-align: center; margin: 8px 0 4px; display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; }
+  .controls button {
+    font-family: inherit; font-size: 15px;
+    padding: 9px 20px;
+    background: #fff; border: 2px solid #444;
+    cursor: pointer;
+  }
+  .controls button:hover:not(:disabled) { background: #ffe0a0; }
+  .controls button:disabled { opacity: 0.4; cursor: default; }
+  .controls .end-turn { font-weight: bold; }
+  .controls .resign { font-size: 13px; padding: 9px 14px; }
+
+  /* Result modal */
+  .modal {
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,0.45);
+    display: flex; align-items: center; justify-content: center;
+    z-index: 100;
+  }
+  .modal[hidden] { display: none; }
+  .modal-card {
+    background: #fff; padding: 24px 28px;
+    border: 4px double #000;
+    min-width: 240px; text-align: center;
+    font-family: inherit;
+  }
+  .modal-card h2 { font-size: 28px; margin: 4px 0 12px; letter-spacing: 0.1em; }
+  .modal-card .winner-row {
+    display: flex; align-items: center; justify-content: center; gap: 10px;
+    font-size: 18px; margin: 8px 0 12px;
+  }
+  .modal-card .dot {
+    display: inline-block; width: 22px; height: 22px; border-radius: 50%;
+    border: 2px solid #000;
+  }
+  .modal-card p.detail { font-size: 13px; color: #444; margin: 6px 0 14px; }
+  .modal-card button {
+    font-family: inherit; font-size: 15px;
+    padding: 8px 16px; margin: 4px;
+    background: #fff; border: 2px solid #444;
+    cursor: pointer;
+  }
+  .modal-card button:hover { background: #ffe0a0; }
+
+  .footer {
+    width: min(96vw, 540px);
+    text-align: center; font-size: 11px; color: var(--muted);
+    margin-top: 4px;
+  }
+  .footer a { color: #0033cc; }
+  .footer a:visited { color: #660099; }
+</style>
+</head>
+<body>
+  <div class="topbar">
+    <a href="../">← K-games 一覧へもどる</a>
+    <span class="ver">v1.0.0</span>
+  </div>
+
+  <!-- TITLE SCREEN -->
+  <div class="screen" id="title-screen">
+    <h1>★ サイコロ大戦争 ★</h1>
+    <p class="lead">
+      関東地方を舞台にした陣地取りゲーム<br>
+      あなた(<span style="color:var(--p0)">●赤</span>)+CPU3体(<span style="color:var(--p1)">●青</span> / <span style="color:var(--p2)">●緑</span> / <span style="color:var(--p3)">●黄</span>)の4人プレイ
+    </p>
+    <div class="rules">
+      <b>あそびかた</b>
+      <ul>
+        <li>各マスに1〜8個のサイコロが置かれます</li>
+        <li>自分のマス(2個以上)→隣接する敵マスをタップして攻撃</li>
+        <li>双方の全サイコロを振って <b>合計が大きい方</b> が勝ち(同点は守備側勝ち)</li>
+        <li>勝てば敵マスを奪取(攻撃元は1個残し、残りサイコロを奪った先へ移動)</li>
+        <li>負ければ攻撃元のサイコロは1個まで減ります</li>
+        <li>「ターン終了」を押すと、自分の <b>最大連結領土</b> の数だけサイコロが補充される(満タン超過分は備蓄に持ち越し)</li>
+        <li>1人だけ残れば勝利。全滅すると敗北。</li>
+      </ul>
+    </div>
+    <p>難度を選んで開始:</p>
+    <div class="diff-pick">
+      <button data-diff="easy"   class="easy">よわい</button>
+      <button data-diff="normal" class="normal">ふつう</button>
+      <button data-diff="hard"   class="hard">つよい</button>
+    </div>
+  </div>
+
+  <!-- GAME SCREEN -->
+  <div class="screen" id="game-screen" hidden>
+    <div class="players" id="players-row"></div>
+    <div class="turn-msg" id="turn-msg"></div>
+    <div class="board-wrap"><svg class="board" id="board" viewBox="0 0 410 470"></svg></div>
+    <div class="log" id="log"></div>
+    <div class="controls">
+      <button id="end-turn" class="end-turn">ターン終了</button>
+      <button id="resign" class="resign">投了してタイトルへ</button>
+    </div>
+  </div>
+
+  <!-- RESULT MODAL -->
+  <div class="modal" id="result-modal" hidden>
+    <div class="modal-card">
+      <h2 id="result-title">結果</h2>
+      <div class="winner-row">
+        <span class="dot" id="result-dot"></span>
+        <span id="result-name"></span>
+      </div>
+      <p class="detail" id="result-detail"></p>
+      <button id="result-restart">もう一度</button>
+      <button id="result-title-btn">タイトルへ</button>
+    </div>
+  </div>
+
+  <div class="footer">
+    <a href="../">K-games トップへ</a>
+  </div>
+
+<script>
+"use strict";
+
+const VERSION = "v1.0.0";
+
+// =============================================================
+// マップデータ — 関東風hex(46マス、7都県)
+// 形式: [col, row, prefCode]   pointy-top, odd-r offset
+// =============================================================
+const HEX_DATA = [
+  [1,0,'GU'],[2,0,'GU'],[3,0,'TO'],[4,0,'TO'],[5,0,'TO'],
+  [0,1,'GU'],[1,1,'GU'],[2,1,'GU'],[3,1,'TO'],[4,1,'TO'],[5,1,'IB'],
+  [1,2,'GU'],[2,2,'SA'],[3,2,'SA'],[4,2,'TO'],[5,2,'IB'],[6,2,'IB'],
+  [0,3,'SA'],[1,3,'SA'],[2,3,'SA'],[3,3,'SA'],[4,3,'IB'],[5,3,'IB'],
+  [1,4,'SA'],[2,4,'TK'],[3,4,'TK'],[4,4,'CH'],[5,4,'IB'],[6,4,'IB'],
+  [0,5,'TK'],[1,5,'TK'],[2,5,'TK'],[3,5,'CH'],[4,5,'CH'],[5,5,'CH'],
+  [1,6,'KN'],[2,6,'KN'],[3,6,'TK'],[4,6,'CH'],[5,6,'CH'],[6,6,'CH'],
+  [2,7,'KN'],[3,7,'KN'],[4,7,'KN'],[5,7,'CH'],
+  [2,8,'KN']
+];
+
+const PREF_NAMES = {
+  GU:'群馬', TO:'栃木', IB:'茨城',
+  SA:'埼玉', TK:'東京', CH:'千葉', KN:'神奈川'
+};
+
+const PLAYER_COLORS = ['#d63338','#2c6ed5','#2ea64a','#d49a00'];
+const PLAYER_NAMES  = ['あなた','CPU青','CPU緑','CPU黄'];
+
+const HEX_SIZE = 32;
+const HEX_W = Math.sqrt(3) * HEX_SIZE;
+
+// =============================================================
+// サイコロ合計勝率テーブル(攻撃側 a 個 vs 守備側 d 個、攻撃側勝率)
+// =============================================================
+function diceSumDist(n) {
+  let dist = [1];
+  for (let i = 0; i < n; i++) {
+    const next = new Array(dist.length + 5).fill(0);
+    for (let s = 0; s < dist.length; s++) {
+      for (let f = 1; f <= 6; f++) next[s + f] += dist[s];
+    }
+    dist = next;
+  }
+  return dist;
+}
+function calcWinProb(a, d) {
+  if (a === 0) return 0;
+  if (d === 0) return 1;
+  const da = diceSumDist(a);
+  const dd = diceSumDist(d);
+  let win = 0;
+  for (let sa = 0; sa < da.length; sa++) {
+    for (let sd = 0; sd < dd.length; sd++) {
+      if (sa > sd) win += da[sa] * dd[sd];
+    }
+  }
+  return win / (Math.pow(6, a) * Math.pow(6, d));
+}
+const WIN_PROB = {};
+for (let a = 1; a <= 8; a++) {
+  WIN_PROB[a] = {};
+  for (let d = 1; d <= 8; d++) WIN_PROB[a][d] = calcWinProb(a, d);
+}
+
+// =============================================================
+// ゲーム状態
+// =============================================================
+const G = {
+  hexes: [],   // {id, col, row, pref, x, y, owner, dice}
+  adj: [],
+  turn: 0,
+  difficulty: 'normal',
+  selected: null,
+  alive: [true, true, true, true],
+  stock: [0, 0, 0, 0],
+  busy: false,
+  gameOver: false,
+  battle: null, // {fromId, toId, ar, dr, win}
+};
+
+// =============================================================
+// マップ構築 + 隣接生成
+// =============================================================
+function buildMap() {
+  G.hexes = HEX_DATA.map(([c,r,p], i) => {
+    const x = HEX_W * (c + (r % 2) * 0.5 + 0.5) + 5;
+    const y = 1.5 * HEX_SIZE * r + HEX_SIZE + 5;
+    return { id: i, col: c, row: r, pref: p, x, y, owner: -1, dice: 0 };
+  });
+  const map = {};
+  G.hexes.forEach(h => { map[h.col + ',' + h.row] = h.id; });
+  G.adj = G.hexes.map(h => {
+    const c = h.col, r = h.row;
+    const cands = (r % 2 === 0)
+      ? [[c-1,r],[c+1,r],[c-1,r-1],[c,r-1],[c-1,r+1],[c,r+1]]
+      : [[c-1,r],[c+1,r],[c,r-1],[c+1,r-1],[c,r+1],[c+1,r+1]];
+    return cands.map(([cc,rr]) => map[cc+','+rr]).filter(id => id !== undefined);
+  });
+}
+
+// =============================================================
+// 初期配置: 4色のクラスタを4方向から拡張
+// =============================================================
+function distributeOwnership() {
+  G.hexes.forEach(h => h.owner = -1);
+  // 4 spread-out seeds via max-min hex distance
+  const allIds = G.hexes.map(h => h.id);
+  const seeds = [allIds[Math.floor(Math.random() * allIds.length)]];
+  while (seeds.length < 4) {
+    let bestId = -1, bestDist = -1;
+    for (const id of allIds) {
+      if (seeds.includes(id)) continue;
+      let minD = Infinity;
+      for (const s of seeds) {
+        const d = hexDist(id, s);
+        if (d < minD) minD = d;
+      }
+      if (minD > bestDist) { bestDist = minD; bestId = id; }
+    }
+    seeds.push(bestId);
+  }
+  // randomize seed→player assignment
+  for (let i = seeds.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [seeds[i], seeds[j]] = [seeds[j], seeds[i]];
+  }
+  seeds.forEach((id, p) => G.hexes[id].owner = p);
+  // round-robin frontier expansion
+  let progress = true;
+  while (progress) {
+    progress = false;
+    const order = [0,1,2,3].sort(() => Math.random() - 0.5);
+    for (const p of order) {
+      const frontier = [];
+      for (const h of G.hexes) {
+        if (h.owner !== p) continue;
+        for (const n of G.adj[h.id]) {
+          if (G.hexes[n].owner === -1) frontier.push(n);
+        }
+      }
+      if (frontier.length === 0) continue;
+      const pick = frontier[Math.floor(Math.random() * frontier.length)];
+      G.hexes[pick].owner = p;
+      progress = true;
+    }
+  }
+  // safety: any orphan to random player
+  G.hexes.forEach(h => {
+    if (h.owner === -1) h.owner = Math.floor(Math.random() * 4);
+  });
+}
+
+function hexDist(a, b) {
+  if (a === b) return 0;
+  const visited = new Set([a]);
+  let layer = [a];
+  let dist = 0;
+  while (layer.length) {
+    dist++;
+    const next = [];
+    for (const id of layer) {
+      for (const n of G.adj[id]) {
+        if (n === b) return dist;
+        if (!visited.has(n)) { visited.add(n); next.push(n); }
+      }
+    }
+    layer = next;
+  }
+  return Infinity;
+}
+
+// =============================================================
+// 初期サイコロ配置 — 各マス1個から、各プレイヤーに領地数×2個追加
+// =============================================================
+function distributeDice() {
+  G.hexes.forEach(h => h.dice = 1);
+  for (let p = 0; p < 4; p++) {
+    const my = G.hexes.filter(h => h.owner === p);
+    let extra = my.length * 2;
+    while (extra > 0) {
+      const cands = my.filter(h => h.dice < 8);
+      if (cands.length === 0) break;
+      const t = cands[Math.floor(Math.random() * cands.length)];
+      t.dice++; extra--;
+    }
+  }
+}
+
+// =============================================================
+// 連結成分 & 補充
+// =============================================================
+function largestRegion(player) {
+  const seen = new Set();
+  let best = 0;
+  for (const h of G.hexes) {
+    if (h.owner !== player || seen.has(h.id)) continue;
+    let size = 0;
+    const stack = [h.id];
+    while (stack.length) {
+      const id = stack.pop();
+      if (seen.has(id)) continue;
+      seen.add(id); size++;
+      for (const n of G.adj[id]) {
+        if (G.hexes[n].owner === player && !seen.has(n)) stack.push(n);
+      }
+    }
+    if (size > best) best = size;
+  }
+  return best;
+}
+
+function reinforce(player) {
+  let n = largestRegion(player) + G.stock[player];
+  G.stock[player] = 0;
+  while (n > 0) {
+    const cands = G.hexes.filter(h => h.owner === player && h.dice < 8);
+    if (cands.length === 0) break;
+    const t = cands[Math.floor(Math.random() * cands.length)];
+    t.dice++; n--;
+  }
+  G.stock[player] = Math.min(n, 64);
+}
+
+function rollSum(n) {
+  let s = 0;
+  for (let i = 0; i < n; i++) s += 1 + Math.floor(Math.random() * 6);
+  return s;
+}
+
+// =============================================================
+// 攻撃可能手の列挙
+// =============================================================
+function getValidAttacks(player) {
+  const moves = [];
+  for (const h of G.hexes) {
+    if (h.owner !== player || h.dice < 2) continue;
+    for (const n of G.adj[h.id]) {
+      const t = G.hexes[n];
+      if (t.owner !== player && t.owner >= 0) moves.push({ from: h.id, to: n });
+    }
+  }
+  return moves;
+}
+
+// =============================================================
+// CPU AI(3段階)
+// =============================================================
+function pickAIMove(player, diff) {
+  const moves = getValidAttacks(player);
+  if (moves.length === 0) return null;
+
+  if (diff === 'easy') {
+    // 攻撃側 ≥ 守備側 の手のみ採用、ランダム選択(無策)
+    const good = moves.filter(m => G.hexes[m.from].dice >= G.hexes[m.to].dice);
+    if (good.length === 0) return null;
+    return good[Math.floor(Math.random() * good.length)];
+  }
+
+  if (diff === 'normal') {
+    // 攻撃側 > 守備側 を優先、上位3手からランダム
+    const good = moves.filter(m => G.hexes[m.from].dice > G.hexes[m.to].dice);
+    if (good.length === 0) return null;
+    good.sort((a,b) =>
+      (G.hexes[b.from].dice - G.hexes[b.to].dice)
+      - (G.hexes[a.from].dice - G.hexes[a.to].dice)
+    );
+    const top = good.slice(0, Math.min(3, good.length));
+    return top[Math.floor(Math.random() * top.length)];
+  }
+
+  // hard: 期待勝率 + 領土拡大 - 反撃リスク
+  const beforeMax = largestRegion(player);
+  const scored = moves.map(m => {
+    const a = G.hexes[m.from].dice, d = G.hexes[m.to].dice;
+    const wp = WIN_PROB[a][d];
+    if (wp < 0.55) return { m, score: -1 };
+    // simulate win
+    const sav = { ow: G.hexes[m.to].owner, td: G.hexes[m.to].dice, fd: G.hexes[m.from].dice };
+    G.hexes[m.to].owner = player;
+    G.hexes[m.to].dice = a - 1;
+    G.hexes[m.from].dice = 1;
+    const afterMax = largestRegion(player);
+    G.hexes[m.to].owner = sav.ow;
+    G.hexes[m.to].dice = sav.td;
+    G.hexes[m.from].dice = sav.fd;
+    const gain = afterMax - beforeMax;
+    let danger = 0;
+    for (const nid of G.adj[m.to]) {
+      const nh = G.hexes[nid];
+      if (nh.owner !== player && nh.owner >= 0) danger += nh.dice;
+    }
+    const score = wp * 100 + gain * 25 - danger * 0.5 + (a - 1 - d) * 2;
+    return { m, score };
+  });
+  scored.sort((x, y) => y.score - x.score);
+  if (scored[0].score < 30) return null;
+  return scored[0].m;
+}
+
+// =============================================================
+// 攻撃実行 (人 / AI 共通)
+// =============================================================
+function executeAttack(fromId, toId) {
+  return new Promise(resolve => {
+    G.busy = true;
+    G.selected = null;
+    const a = G.hexes[fromId].dice;
+    const d = G.hexes[toId].dice;
+    const ar = rollSum(a);
+    const dr = rollSum(d);
+    const win = ar > dr;
+    G.battle = { fromId, toId, ar, dr, win };
+    render();
+    const fp = PREF_NAMES[G.hexes[fromId].pref];
+    const tp = PREF_NAMES[G.hexes[toId].pref];
+    const fpn = PLAYER_NAMES[G.hexes[fromId].owner];
+    const tpn = PLAYER_NAMES[G.hexes[toId].owner];
+    setLog(`${fpn}${fp}(${a})→${tpn}${tp}(${d}): ${ar} vs ${dr} → ${win?'勝利':'失敗'}`);
+    setTimeout(() => {
+      if (win) {
+        G.hexes[toId].owner = G.hexes[fromId].owner;
+        G.hexes[toId].dice = a - 1;
+        G.hexes[fromId].dice = 1;
+      } else {
+        G.hexes[fromId].dice = 1;
+      }
+      G.battle = null;
+      checkAlive();
+      render();
+      G.busy = false;
+      if (G.gameOver) showResult();
+      resolve();
+    }, 950);
+  });
+}
+
+function checkAlive() {
+  for (let p = 0; p < 4; p++) {
+    if (!G.alive[p]) continue;
+    if (!G.hexes.some(h => h.owner === p)) G.alive[p] = false;
+  }
+  if (!G.alive[0]) G.gameOver = true; // 人が脱落したら終了
+  if (G.alive.filter(a => a).length <= 1) G.gameOver = true;
+}
+
+// =============================================================
+// ターン管理
+// =============================================================
+async function endTurn() {
+  if (G.gameOver) return;
+  G.busy = true;
+  G.selected = null;
+  reinforce(G.turn);
+  do {
+    G.turn = (G.turn + 1) % 4;
+  } while (!G.alive[G.turn] && G.alive.some(a => a));
+  render();
+  G.busy = false;
+  if (G.turn !== 0 && !G.gameOver) {
+    aiTurn();
+  }
+}
+
+async function aiTurn() {
+  const player = G.turn;
+  await sleep(700);
+  let attacks = 0;
+  while (!G.gameOver && attacks < 20) {
+    if (G.turn !== player) break;
+    const move = pickAIMove(player, G.difficulty);
+    if (!move) break;
+    attacks++;
+    await executeAttack(move.from, move.to);
+    if (G.gameOver) return;
+    if (!G.alive[player]) break;
+    await sleep(450);
+  }
+  if (!G.gameOver) endTurn();
+}
+
+function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+// =============================================================
+// 入力(クリック / タップ)
+// =============================================================
+function onHexClick(id) {
+  if (G.busy || G.gameOver || G.turn !== 0) return;
+  const h = G.hexes[id];
+  if (h.owner === 0) {
+    if (h.dice >= 2) {
+      G.selected = (G.selected === id) ? null : id;
+    } else {
+      G.selected = null;
+    }
+    render();
+  } else if (G.selected !== null && canAttack(G.selected, id)) {
+    executeAttack(G.selected, id);
+  } else {
+    G.selected = null;
+    render();
+  }
+}
+
+function canAttack(fromId, toId) {
+  if (!G.adj[fromId].includes(toId)) return false;
+  const f = G.hexes[fromId], t = G.hexes[toId];
+  return f.dice >= 2 && t.owner !== f.owner && t.owner >= 0;
+}
+
+// =============================================================
+// 描画
+// =============================================================
+function svgEl(name, attrs) {
+  const e = document.createElementNS('http://www.w3.org/2000/svg', name);
+  for (const k in attrs) e.setAttribute(k, attrs[k]);
+  return e;
+}
+
+function hexPoints(cx, cy, r) {
+  const pts = [];
+  for (let i = 0; i < 6; i++) {
+    const a = Math.PI / 3 * i + Math.PI / 6; // pointy-top
+    pts.push((cx + r * Math.cos(a)).toFixed(1) + ',' + (cy + r * Math.sin(a)).toFixed(1));
+  }
+  return pts.join(' ');
+}
+
+function darkenHex(hex, ratio) {
+  const r = parseInt(hex.slice(1,3),16);
+  const g = parseInt(hex.slice(3,5),16);
+  const b = parseInt(hex.slice(5,7),16);
+  const f = (1 - ratio);
+  return '#' + [r,g,b].map(c => Math.max(0, Math.floor(c*f)).toString(16).padStart(2,'0')).join('');
+}
+
+function render() {
+  const svg = document.getElementById('board');
+  while (svg.firstChild) svg.removeChild(svg.firstChild);
+
+  // attackable hex set from selected
+  const attackable = new Set();
+  if (G.selected !== null) {
+    for (const n of G.adj[G.selected]) {
+      if (canAttack(G.selected, n)) attackable.add(n);
+    }
+  }
+
+  // hex polygons
+  for (const h of G.hexes) {
+    const fill = h.owner >= 0 ? PLAYER_COLORS[h.owner] : '#888';
+    const poly = svgEl('polygon', {
+      points: hexPoints(h.x, h.y, HEX_SIZE - 1),
+      fill,
+      stroke: darkenHex(fill, 0.45),
+      'stroke-width': 1.2,
+      'data-id': h.id,
+    });
+    if (G.selected === h.id) poly.classList.add('selected');
+    if (attackable.has(h.id)) poly.classList.add('attack-target');
+    svg.appendChild(poly);
+  }
+
+  // 都県名(マス上部に1文字、薄く)
+  for (const h of G.hexes) {
+    const lbl = svgEl('text', {
+      x: h.x, y: h.y - HEX_SIZE * 0.50,
+      'text-anchor': 'middle',
+      'dominant-baseline': 'central',
+      'font-size': 10,
+      fill: '#ffffff',
+      opacity: 0.85,
+      stroke: '#000', 'stroke-width': 0.4,
+      'paint-order': 'stroke',
+    });
+    lbl.textContent = PREF_NAMES[h.pref][0];
+    svg.appendChild(lbl);
+  }
+
+  // dice 数値
+  for (const h of G.hexes) {
+    const txt = svgEl('text', {
+      x: h.x, y: h.y + 4,
+      'text-anchor': 'middle',
+      'dominant-baseline': 'central',
+      'font-size': 22, 'font-weight': 'bold',
+      fill: '#fff', stroke: '#000', 'stroke-width': 0.8,
+      'paint-order': 'stroke',
+    });
+    txt.textContent = h.dice;
+    svg.appendChild(txt);
+  }
+
+  // 戦闘ロール表示(攻撃側・守備側の上に円バッジ)
+  if (G.battle) {
+    const f = G.hexes[G.battle.fromId];
+    const t = G.hexes[G.battle.toId];
+    [[f, G.battle.ar], [t, G.battle.dr]].forEach(([hex, val]) => {
+      const cy = Math.max(hex.y - HEX_SIZE - 6, 14);
+      const bg = svgEl('circle', {
+        cx: hex.x, cy, r: 14,
+        fill: '#222', stroke: '#ffeb3b', 'stroke-width': 2,
+      });
+      svg.appendChild(bg);
+      const txt = svgEl('text', {
+        x: hex.x, y: cy,
+        'text-anchor': 'middle',
+        'dominant-baseline': 'central',
+        'font-size': 16, 'font-weight': 'bold',
+        fill: '#ffeb3b',
+      });
+      txt.textContent = val;
+      svg.appendChild(txt);
+    });
+  }
+
+  updateStatus();
+}
+
+function updateStatus() {
+  const el = document.getElementById('players-row');
+  let html = '';
+  for (let p = 0; p < 4; p++) {
+    const cnt = G.hexes.filter(h => h.owner === p).length;
+    const dice = G.hexes.filter(h => h.owner === p).reduce((s,h) => s + h.dice, 0);
+    const dead = !G.alive[p];
+    const active = G.turn === p && !G.gameOver && !dead;
+    const stockTxt = G.stock[p] > 0 ? ` +${G.stock[p]}` : '';
+    html += `<div class="player p${p} ${active?'active':''} ${dead?'dead':''}">`
+      + `<span class="nm">${PLAYER_NAMES[p]}</span>`
+      + `<span class="st">${cnt}地 / ${dice}🎲${stockTxt}</span>`
+      + `</div>`;
+  }
+  el.innerHTML = html;
+
+  const tm = document.getElementById('turn-msg');
+  if (G.gameOver) {
+    tm.textContent = '';
+  } else if (G.turn === 0) {
+    if (G.selected !== null) tm.textContent = '攻撃する敵マスをタップ(自分のマス再タップで解除)';
+    else tm.textContent = 'あなたの番 — 攻撃するマスをタップ';
+  } else {
+    tm.textContent = `${PLAYER_NAMES[G.turn]}の番…`;
+  }
+
+  document.getElementById('end-turn').disabled = G.busy || G.gameOver || G.turn !== 0;
+}
+
+let logTimer = null;
+function setLog(msg) {
+  const el = document.getElementById('log');
+  el.textContent = msg;
+  if (logTimer) clearTimeout(logTimer);
+  logTimer = setTimeout(() => { if (el.textContent === msg) el.textContent = ''; }, 4500);
+}
+
+// =============================================================
+// 結果表示
+// =============================================================
+function showResult() {
+  const aliveCnt = G.alive.filter(a => a).length;
+  let winner = -1;
+  if (aliveCnt === 1) {
+    winner = G.alive.findIndex(a => a);
+  } else {
+    // 人が脱落して複数AIが残っている場合は領地数最大を勝者扱い
+    let max = -1;
+    for (let p = 0; p < 4; p++) {
+      if (!G.alive[p]) continue;
+      const cnt = G.hexes.filter(h => h.owner === p).length;
+      if (cnt > max) { max = cnt; winner = p; }
+    }
+    if (winner < 0) winner = 1; // fallback
+  }
+  const title = document.getElementById('result-title');
+  const dot = document.getElementById('result-dot');
+  const name = document.getElementById('result-name');
+  const detail = document.getElementById('result-detail');
+  if (winner === 0) title.textContent = '★ 勝利! ★';
+  else title.textContent = '敗北…';
+  dot.style.background = PLAYER_COLORS[winner] || '#888';
+  name.textContent = PLAYER_NAMES[winner] + ' の勝ち';
+  const cnt = G.hexes.filter(h => h.owner === winner).length;
+  const diff = { easy: 'よわい', normal: 'ふつう', hard: 'つよい' }[G.difficulty] || '';
+  detail.textContent = `占領 ${cnt}/${G.hexes.length}地 / 難度: ${diff}`;
+  document.getElementById('result-modal').hidden = false;
+}
+
+// =============================================================
+// ゲーム開始 / 終了
+// =============================================================
+function startGame(diff) {
+  G.difficulty = diff;
+  distributeOwnership();
+  distributeDice();
+  G.turn = 0;
+  G.alive = [true, true, true, true];
+  G.stock = [0, 0, 0, 0];
+  G.selected = null;
+  G.gameOver = false;
+  G.battle = null;
+  G.busy = false;
+  document.getElementById('title-screen').hidden = true;
+  document.getElementById('game-screen').hidden = false;
+  document.getElementById('result-modal').hidden = true;
+  setLog('');
+  render();
+}
+
+function backToTitle() {
+  document.getElementById('game-screen').hidden = true;
+  document.getElementById('title-screen').hidden = false;
+  document.getElementById('result-modal').hidden = true;
+}
+
+// =============================================================
+// 初期化 / イベント結線
+// =============================================================
+buildMap();
+
+document.querySelectorAll('#title-screen .diff-pick button').forEach(btn => {
+  btn.addEventListener('click', () => startGame(btn.dataset.diff));
+});
+
+document.getElementById('board').addEventListener('click', e => {
+  let t = e.target;
+  while (t && !(t.dataset && t.dataset.id)) t = t.parentNode;
+  if (t && t.dataset && t.dataset.id) onHexClick(parseInt(t.dataset.id, 10));
+});
+
+document.getElementById('end-turn').addEventListener('click', () => {
+  if (G.busy || G.gameOver || G.turn !== 0) return;
+  endTurn();
+});
+
+document.getElementById('resign').addEventListener('click', () => {
+  if (confirm('投了してタイトルへ戻りますか?')) backToTitle();
+});
+
+document.getElementById('result-restart').addEventListener('click', () => {
+  startGame(G.difficulty);
+});
+document.getElementById('result-title-btn').addEventListener('click', backToTitle);
+</script>
+</body>
+</html>
