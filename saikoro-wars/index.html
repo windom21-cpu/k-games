@@ -140,7 +140,7 @@
   .controls .end-turn { font-weight: bold; }
   .controls .resign { font-size: 13px; padding: 9px 14px; }
 
-  /* Result modal */
+  /* Modal common */
   .modal {
     position: fixed; inset: 0;
     background: rgba(0,0,0,0.45);
@@ -154,7 +154,7 @@
     min-width: 240px; text-align: center;
     font-family: inherit;
   }
-  .modal-card h2 { font-size: 28px; margin: 4px 0 12px; letter-spacing: 0.1em; }
+  .modal-card h2 { font-size: 24px; margin: 4px 0 12px; letter-spacing: 0.05em; }
   .modal-card .winner-row {
     display: flex; align-items: center; justify-content: center; gap: 10px;
     font-size: 18px; margin: 8px 0 12px;
@@ -171,6 +171,52 @@
     cursor: pointer;
   }
   .modal-card button:hover { background: #ffe0a0; }
+  .modal-card button.primary {
+    background: #ffd34d; border-color: #cc6611;
+  }
+  .modal-card button.primary:hover { background: #ffba1f; }
+
+  /* Submission modal */
+  #submit-modal .modal-card { max-width: 360px; }
+  #submit-modal h2 { font-size: 20px; line-height: 1.4; }
+  #submit-modal .opp-row {
+    display: flex; align-items: center; justify-content: center; gap: 12px;
+    margin: 10px 0 6px; font-size: 14px;
+  }
+
+  /* PK modal */
+  #pk-modal .modal-card { min-width: 300px; max-width: 420px; padding: 20px 24px; }
+  .pk-title { font-size: 18px; margin: 0 0 4px; letter-spacing: 0.1em; font-weight: bold; }
+  .pk-subtitle { font-size: 13px; color: #666; margin: 0 0 12px; }
+  .pk-round { font-size: 16px; font-weight: bold; margin: 8px 0; color: #cc6611; min-height: 22px; }
+  .pk-rows {
+    background: #f8f5e8; border: 2px solid #888;
+    padding: 10px 12px; margin: 8px 0;
+  }
+  .pk-row {
+    display: grid;
+    grid-template-columns: 24px minmax(72px, auto) 1fr 60px;
+    align-items: center; gap: 6px;
+    padding: 6px 0;
+    font-size: 14px;
+    text-align: left;
+  }
+  .pk-row + .pk-row { border-top: 1px dashed #aaa; }
+  .pk-row .dot { width: 16px; height: 16px; border-radius: 50%; border: 1.5px solid #000; }
+  .pk-row .dice { font-size: 22px; letter-spacing: 4px; }
+  .pk-row .sum { font-weight: bold; font-size: 17px; text-align: right; }
+  .pk-row.win-flash { background: rgba(255,235,59,0.4); }
+  .pk-result { font-size: 16px; font-weight: bold; margin: 6px 0 10px; min-height: 24px; }
+  .pk-result.win  { color: #2c8a30; }
+  .pk-result.lose { color: #cc2222; }
+  .pk-result.draw { color: #666; }
+  .pk-score {
+    display: flex; flex-direction: column; gap: 4px;
+    font-size: 15px; margin: 8px 0 12px;
+  }
+  .pk-score .row { display: flex; justify-content: space-between; align-items: center; }
+  .pk-score .pips { font-size: 18px; letter-spacing: 3px; }
+  .pk-score .you  { color: var(--p0); }
 
   .footer {
     width: min(96vw, 540px);
@@ -184,7 +230,7 @@
 <body>
   <div class="topbar">
     <a href="../">← K-games 一覧へもどる</a>
-    <span class="ver">v1.0.0</span>
+    <span class="ver">v1.1.0</span>
   </div>
 
   <!-- TITLE SCREEN -->
@@ -226,6 +272,53 @@
     </div>
   </div>
 
+  <!-- SUBMISSION CHOICE MODAL (圧倒/されている時) -->
+  <div class="modal" id="submit-modal" hidden>
+    <div class="modal-card">
+      <h2 id="submit-title">服従の選択</h2>
+      <p class="detail" id="submit-detail"></p>
+      <div class="opp-row">
+        <span class="dot" id="submit-you-dot" style="background:var(--p0)"></span>
+        <span id="submit-you-info"></span>
+        <span style="margin: 0 4px;">vs</span>
+        <span class="dot" id="submit-opp-dot"></span>
+        <span id="submit-opp-info"></span>
+      </div>
+      <p class="detail" id="submit-hint"></p>
+      <button id="submit-yes" class="primary">はい</button>
+      <button id="submit-no">いいえ(続ける)</button>
+    </div>
+  </div>
+
+  <!-- PK MODAL (拮抗時の決戦モード) -->
+  <div class="modal" id="pk-modal" hidden>
+    <div class="modal-card">
+      <h2 class="pk-title">★ 決戦モード ★</h2>
+      <p class="pk-subtitle">サイコロPK — 5本3勝先取</p>
+      <div class="pk-round" id="pk-round"></div>
+      <div class="pk-rows">
+        <div class="pk-row" id="pk-row-you">
+          <span class="dot" style="background:var(--p0)"></span>
+          <span class="name">あなた</span>
+          <span class="dice" id="pk-dice-you">⚀ ⚀ ⚀</span>
+          <span class="sum" id="pk-sum-you"></span>
+        </div>
+        <div class="pk-row" id="pk-row-opp">
+          <span class="dot" id="pk-opp-dot"></span>
+          <span class="name" id="pk-opp-name">CPU</span>
+          <span class="dice" id="pk-dice-opp">⚀ ⚀ ⚀</span>
+          <span class="sum" id="pk-sum-opp"></span>
+        </div>
+      </div>
+      <div class="pk-result" id="pk-result"></div>
+      <div class="pk-score">
+        <div class="row"><span class="you">あなた</span><span class="pips" id="pk-score-you">○○○○○</span></div>
+        <div class="row"><span id="pk-score-opp-name">CPU</span><span class="pips" id="pk-score-opp">○○○○○</span></div>
+      </div>
+      <button id="pk-resign">投了してタイトルへ</button>
+    </div>
+  </div>
+
   <!-- RESULT MODAL -->
   <div class="modal" id="result-modal" hidden>
     <div class="modal-card">
@@ -247,7 +340,7 @@
 <script>
 "use strict";
 
-const VERSION = "v1.0.0";
+const VERSION = "v1.1.0";
 
 // =============================================================
 // マップデータ — 関東風hex(46マス、7都県)
@@ -323,7 +416,15 @@ const G = {
   busy: false,
   gameOver: false,
   battle: null, // {fromId, toId, ar, dr, win}
+  // 残り2人時の決戦/服従選択 関連
+  endgameTriggered: false,   // 一度判定したら true(再発火を防止)
+  endgameDeclined: false,    // 服従モーダルで「いいえ」を選んだら true(以降は通常戦)
+  pendingEndgame: null,      // {type:'pk'|'choice-dominate'|'choice-submit', oppId}
+  pkState: null,             // {oppId, score:{you,opp}, round, finished}
 };
+
+// 拮抗判定の閾値: 領地差がこれ以下なら決戦モード
+const ENDGAME_TIE_DIFF = 6;
 
 // =============================================================
 // マップ構築 + 隣接生成
@@ -575,10 +676,26 @@ function executeAttack(fromId, toId) {
       checkAlive();
       render();
       G.busy = false;
-      if (G.gameOver) showResult();
+      if (G.pendingEndgame) {
+        handleEndgame();
+      } else if (G.gameOver) {
+        showResult();
+      }
       resolve();
     }, 950);
   });
+}
+
+// =============================================================
+// 残り2人 — 決戦/服従の分岐ハンドラ
+// =============================================================
+function handleEndgame() {
+  if (!G.pendingEndgame) return;
+  if (G.pendingEndgame.type === 'pk') {
+    startPK(G.pendingEndgame.oppId);
+  } else {
+    showSubmissionModal(G.pendingEndgame);
+  }
 }
 
 function checkAlive() {
@@ -586,8 +703,25 @@ function checkAlive() {
     if (!G.alive[p]) continue;
     if (!G.hexes.some(h => h.owner === p)) G.alive[p] = false;
   }
-  if (!G.alive[0]) G.gameOver = true; // 人が脱落したら終了
-  if (G.alive.filter(a => a).length <= 1) G.gameOver = true;
+  const aliveCount = G.alive.filter(a => a).length;
+  if (!G.alive[0]) { G.gameOver = true; return; }   // 人が脱落したら終了
+  if (aliveCount <= 1) { G.gameOver = true; return; }
+  // 残り2人 → 拮抗なら決戦モード、そうでなければ服従選択
+  if (aliveCount === 2 && !G.endgameTriggered && !G.endgameDeclined) {
+    G.endgameTriggered = true;
+    G.pendingEndgame = decideEndgameMode();
+    G.gameOver = true; // 通常進行を一時停止(handleEndgame 経由で showResult 又は通常復帰)
+  }
+}
+
+function decideEndgameMode() {
+  const myCount = G.hexes.filter(h => h.owner === 0).length;
+  const oppId = G.alive.findIndex((a, i) => a && i !== 0);
+  const oppCount = G.hexes.filter(h => h.owner === oppId).length;
+  const diff = Math.abs(myCount - oppCount);
+  if (diff <= ENDGAME_TIE_DIFF) return { type: 'pk', oppId };
+  if (myCount > oppCount) return { type: 'choice-dominate', oppId };
+  return { type: 'choice-submit', oppId };
 }
 
 // =============================================================
@@ -801,6 +935,192 @@ function setLog(msg) {
 }
 
 // =============================================================
+// 服従選択モーダル
+// =============================================================
+function showSubmissionModal(state) {
+  const modal = document.getElementById('submit-modal');
+  const title = document.getElementById('submit-title');
+  const detail = document.getElementById('submit-detail');
+  const youInfo = document.getElementById('submit-you-info');
+  const oppDot = document.getElementById('submit-opp-dot');
+  const oppInfo = document.getElementById('submit-opp-info');
+  const yesBtn = document.getElementById('submit-yes');
+  const hint = document.getElementById('submit-hint');
+
+  const oppName = PLAYER_NAMES[state.oppId];
+  const myCount = G.hexes.filter(h => h.owner === 0).length;
+  const oppCount = G.hexes.filter(h => h.owner === state.oppId).length;
+  const myDice = G.hexes.filter(h => h.owner === 0).reduce((s,h) => s + h.dice, 0);
+  const oppDice = G.hexes.filter(h => h.owner === state.oppId).reduce((s,h) => s + h.dice, 0);
+
+  oppDot.style.background = PLAYER_COLORS[state.oppId];
+  youInfo.textContent = `あなた ${myCount}地/${myDice}🎲`;
+  oppInfo.textContent = `${oppName} ${oppCount}地/${oppDice}🎲`;
+
+  if (state.type === 'choice-dominate') {
+    title.textContent = `${oppName} を服従させますか?`;
+    detail.textContent = '相手は劣勢です。降伏を勧告できます。';
+    yesBtn.textContent = 'はい(服従させる)';
+    hint.textContent = '「いいえ」で通常戦を続けることもできます。';
+  } else {
+    title.textContent = `${oppName} に服従しますか?`;
+    detail.textContent = '相手は圧倒的優勢です。降伏することができます。';
+    yesBtn.textContent = 'はい(服従する)';
+    hint.textContent = '「いいえ」で通常戦を続けることもできます。';
+  }
+  modal.hidden = false;
+}
+
+function acceptSubmission() {
+  document.getElementById('submit-modal').hidden = true;
+  if (!G.pendingEndgame) return;
+  if (G.pendingEndgame.type === 'choice-dominate') {
+    G.alive[G.pendingEndgame.oppId] = false; // 相手脱落 → 勝利
+  } else {
+    G.alive[0] = false; // 自分脱落 → 敗北
+  }
+  G.pendingEndgame = null;
+  G.gameOver = true;
+  showResult();
+}
+
+function declineSubmission() {
+  document.getElementById('submit-modal').hidden = true;
+  G.gameOver = false;
+  G.pendingEndgame = null;
+  G.endgameDeclined = true; // 以降は再表示しない
+  render();
+  // AIの番だった場合は中断していたターンを再開
+  if (G.turn !== 0 && !G.gameOver) aiTurn();
+}
+
+// =============================================================
+// 決戦モード(サイコロPK)
+// =============================================================
+const PK_DICE_PER_SIDE = 3;
+const PK_BEST_OF       = 5;       // 5本勝負(先取3勝で勝利)
+const PK_WIN_THRESHOLD = Math.ceil(PK_BEST_OF / 2);  // 3
+const DICE_GLYPHS = ['','⚀','⚁','⚂','⚃','⚄','⚅'];
+
+async function startPK(oppId) {
+  G.pkState = { oppId, score: { you: 0, opp: 0 }, round: 0, finished: false };
+  // 画面初期化
+  document.getElementById('pk-opp-dot').style.background = PLAYER_COLORS[oppId];
+  document.getElementById('pk-opp-name').textContent = PLAYER_NAMES[oppId];
+  document.getElementById('pk-score-opp-name').textContent = PLAYER_NAMES[oppId];
+  document.getElementById('pk-dice-you').textContent = DICE_GLYPHS[1].repeat(PK_DICE_PER_SIDE).split('').join(' ');
+  document.getElementById('pk-dice-opp').textContent = DICE_GLYPHS[1].repeat(PK_DICE_PER_SIDE).split('').join(' ');
+  document.getElementById('pk-sum-you').textContent = '';
+  document.getElementById('pk-sum-opp').textContent = '';
+  document.getElementById('pk-result').textContent = '';
+  document.getElementById('pk-result').className = 'pk-result';
+  updatePKScore();
+  document.getElementById('pk-row-you').classList.remove('win-flash');
+  document.getElementById('pk-row-opp').classList.remove('win-flash');
+  document.getElementById('pk-modal').hidden = false;
+  await sleep(700);
+  while (!G.pkState.finished) {
+    await pkRound();
+    if (G.pkState.finished) break;
+    await sleep(900);
+  }
+  await sleep(900);
+  document.getElementById('pk-modal').hidden = true;
+  finalizeFromPK();
+}
+
+async function pkRound() {
+  G.pkState.round++;
+  document.getElementById('pk-round').textContent = `第 ${G.pkState.round} 本目`;
+  document.getElementById('pk-result').textContent = '';
+  document.getElementById('pk-result').className = 'pk-result';
+  document.getElementById('pk-sum-you').textContent = '';
+  document.getElementById('pk-sum-opp').textContent = '';
+  document.getElementById('pk-row-you').classList.remove('win-flash');
+  document.getElementById('pk-row-opp').classList.remove('win-flash');
+
+  // 振動アニメ ~700ms
+  const youEl = document.getElementById('pk-dice-you');
+  const oppEl = document.getElementById('pk-dice-opp');
+  const interval = setInterval(() => {
+    youEl.textContent = randDiceGlyphs(PK_DICE_PER_SIDE);
+    oppEl.textContent = randDiceGlyphs(PK_DICE_PER_SIDE);
+  }, 70);
+  await sleep(720);
+  clearInterval(interval);
+
+  // 確定値
+  const dy = []; const doo = [];
+  for (let i = 0; i < PK_DICE_PER_SIDE; i++) {
+    dy.push(1 + Math.floor(Math.random() * 6));
+    doo.push(1 + Math.floor(Math.random() * 6));
+  }
+  const sy = dy.reduce((a,b) => a+b, 0);
+  const so = doo.reduce((a,b) => a+b, 0);
+  youEl.textContent = dy.map(v => DICE_GLYPHS[v]).join(' ');
+  oppEl.textContent = doo.map(v => DICE_GLYPHS[v]).join(' ');
+  await sleep(250);
+  document.getElementById('pk-sum-you').textContent = '= ' + sy;
+  document.getElementById('pk-sum-opp').textContent = '= ' + so;
+  await sleep(450);
+
+  // 結果
+  const resEl = document.getElementById('pk-result');
+  if (sy > so) {
+    G.pkState.score.you++;
+    resEl.textContent = '勝ち!';
+    resEl.classList.add('win');
+    document.getElementById('pk-row-you').classList.add('win-flash');
+  } else if (so > sy) {
+    G.pkState.score.opp++;
+    resEl.textContent = '負け…';
+    resEl.classList.add('lose');
+    document.getElementById('pk-row-opp').classList.add('win-flash');
+  } else {
+    resEl.textContent = '引き分け — やり直し';
+    resEl.classList.add('draw');
+    G.pkState.round--;  // 引き分けは本数に入れない
+    return;
+  }
+  updatePKScore();
+  if (G.pkState.score.you >= PK_WIN_THRESHOLD || G.pkState.score.opp >= PK_WIN_THRESHOLD) {
+    G.pkState.finished = true;
+  }
+}
+
+function randDiceGlyphs(n) {
+  let s = '';
+  for (let i = 0; i < n; i++) {
+    if (i > 0) s += ' ';
+    s += DICE_GLYPHS[1 + Math.floor(Math.random() * 6)];
+  }
+  return s;
+}
+
+function updatePKScore() {
+  const max = PK_BEST_OF;
+  const youWins = G.pkState.score.you;
+  const oppWins = G.pkState.score.opp;
+  document.getElementById('pk-score-you').textContent =
+    '●'.repeat(youWins) + '○'.repeat(max - youWins);
+  document.getElementById('pk-score-opp').textContent =
+    '●'.repeat(oppWins) + '○'.repeat(max - oppWins);
+}
+
+function finalizeFromPK() {
+  if (!G.pkState) return;
+  if (G.pkState.score.you >= PK_WIN_THRESHOLD) {
+    G.alive[G.pkState.oppId] = false; // 相手脱落
+  } else {
+    G.alive[0] = false; // 自分脱落
+  }
+  G.gameOver = true;
+  G.pendingEndgame = null;
+  G.pkState = null;
+  showResult();
+}
+
+// =============================================================
 // 結果表示
 // =============================================================
 function showResult() {
@@ -846,9 +1166,15 @@ function startGame(diff) {
   G.gameOver = false;
   G.battle = null;
   G.busy = false;
+  G.endgameTriggered = false;
+  G.endgameDeclined = false;
+  G.pendingEndgame = null;
+  G.pkState = null;
   document.getElementById('title-screen').hidden = true;
   document.getElementById('game-screen').hidden = false;
   document.getElementById('result-modal').hidden = true;
+  document.getElementById('submit-modal').hidden = true;
+  document.getElementById('pk-modal').hidden = true;
   setLog('');
   render();
 }
@@ -887,6 +1213,16 @@ document.getElementById('result-restart').addEventListener('click', () => {
   startGame(G.difficulty);
 });
 document.getElementById('result-title-btn').addEventListener('click', backToTitle);
+
+document.getElementById('submit-yes').addEventListener('click', acceptSubmission);
+document.getElementById('submit-no').addEventListener('click', declineSubmission);
+
+document.getElementById('pk-resign').addEventListener('click', () => {
+  if (confirm('決戦モードを投了してタイトルへ戻りますか?')) {
+    document.getElementById('pk-modal').hidden = true;
+    backToTitle();
+  }
+});
 </script>
 </body>
 </html>
