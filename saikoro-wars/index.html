@@ -55,7 +55,14 @@
   .topbar a { color: #0033cc; text-decoration: none; }
   .topbar a:visited { color: #660099; }
   .topbar a:hover { text-decoration: underline; }
-  .topbar .ver { color: var(--muted); font-size: 11px; }
+  .topbar .ver { color: var(--muted); font-size: 11px; margin-left: 4px; }
+  .topbar .right { display: flex; align-items: center; gap: 4px; }
+  .mute-btn {
+    background: #fff; border: 1px solid #888;
+    font-family: inherit; font-size: 13px;
+    padding: 1px 6px; cursor: pointer; line-height: 1;
+  }
+  .mute-btn:hover { background: #ffe0a0; }
   h1 { font-size: 22px; margin: 4px 0; letter-spacing: 0.05em; font-weight: bold; }
   .screen { width: min(96vw, 540px); }
 
@@ -230,7 +237,10 @@
 <body>
   <div class="topbar">
     <a href="../">← K-games 一覧へもどる</a>
-    <span class="ver">v1.1.0</span>
+    <span class="right">
+      <button id="mute-btn" class="mute-btn" title="効果音 ON/OFF">🔊</button>
+      <span class="ver">v1.2.0</span>
+    </span>
   </div>
 
   <!-- TITLE SCREEN -->
@@ -340,7 +350,83 @@
 <script>
 "use strict";
 
-const VERSION = "v1.1.0";
+const VERSION = "v1.2.0";
+
+// =============================================================
+// 効果音(Web Audio API、軽量ビープ系)
+// =============================================================
+const SFX = (() => {
+  let ctx = null;
+  let muted = false;
+  try { muted = localStorage.getItem('saikoro-wars-mute') === '1'; } catch(_) {}
+  function ensure() {
+    if (ctx) {
+      if (ctx.state === 'suspended') ctx.resume();
+      return;
+    }
+    try {
+      const Ac = window.AudioContext || window.webkitAudioContext;
+      if (Ac) ctx = new Ac();
+    } catch(_) { ctx = null; }
+  }
+  function beep(freq, dur, vol = 0.08, type = 'square') {
+    if (muted) return;
+    ensure();
+    if (!ctx) return;
+    const t0 = ctx.currentTime;
+    const o = ctx.createOscillator();
+    const g = ctx.createGain();
+    o.type = type;
+    o.frequency.setValueAtTime(freq, t0);
+    g.gain.setValueAtTime(vol, t0);
+    g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+    o.connect(g).connect(ctx.destination);
+    o.start(t0);
+    o.stop(t0 + dur + 0.02);
+  }
+  return {
+    isMuted() { return muted; },
+    toggleMute() {
+      muted = !muted;
+      try { localStorage.setItem('saikoro-wars-mute', muted ? '1' : '0'); } catch(_) {}
+      return muted;
+    },
+    init() { ensure(); },
+    select() { beep(900, 0.05, 0.05, 'square'); },
+    diceRoll() {
+      // ガラガラ・カチャカチャ感
+      if (muted) return;
+      for (let i = 0; i < 7; i++) {
+        setTimeout(() => beep(160 + Math.random() * 140, 0.035, 0.06, 'triangle'), i * 80);
+      }
+    },
+    hit() {
+      // 勝利: 上昇2音
+      beep(523, 0.07, 0.09, 'square');
+      setTimeout(() => beep(784, 0.18, 0.10, 'square'), 75);
+    },
+    miss() {
+      // 失敗: 下降2音
+      beep(330, 0.10, 0.09, 'sawtooth');
+      setTimeout(() => beep(196, 0.22, 0.09, 'sawtooth'), 110);
+    },
+    turnEnd() { beep(280, 0.18, 0.07, 'sine'); },
+    pkRoundWin() {
+      beep(660, 0.07, 0.08, 'square');
+      setTimeout(() => beep(990, 0.10, 0.08, 'square'), 70);
+    },
+    pkRoundLose() {
+      beep(330, 0.07, 0.07, 'sawtooth');
+      setTimeout(() => beep(220, 0.12, 0.07, 'sawtooth'), 70);
+    },
+    win() {
+      [523, 659, 784, 1047].forEach((f, i) => setTimeout(() => beep(f, 0.18, 0.09, 'square'), i * 130));
+    },
+    lose() {
+      [392, 311, 247, 196].forEach((f, i) => setTimeout(() => beep(f, 0.26, 0.08, 'sawtooth'), i * 200));
+    },
+  };
+})();
 
 // =============================================================
 // マップデータ — 関東風hex(46マス、7都県)
@@ -569,11 +655,12 @@ function reinforce(player) {
   G.stock[player] = Math.min(n, 64);
 }
 
-function rollSum(n) {
-  let s = 0;
-  for (let i = 0; i < n; i++) s += 1 + Math.floor(Math.random() * 6);
-  return s;
+function rollDice(n) {
+  const arr = [];
+  for (let i = 0; i < n; i++) arr.push(1 + Math.floor(Math.random() * 6));
+  return arr;
 }
+function rollSum(n) { return rollDice(n).reduce((s,v) => s + v, 0); }
 
 // =============================================================
 // 攻撃可能手の列挙
@@ -654,16 +741,23 @@ function executeAttack(fromId, toId) {
     G.selected = null;
     const a = G.hexes[fromId].dice;
     const d = G.hexes[toId].dice;
-    const ar = rollSum(a);
-    const dr = rollSum(d);
+    const adArr = rollDice(a);
+    const ddArr = rollDice(d);
+    const ar = adArr.reduce((s,v) => s + v, 0);
+    const dr = ddArr.reduce((s,v) => s + v, 0);
     const win = ar > dr;
-    G.battle = { fromId, toId, ar, dr, win };
+    G.battle = { fromId, toId, ar, dr, adArr, ddArr, win };
+    SFX.diceRoll();
     render();
     const fp = PREF_NAMES[G.hexes[fromId].pref];
     const tp = PREF_NAMES[G.hexes[toId].pref];
     const fpn = PLAYER_NAMES[G.hexes[fromId].owner];
     const tpn = PLAYER_NAMES[G.hexes[toId].owner];
     setLog(`${fpn}${fp}(${a})→${tpn}${tp}(${d}): ${ar} vs ${dr} → ${win?'勝利':'失敗'}`);
+    // ロール完了の頃に勝敗音
+    setTimeout(() => {
+      if (win) SFX.hit(); else SFX.miss();
+    }, 600);
     setTimeout(() => {
       if (win) {
         G.hexes[toId].owner = G.hexes[fromId].owner;
@@ -731,6 +825,7 @@ async function endTurn() {
   if (G.gameOver) return;
   G.busy = true;
   G.selected = null;
+  if (G.turn === 0) SFX.turnEnd();
   reinforce(G.turn);
   do {
     G.turn = (G.turn + 1) % 4;
@@ -769,7 +864,9 @@ function onHexClick(id) {
   const h = G.hexes[id];
   if (h.owner === 0) {
     if (h.dice >= 2) {
+      const before = G.selected;
       G.selected = (G.selected === id) ? null : id;
+      if (G.selected !== before) SFX.select();
     } else {
       G.selected = null;
     }
@@ -844,7 +941,7 @@ function render() {
   // 都県名(マス上部に1文字、薄く)
   for (const h of G.hexes) {
     const lbl = svgEl('text', {
-      x: h.x, y: h.y - HEX_SIZE * 0.50,
+      x: h.x, y: h.y - HEX_SIZE * 0.52,
       'text-anchor': 'middle',
       'dominant-baseline': 'central',
       'font-size': 10,
@@ -857,10 +954,10 @@ function render() {
     svg.appendChild(lbl);
   }
 
-  // dice 数値
+  // dice 数値(中央)
   for (const h of G.hexes) {
     const txt = svgEl('text', {
-      x: h.x, y: h.y + 4,
+      x: h.x, y: h.y - 1,
       'text-anchor': 'middle',
       'dominant-baseline': 'central',
       'font-size': 22, 'font-weight': 'bold',
@@ -871,32 +968,109 @@ function render() {
     svg.appendChild(txt);
   }
 
-  // 戦闘ロール表示(攻撃側・守備側の上に円バッジ)
+  // サイコロ数の8段ピップバー(マス下部、白=詰まってる/暗=空き)
+  for (const h of G.hexes) drawDicePips(svg, h);
+
+  // 戦闘演出: 矢印 + サイコロ目バッジ
   if (G.battle) {
-    const f = G.hexes[G.battle.fromId];
-    const t = G.hexes[G.battle.toId];
-    [[f, G.battle.ar], [t, G.battle.dr]].forEach(([hex, val]) => {
-      const cy = Math.max(hex.y - HEX_SIZE - 6, 14);
-      const bg = svgEl('circle', {
-        cx: hex.x, cy, r: 14,
-        fill: '#222', stroke: '#ffeb3b', 'stroke-width': 2,
-      });
-      svg.appendChild(bg);
-      const txt = svgEl('text', {
-        x: hex.x, y: cy,
-        'text-anchor': 'middle',
-        'dominant-baseline': 'central',
-        'font-size': 16, 'font-weight': 'bold',
-        fill: '#ffeb3b',
-      });
-      txt.textContent = val;
-      svg.appendChild(txt);
-    });
+    drawBattleArrow(svg, G.battle);
+    drawBattleBadge(svg, G.hexes[G.battle.fromId], G.battle.adArr, G.battle.ar, true);
+    drawBattleBadge(svg, G.hexes[G.battle.toId], G.battle.ddArr, G.battle.dr, false);
   }
 
   updateStatus();
 }
 
+const SEG_COUNT = 8;
+function drawDicePips(svg, h) {
+  const segW = 3.4;
+  const segH = 3.4;
+  const gap = 0.5;
+  const totalW = SEG_COUNT * segW + (SEG_COUNT - 1) * gap;
+  const startX = h.x - totalW / 2;
+  const y = h.y + 16;
+  for (let i = 0; i < SEG_COUNT; i++) {
+    const filled = i < h.dice;
+    svg.appendChild(svgEl('rect', {
+      x: startX + i * (segW + gap),
+      y,
+      width: segW, height: segH,
+      rx: 0.6,
+      fill: filled ? '#ffffff' : 'rgba(0,0,0,0.28)',
+      stroke: '#000', 'stroke-width': 0.4,
+      'pointer-events': 'none',
+    }));
+  }
+}
+
+function drawBattleArrow(svg, battle) {
+  const f = G.hexes[battle.fromId];
+  const t = G.hexes[battle.toId];
+  const dx = t.x - f.x, dy = t.y - f.y;
+  const dist = Math.hypot(dx, dy);
+  if (dist < 1) return;
+  const offset = HEX_SIZE * 0.65;
+  const sx = f.x + dx / dist * offset;
+  const sy = f.y + dy / dist * offset;
+  const ex = t.x - dx / dist * offset;
+  const ey = t.y - dy / dist * offset;
+  // 影
+  svg.appendChild(svgEl('line', {
+    x1: sx, y1: sy, x2: ex, y2: ey,
+    stroke: '#000', 'stroke-width': 6, opacity: 0.35,
+    'pointer-events': 'none',
+  }));
+  // 本線
+  svg.appendChild(svgEl('line', {
+    x1: sx, y1: sy, x2: ex, y2: ey,
+    stroke: '#ffeb3b', 'stroke-width': 3.4,
+    'pointer-events': 'none',
+  }));
+  // 矢じり
+  const angle = Math.atan2(dy, dx) * 180 / Math.PI;
+  const head = svgEl('polygon', {
+    points: '0,-7 11,0 0,7 3,0',
+    fill: '#ffeb3b', stroke: '#000', 'stroke-width': 0.8,
+    transform: `translate(${ex.toFixed(1)},${ey.toFixed(1)}) rotate(${angle.toFixed(1)})`,
+    'pointer-events': 'none',
+  });
+  svg.appendChild(head);
+}
+
+function drawBattleBadge(svg, hex, dice, sum, isAtk) {
+  const glyphs = dice.map(v => DICE_GLYPHS[v]).join('');
+  const txt = `${glyphs}=${sum}`;
+  const fontSize = dice.length <= 4 ? 16 : 13;
+  // ざっくり幅見積もり
+  const approxW = glyphs.length * fontSize * 0.95 + 32;
+  const w = Math.max(56, approxW);
+  const h = 22;
+  const cx = hex.x;
+  let cy = hex.y - HEX_SIZE - 12;
+  if (cy - h/2 < 2) cy = hex.y + HEX_SIZE + 12; // 上に置けないなら下へ
+  const stroke = isAtk ? '#ffeb3b' : '#ff9090';
+  svg.appendChild(svgEl('rect', {
+    x: cx - w/2, y: cy - h/2,
+    width: w, height: h,
+    rx: 4,
+    fill: 'rgba(20,20,20,0.94)',
+    stroke, 'stroke-width': 1.6,
+    'pointer-events': 'none',
+  }));
+  const t = svgEl('text', {
+    x: cx, y: cy + 1,
+    'text-anchor': 'middle',
+    'dominant-baseline': 'central',
+    'font-size': fontSize,
+    'font-weight': 'bold',
+    fill: stroke,
+    'pointer-events': 'none',
+  });
+  t.textContent = txt;
+  svg.appendChild(t);
+}
+
+const PLAYER_DISPLAY = ['あなた赤','CPU青','CPU緑','CPU黄'];
 function updateStatus() {
   const el = document.getElementById('players-row');
   let html = '';
@@ -907,7 +1081,7 @@ function updateStatus() {
     const active = G.turn === p && !G.gameOver && !dead;
     const stockTxt = G.stock[p] > 0 ? ` +${G.stock[p]}` : '';
     html += `<div class="player p${p} ${active?'active':''} ${dead?'dead':''}">`
-      + `<span class="nm">${PLAYER_NAMES[p]}</span>`
+      + `<span class="nm">${PLAYER_DISPLAY[p]}</span>`
       + `<span class="st">${cnt}地 / ${dice}🎲${stockTxt}</span>`
       + `</div>`;
   }
@@ -1042,6 +1216,7 @@ async function pkRound() {
   // 振動アニメ ~700ms
   const youEl = document.getElementById('pk-dice-you');
   const oppEl = document.getElementById('pk-dice-opp');
+  SFX.diceRoll();
   const interval = setInterval(() => {
     youEl.textContent = randDiceGlyphs(PK_DICE_PER_SIDE);
     oppEl.textContent = randDiceGlyphs(PK_DICE_PER_SIDE);
@@ -1071,11 +1246,13 @@ async function pkRound() {
     resEl.textContent = '勝ち!';
     resEl.classList.add('win');
     document.getElementById('pk-row-you').classList.add('win-flash');
+    SFX.pkRoundWin();
   } else if (so > sy) {
     G.pkState.score.opp++;
     resEl.textContent = '負け…';
     resEl.classList.add('lose');
     document.getElementById('pk-row-opp').classList.add('win-flash');
+    SFX.pkRoundLose();
   } else {
     resEl.textContent = '引き分け — やり直し';
     resEl.classList.add('draw');
@@ -1142,8 +1319,13 @@ function showResult() {
   const dot = document.getElementById('result-dot');
   const name = document.getElementById('result-name');
   const detail = document.getElementById('result-detail');
-  if (winner === 0) title.textContent = '★ 勝利! ★';
-  else title.textContent = '敗北…';
+  if (winner === 0) {
+    title.textContent = '★ 勝利! ★';
+    SFX.win();
+  } else {
+    title.textContent = '敗北…';
+    SFX.lose();
+  }
   dot.style.background = PLAYER_COLORS[winner] || '#888';
   name.textContent = PLAYER_NAMES[winner] + ' の勝ち';
   const cnt = G.hexes.filter(h => h.owner === winner).length;
@@ -1223,6 +1405,22 @@ document.getElementById('pk-resign').addEventListener('click', () => {
     backToTitle();
   }
 });
+
+const muteBtn = document.getElementById('mute-btn');
+function refreshMuteIcon() {
+  muteBtn.textContent = SFX.isMuted() ? '🔇' : '🔊';
+  muteBtn.title = SFX.isMuted() ? '効果音 OFF (タップで ON)' : '効果音 ON (タップで OFF)';
+}
+refreshMuteIcon();
+muteBtn.addEventListener('click', () => {
+  SFX.toggleMute();
+  refreshMuteIcon();
+  if (!SFX.isMuted()) SFX.select(); // 解除直後に小さく音を鳴らして確認
+});
+
+// AudioContext は最初のユーザー操作でのみ生成・resume できる
+document.addEventListener('pointerdown', () => SFX.init(), { once: true });
+document.addEventListener('keydown', () => SFX.init(), { once: true });
 </script>
 </body>
 </html>
