@@ -196,29 +196,45 @@
     color: #ffe070;
   }
 
-  /* ===== 操作説明 ===== */
+  /* ===== 操作説明 (HTML4風レトロ) ===== */
   #help-screen {
-    background: rgba(255, 248, 220, 0.95);
+    display: block;
+    align-items: unset;
+    justify-content: unset;
+    padding: 0;
+    background: #ffffff;
+    color: #222222;
     overflow-y: auto;
   }
-  #help-screen .help-box {
-    max-width: 560px;
-    background: #fff8dc;
-    border: 4px double var(--ink);
-    padding: 16px 20px;
-    margin: 12px;
+  .help-page {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 16px 16px 32px;
+    font-family: "MS UI Gothic", "ＭＳ ＵＩ Ｇｏｔｈｉｃ", "MSUIGothic", "Hiragino Kaku Gothic ProN", sans-serif;
     font-size: 14px;
     line-height: 1.6;
   }
-  #help-screen h2 { margin: 0 0 12px; font-size: 22px; }
-  #help-screen h3 { margin: 14px 0 6px; font-size: 16px; color: var(--stone-dark); }
-  #help-screen ul { margin: 4px 0; padding-left: 22px; }
-  #help-screen .item-row {
-    display: flex; align-items: center; gap: 8px; margin: 4px 0;
+  .help-page h1, .help-page h2, .help-page h3,
+  .help-page p, .help-page td, .help-page th,
+  .help-page li, .help-page small, .help-page b, .help-page i {
+    font-family: inherit;
   }
-  #help-screen .item-icon {
-    font-size: 22px; width: 30px; text-align: center;
+  .help-page h2 { font-size: 28px; font-weight: normal; margin: 8px 0 6px; }
+  .help-page h3 { font-size: 20px; font-weight: normal; margin: 18px 0 6px; }
+  .help-page p { margin: 8px 0; }
+  .help-page ul { margin: 6px 0 6px 24px; padding: 0; }
+  .help-page table {
+    border-collapse: collapse;
+    background: #ffffff;
   }
+  .help-page table td, .help-page table th {
+    color: #222;
+  }
+  .help-page a:link    { color: #0033cc; }
+  .help-page a:visited { color: #660099; }
+  .help-page hr { border: 0; border-top: 1px solid #222; }
+  .help-page .lead { text-align: center; color: #555; margin: 0 0 4px; font-size: 13px; }
+  .help-page .icon-cell { font-size: 18px; }
 
   /* ===== ゲーム画面 ===== */
   #game-screen {
@@ -419,48 +435,106 @@
   <button id="btn-stage-back">← もどる</button>
 </div>
 
-<!-- ===== 操作説明 ===== -->
+<!-- ===== 操作説明 (HTML4風) ===== -->
 <div id="help-screen" class="screen" hidden>
-  <div class="help-box">
-    <h2>操作説明</h2>
-    <p>メジェド神たちは右へ向かって歩きます。壁にぶつかると反転、棘や落とし穴に落ちると死亡。<strong>規定数のメジェドをゴールへ導いて</strong>ください。</p>
+  <div class="help-page">
+    <a name="help-top"></a>
 
-    <h3>アイテム配置</h3>
+    <br>
+    <h2 align="center">★ 操作説明 ★</h2>
+    <p class="lead">メジェドを救え! の遊び方</p>
+
+    <p align="center">
+      [ <a href="#help-rule">基本ルール</a> ]
+      &nbsp;[ <a href="#help-place">アイテム配置</a> ]
+      &nbsp;[ <a href="#help-items">アイテム一覧</a> ]
+      &nbsp;[ <a href="#help-clear">クリア条件</a> ]
+      &nbsp;[ <a href="#help-grade">評価</a> ]
+    </p>
+
+    <hr width="80%">
+
+    <a name="help-rule"></a>
+    <h3 align="center">★ 基本ルール ★</h3>
+    <p>メジェド神たちは右へ向かって歩きます。<br>
+    2マス以上の壁にぶつかると反転、棘や落とし穴・高所からの落下で死亡。<br>
+    <b>規定数のメジェドをゴール(ピラミッド)まで導いて</b>ください。</p>
+
+    <hr width="80%">
+
+    <a name="help-place"></a>
+    <h3 align="center">★ アイテム配置 ★</h3>
     <ul>
-      <li>下部のアイテムボタンをタップ → マス目をタップで配置</li>
-      <li>同じマスにもう一度配置動作 = 撤去</li>
-      <li>各アイテムには使用上限があります</li>
+      <li>下部のアイテムボタンをタップ / クリック して選択</li>
+      <li>マス目をタップ / クリック で配置</li>
+      <li>アイテム未選択でマスをタップ、または PC は右クリックで <b>撤去</b></li>
+      <li>各アイテムには使用上限あり (HUD のカウンタで確認)</li>
     </ul>
 
-    <h3>アイテム一覧</h3>
-    <div class="item-row"><span class="item-icon">⬛</span><span><strong>ブロック</strong> — 1マスの足場。穴埋め・棘の上覆い・かさ上げ。</span></div>
-    <div class="item-row"><span class="item-icon">🔺</span><span><strong>ランプ</strong> — 1マス段差を斜面で越える(三角形の足場)。</span></div>
-    <div class="item-row"><span class="item-icon">🌉</span><span><strong>橋</strong> — 横3マスの板で広い穴をまたぐ。</span></div>
-    <div class="item-row"><span class="item-icon">🪜</span><span><strong>はしご</strong> — 縦3マスで壁を登り、上端に出る。</span></div>
-    <div class="item-row"><span class="item-icon">➡</span><span><strong>右矢印</strong> — 通過するメジェドを強制的に右向きに。</span></div>
-    <div class="item-row"><span class="item-icon">⬅</span><span><strong>左矢印</strong> — 通過するメジェドを強制的に左向きに。</span></div>
-    <div class="item-row"><span class="item-icon">🍃</span><span><strong>落下安全</strong> — そのマスを通ったメジェドは以降の高所落下が安全に。</span></div>
+    <hr width="80%">
 
-    <h3>クリア条件</h3>
+    <a name="help-items"></a>
+    <h3 align="center">★ アイテム一覧 ★</h3>
+    <table border="1" cellpadding="8" align="center" width="90%">
+      <tr>
+        <th width="60">記号</th>
+        <th width="120">名前</th>
+        <th>効果</th>
+      </tr>
+      <tr><td align="center" class="icon-cell">⬛</td><td>ブロック</td>
+          <td>1マスの足場。穴埋め・棘の上覆い・かさ上げに。</td></tr>
+      <tr><td align="center" class="icon-cell">🔺</td><td>ランプ</td>
+          <td>1マス段差を斜面で越える(三角形の足場)。</td></tr>
+      <tr><td align="center" class="icon-cell">🌉</td><td>橋</td>
+          <td>横3マスの板で広い穴をまたぐ。</td></tr>
+      <tr><td align="center" class="icon-cell">🪜</td><td>はしご</td>
+          <td>縦3マスで壁を登り、上端に出る。</td></tr>
+      <tr><td align="center" class="icon-cell">➡</td><td>右矢印</td>
+          <td>通過するメジェドを強制的に右向きに。</td></tr>
+      <tr><td align="center" class="icon-cell">⬅</td><td>左矢印</td>
+          <td>通過するメジェドを強制的に左向きに。</td></tr>
+      <tr><td align="center" class="icon-cell">🍃</td><td>落下安全</td>
+          <td>そのマスを通ったメジェドは以降の高所落下が安全に。</td></tr>
+    </table>
+
+    <hr width="80%">
+
+    <a name="help-clear"></a>
+    <h3 align="center">★ クリア条件 ★</h3>
     <ul>
-      <li>全メジェドが <strong>ゴール</strong> または <strong>死亡</strong> で結果が判定される</li>
-      <li><strong>規定数のメジェド救出</strong>で勝利、未達or許容を超える死亡で敗北</li>
-      <li>規定数を満たした時点で打ち切りたい場合、ポーズ →「🏁 いまの結果で評価」</li>
-      <li><strong>制限時間内</strong>に終わらなければタイムアップ(時点で評価)</li>
-      <li>ステージ8を S または A 評価でクリアすると <strong>隠しステージ9</strong> 解放</li>
+      <li>全メジェドが <b>ゴール</b> または <b>死亡</b> で結果判定</li>
+      <li><b>規定数のメジェド救出</b>で勝利、未達 or 許容超死亡で敗北</li>
+      <li>規定数を満たした時点で打ち切るには ⏸ ポーズ →「🏁 いまの結果で評価」</li>
+      <li><b>制限時間</b>内に終わらなければタイムアップ(時点で評価)</li>
+      <li>ステージ8を S または A 評価でクリアすると <b>隠しステージ9</b> 解放</li>
     </ul>
 
-    <h3>評価 (S / A / B / C)</h3>
-    <ul>
-      <li><strong>S</strong>: 死亡 0 + 救出率 90% 以上</li>
-      <li><strong>A</strong>: 死亡が許容の 40% 以下 + 救出率 75% 以上</li>
-      <li><strong>B</strong>: 救出率 65% 以上</li>
-      <li><strong>C</strong>: 規定数を満たすが救出率 65% 未満</li>
-    </ul>
+    <hr width="80%">
 
-    <div class="actions" style="display:flex;gap:8px;justify-content:center;margin-top:14px;">
-      <button id="btn-help-back">← もどる</button>
-    </div>
+    <a name="help-grade"></a>
+    <h3 align="center">★ 評価 (S / A / B / C) ★</h3>
+    <table border="1" cellpadding="8" align="center" width="90%">
+      <tr>
+        <th width="60">評価</th>
+        <th>条件</th>
+      </tr>
+      <tr><td align="center"><b>S</b></td>
+          <td>死亡 0 + 救出率 90% 以上</td></tr>
+      <tr><td align="center"><b>A</b></td>
+          <td>死亡が許容の 40% 以下 + 救出率 75% 以上</td></tr>
+      <tr><td align="center"><b>B</b></td>
+          <td>救出率 65% 以上</td></tr>
+      <tr><td align="center"><b>C</b></td>
+          <td>規定数を満たすが救出率 65% 未満</td></tr>
+    </table>
+
+    <br>
+    <hr width="80%">
+
+    <p align="center">
+      [ <a href="#help-top">▲ ページ先頭へ</a> ]
+      &nbsp;[ <a href="javascript:void(0)" id="btn-help-back">← もどる</a> ]
+    </p>
   </div>
 </div>
 
