@@ -444,6 +444,7 @@
     <ul>
       <li><strong>規定数のメジェドがゴール</strong>でステージクリア</li>
       <li><strong>許容数を超える死亡</strong>でゲームオーバー</li>
+      <li><strong>制限時間内</strong>に達成しないとタイムアップ(時点での救出数で判定)</li>
       <li>ステージ8を優秀な成績でクリアすると <strong>隠しステージ9</strong> 解放</li>
     </ul>
 
@@ -460,6 +461,7 @@
     <div class="stat">🚶 出現 <span class="num" id="hud-spawned">0</span>/<span id="hud-total">30</span></div>
     <div class="stat">🏆 救出 <span class="num safe" id="hud-saved">0</span>/<span id="hud-need">20</span></div>
     <div class="stat">💀 死亡 <span class="num danger" id="hud-dead">0</span>/<span id="hud-fail">5</span></div>
+    <div class="stat">⏱ <span class="num" id="hud-time">2:00</span></div>
     <div id="hud-buttons">
       <button id="btn-pause">⏸</button>
       <button id="btn-reset">⟳</button>
@@ -761,7 +763,7 @@ STAGES.push((() => {
     spawn: { col: 1, row: 12 },
     goal:  { col: 28, row: 12 },
     total: 30, need: 18, fail: 6,
-    speed: 1.0, spawnInterval: 1.4,
+    speed: 1.0, spawnInterval: 1.4, timeLimit: 120,
     budget: { BLOCK: 2, RAMP: 1, BRIDGE: 0, LADDER: 0, ARROW_R: 0, ARROW_L: 0, PARACHUTE: 0 },
     medjedTypes: ['A'],
     pharaohs: 0,
@@ -779,7 +781,7 @@ STAGES.push((() => {
     spawn: { col: 1, row: 12 },
     goal:  { col: 28, row: 12 },
     total: 40, need: 26, fail: 8,
-    speed: 1.1, spawnInterval: 1.2,
+    speed: 1.1, spawnInterval: 1.2, timeLimit: 120,
     budget: { BLOCK: 3, RAMP: 1, BRIDGE: 1, LADDER: 0, ARROW_R: 0, ARROW_L: 0, PARACHUTE: 0 },
     medjedTypes: ['A'],
     pharaohs: 0,
@@ -799,7 +801,7 @@ STAGES.push((() => {
     spawn: { col: 1, row: 12 },
     goal:  { col: 28, row: 12 },
     total: 50, need: 32, fail: 10,
-    speed: 1.2, spawnInterval: 1.0,
+    speed: 1.2, spawnInterval: 1.0, timeLimit: 130,
     budget: { BLOCK: 4, RAMP: 0, BRIDGE: 1, LADDER: 0, ARROW_R: 0, ARROW_L: 0, PARACHUTE: 0 },
     medjedTypes: ['A'],
     pharaohs: 0,
@@ -819,7 +821,7 @@ STAGES.push((() => {
     spawn: { col: 1, row: 12 },
     goal:  { col: 28, row: 12 },
     total: 60, need: 38, fail: 10,
-    speed: 1.3, spawnInterval: 0.85,
+    speed: 1.3, spawnInterval: 0.85, timeLimit: 140,
     budget: { BLOCK: 3, RAMP: 2, BRIDGE: 0, LADDER: 1, ARROW_R: 0, ARROW_L: 0, PARACHUTE: 0 },
     medjedTypes: ['A', 'F'],
     pharaohs: 0,
@@ -839,7 +841,7 @@ STAGES.push((() => {
     spawn: { col: 1, row: 12 },
     goal:  { col: 28, row: 12 },
     total: 70, need: 44, fail: 12,
-    speed: 1.5, spawnInterval: 0.7,
+    speed: 1.5, spawnInterval: 0.7, timeLimit: 150,
     budget: { BLOCK: 4, RAMP: 1, BRIDGE: 1, LADDER: 0, ARROW_R: 0, ARROW_L: 1, PARACHUTE: 0 },
     medjedTypes: ['A', 'F', 'D'],
     pharaohs: 0,
@@ -866,7 +868,7 @@ STAGES.push((() => {
     spawn: { col: 1, row: 6 },
     goal:  { col: 28, row: 12 },
     total: 80, need: 50, fail: 14,
-    speed: 1.7, spawnInterval: 0.55,
+    speed: 1.7, spawnInterval: 0.55, timeLimit: 160,
     budget: { BLOCK: 3, RAMP: 1, BRIDGE: 0, LADDER: 0, ARROW_R: 1, ARROW_L: 0, PARACHUTE: 2 },
     medjedTypes: ['A', 'F', 'D'],
     pharaohs: 0,
@@ -888,7 +890,7 @@ STAGES.push((() => {
     spawn: { col: 1, row: 12 },
     goal:  { col: 28, row: 12 },
     total: 90, need: 58, fail: 14,
-    speed: 1.9, spawnInterval: 0.45,
+    speed: 1.9, spawnInterval: 0.45, timeLimit: 170,
     budget: { BLOCK: 3, RAMP: 2, BRIDGE: 1, LADDER: 1, ARROW_R: 1, ARROW_L: 1, PARACHUTE: 1 },
     medjedTypes: ['A', 'F', 'D'],
     pharaohs: 0,
@@ -914,7 +916,7 @@ STAGES.push((() => {
     spawn: { col: 1, row: 12 },
     goal:  { col: 28, row: 12 },
     total: 100, need: 70, fail: 15,
-    speed: 2.2, spawnInterval: 0.35,
+    speed: 2.2, spawnInterval: 0.35, timeLimit: 180,
     budget: { BLOCK: 4, RAMP: 2, BRIDGE: 1, LADDER: 1, ARROW_R: 1, ARROW_L: 1, PARACHUTE: 1 },
     medjedTypes: ['A', 'F', 'D'],
     pharaohs: 0,
@@ -937,7 +939,7 @@ STAGES.push((() => {
     spawn: { col: 1, row: 12 },
     goal:  { col: 28, row: 12 },
     total: 60, need: 45, fail: 5,
-    speed: 2.0, spawnInterval: 0.5,
+    speed: 2.0, spawnInterval: 0.5, timeLimit: 150,
     budget: { BLOCK: 5, RAMP: 2, BRIDGE: 2, LADDER: 1, ARROW_R: 2, ARROW_L: 2, PARACHUTE: 2 },
     medjedTypes: ['A', 'F', 'D', 'E'],  // ミイラ混入
     pharaohs: 5,                         // ファラオ5体 — 全員救出必須
@@ -1073,14 +1075,6 @@ class Medjed {
     } else if (this.state === 'fall') {
       this.updateFall(dt, world);
     }
-  }
-
-  // タイル取得 (範囲外は EMPTY、左右の縁は WALL 扱い)
-  tileAt(col, row) {
-    if (col < 0 || col >= COLS) return T.GROUND; // 縁は壁扱い
-    if (row < 0) return T.EMPTY;
-    if (row >= ROWS) return T.GROUND;             // 底面の下は壁(着地)
-    return world.stage.tiles[row][col];
   }
 
   updateWalk(dt, world) {
@@ -1255,12 +1249,14 @@ function newWorld(stage) {
     deadPharaoh: 0,
     spawnTimer: 0.5, // 最初の出現まで少し遅延
     elapsed: 0,
+    timeLeft: stage.timeLimit || 120,
     running: true,
     finished: false,    // win/lose 確定後 true
     won: false,
+    timedOut: false,    // 時間切れ判定用
     budget,
     selectedItem: null, // 'BLOCK' など
-    placedTiles: [],    // 撤去用に保持: { col, row, prevTile }[]
+    placedTiles: [],    // 撤去用に保持
   };
 }
 
@@ -1604,6 +1600,7 @@ function gameLoop(now) {
 
 function update(dt) {
   world.elapsed += dt;
+  world.timeLeft = Math.max(0, world.timeLeft - dt);
   // スポーン
   if (world.spawned < world.stage.total) {
     world.spawnTimer -= dt;
@@ -1618,6 +1615,16 @@ function update(dt) {
   let deadCount = 0;
   for (const m of world.medjeds) if (!m.alive) deadCount++;
   world.dead = deadCount;
+
+  // タイムアップ
+  if (world.timeLeft <= 0 && !world.finished) {
+    world.timedOut = true;
+    world.finished = true;
+    world.won = (world.saved >= world.stage.need)
+                && !(world.stage.pharaohs > 0 && world.savedPharaoh < world.stage.pharaohs);
+    setTimeout(showResult, 600);
+    return;
+  }
 
   // 終了判定
   checkEndCondition();
@@ -1705,6 +1712,16 @@ function updateHUD() {
   document.getElementById('hud-need').textContent = stage.need;
   document.getElementById('hud-dead').textContent = world.dead;
   document.getElementById('hud-fail').textContent = stage.fail;
+  // タイマー
+  const t = Math.ceil(world.timeLeft);
+  const m = Math.floor(t / 60);
+  const s = t % 60;
+  const tEl = document.getElementById('hud-time');
+  tEl.textContent = `${m}:${String(s).padStart(2, '0')}`;
+  tEl.classList.remove('danger', 'safe');
+  if (t <= 10) tEl.classList.add('danger');
+  else if (t <= 30) { tEl.style.color = '#ffcc40'; }
+  else { tEl.style.color = ''; }
 }
 
 // ----------------------------------------------------------------------------
@@ -1769,8 +1786,11 @@ function showResult() {
   const modal = document.getElementById('result-modal');
   const box = document.getElementById('result-box');
   box.className = 'modal-box ' + (world.won ? 'win' : 'lose');
-  document.getElementById('result-title').textContent =
-    world.won ? '🎉 クリア!' : '💀 ゲームオーバー';
+  let title;
+  if (world.won) title = '🎉 クリア!';
+  else if (world.timedOut) title = '⏱ タイムアップ';
+  else title = '💀 ゲームオーバー';
+  document.getElementById('result-title').textContent = title;
 
   // 評価 (S/A/B/C)
   let grade = 'C';
