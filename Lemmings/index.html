@@ -332,22 +332,14 @@
     min-width: 0;   /* flex デフォルトの min-width:auto (intrinsic 960px) を上書き */
     min-height: 0;
   }
-  /* ズーム時 — overflow を有効化して大きく表示 */
-  #canvas-wrap.zoom2,
-  #canvas-wrap.zoom3 {
+  /* ズーム時 (4x) — overflow を有効化して大きく表示 */
+  #canvas-wrap.zoom4 {
     overflow: auto;
     align-items: flex-start;
     justify-content: flex-start;
   }
-  #canvas-wrap.zoom2 #game-canvas {
-    width: 200%;
-    height: auto;
-    max-width: none;
-    max-height: none;
-    min-width: 0;
-  }
-  #canvas-wrap.zoom3 #game-canvas {
-    width: 300%;
+  #canvas-wrap.zoom4 #game-canvas {
+    width: 400%;
     height: auto;
     max-width: none;
     max-height: none;
@@ -465,6 +457,62 @@
   @keyframes unlock-shimmer {
     0%   { background-position: 0% 50%; }
     100% { background-position: 100% 50%; }
+  }
+
+  /* ===== プレビューバナー (ステージ開始前) ===== */
+  .preview-banner {
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 80;
+    pointer-events: auto;
+  }
+  .preview-banner[hidden] { display: none; }
+  .preview-box {
+    background: rgba(28, 18, 8, 0.92);
+    border: 3px solid var(--accent);
+    border-radius: 12px;
+    padding: 16px 24px;
+    color: var(--hud-fg);
+    text-align: center;
+    box-shadow: 0 4px 24px rgba(0,0,0,0.6);
+    min-width: 240px;
+    animation: preview-fade-in 0.3s ease;
+  }
+  @keyframes preview-fade-in {
+    from { opacity: 0; transform: scale(0.85); }
+    to   { opacity: 1; transform: scale(1); }
+  }
+  .preview-stage {
+    font-size: 18px;
+    font-weight: bold;
+    color: var(--accent);
+    margin-bottom: 6px;
+  }
+  .preview-info {
+    font-size: 13px;
+    line-height: 1.6;
+    margin-bottom: 12px;
+    color: #f4e0a8;
+  }
+  .preview-info .row {
+    display: flex; justify-content: space-between; gap: 16px;
+    border-bottom: 1px dotted #5a4020;
+    padding: 2px 0;
+  }
+  #btn-preview-start {
+    font-size: 18px;
+    padding: 10px 24px;
+    background: var(--accent);
+    color: var(--ink);
+    border-color: #fff;
+  }
+  #btn-preview-start:hover { background: #ffd060; }
+  .preview-tip {
+    font-size: 11px;
+    margin-top: 8px;
+    color: #c8a868;
+    opacity: 0.85;
   }
 
   /* ===== ロード画面 ===== */
@@ -606,10 +654,12 @@
     <a name="help-place"></a>
     <h3 align="center">★ アイテム配置 ★</h3>
     <ul>
+      <li>各ステージは <b>マッププレビュー</b> から始まる。「▶ スタート」を押すまでメジェドは出現しないので、地形を見てアイテムを置いておける</li>
       <li>下部のアイテムボタンをタップ / クリック して選択</li>
       <li>マス目をタップ / クリック で配置</li>
-      <li><b>スマホはドラッグで微調整可能</b> — 指を置いたまま動かすと配置先のセルが追従。指を離した時点で確定。指の下に隠れた状態でも、画面上下左右に伸びるクロスヘア+大枠でセル位置を確認できる</li>
+      <li><b>スマホはドラッグで微調整可能</b> — 指を置いたまま動かすと配置先のセルが追従。指を離した時点で確定。指で隠れた状態でも画面上下左右に伸びるクロスヘア+大枠でセル位置を確認できる</li>
       <li>アイテム未選択でマスをタップ、または PC は右クリックで <b>撤去</b></li>
+      <li>HUD の 🔍 でズーム切替(1x ↔ 4x)。スマホは初期 4x</li>
       <li>各アイテムには使用上限あり (HUD のカウンタで確認)</li>
     </ul>
 
@@ -690,7 +740,7 @@
     <div class="stat" id="hud-pharaoh-stat" style="display:none">👑 <span class="num" id="hud-pharaoh">0</span>/<span id="hud-pharaoh-total">5</span></div>
     <div class="stat">⏱ <span class="num" id="hud-time">2:00</span></div>
     <div id="hud-buttons">
-      <button id="btn-zoom" title="ズーム (1x → 2x → 3x)">🔍 1x</button>
+      <button id="btn-zoom" title="ズーム (1x ↔ 4x)">🔍 1x</button>
       <button id="btn-spawn-pause" title="スポーン一時停止">⏯</button>
       <button id="btn-speed" title="2倍速">⏩</button>
       <button id="btn-pause" title="一時停止">⏸</button>
@@ -700,7 +750,7 @@
     </div>
   </div>
   <div id="canvas-wrap">
-    <canvas id="game-canvas" width="960" height="544"></canvas>
+    <canvas id="game-canvas" width="1920" height="1088" style="aspect-ratio: 960 / 544;"></canvas>
   </div>
   <div id="item-bar"></div>
 </div>
@@ -717,6 +767,16 @@
       <button id="btn-result-next">次へ</button>
       <button id="btn-result-menu">メニュー</button>
     </div>
+  </div>
+</div>
+
+<!-- ===== プレビュー (各ステージ開始時 — マップ全体を見せる) ===== -->
+<div id="preview-banner" class="preview-banner" hidden>
+  <div class="preview-box">
+    <div class="preview-stage" id="preview-stage-name">Stage 1</div>
+    <div class="preview-info" id="preview-stage-info"></div>
+    <button id="btn-preview-start">▶ スタート</button>
+    <div class="preview-tip">アイテムは開始前でも配置できます</div>
   </div>
 </div>
 
@@ -759,16 +819,17 @@
 // ============================================================================
 // メジェドを救え! — main script
 // ============================================================================
-const VERSION = 'v1.2.0';
+const VERSION = 'v1.3.0';
 
 // ----------------------------------------------------------------------------
 // 定数
 // ----------------------------------------------------------------------------
-const TILE = 32;                     // タイル1辺(px)
+const TILE = 32;                     // タイル1辺(論理px)
 const COLS = 30;                     // 横タイル数
 const ROWS = 17;                     // 縦タイル数
-const CANVAS_W = TILE * COLS;        // 960
-const CANVAS_H = TILE * ROWS;        // 544
+const CANVAS_W = TILE * COLS;        // 960 (論理)
+const CANVAS_H = TILE * ROWS;        // 544 (論理)
+const DPR = 2;                       // Canvas 内部解像度倍率 (アップスケール時の鮮明化用)
 const STORAGE_KEY = 'kgames-lemmings';
 
 // タイル種別
@@ -841,31 +902,37 @@ const State = {
   muted: false,
   speedMul: 1,           // 1 or 2 (2倍速トグル)
   spawnPaused: false,    // スポーン一時停止
-  zoom: 0,               // 0=1x / 1=2x / 2=3x
+  zoom: 0,               // 0=1x / 1=4x
+  previewMode: false,    // ステージ開始前のマップ確認フェーズ
   progress: { cleared: {}, stage8Grade: null, tutorialShown: false },
   game: null,
 };
 
 function setZoom(level) {
+  // level: 0=1x / 1=4x のみ
   State.zoom = level;
   const wrap = document.getElementById('canvas-wrap');
-  wrap.classList.remove('zoom2', 'zoom3');
-  if (level === 1) wrap.classList.add('zoom2');
-  if (level === 2) wrap.classList.add('zoom3');
+  wrap.classList.remove('zoom4');
+  if (level === 1) wrap.classList.add('zoom4');
   const btn = document.getElementById('btn-zoom');
   if (btn) {
-    btn.textContent = '🔍 ' + (level === 0 ? '1x' : level === 1 ? '2x' : '3x');
+    btn.textContent = level === 0 ? '🔍 1x' : '🔎 4x';
     btn.classList.toggle('toggled', level > 0);
   }
-  // ズームON時は中央付近にスクロール
   if (level > 0) {
+    // ズームON時はスポーン地点の少し右+地面寄りにスクロール
     setTimeout(() => {
-      wrap.scrollLeft = (wrap.scrollWidth - wrap.clientWidth) * 0.05; // 開始地点の少し右
-      wrap.scrollTop  = (wrap.scrollHeight - wrap.clientHeight) * 0.6; // 地面寄り
+      wrap.scrollLeft = (wrap.scrollWidth - wrap.clientWidth) * 0.05;
+      wrap.scrollTop  = (wrap.scrollHeight - wrap.clientHeight) * 0.6;
     }, 30);
   } else {
     wrap.scrollLeft = 0; wrap.scrollTop = 0;
   }
+}
+
+// モバイル/タッチ環境判定 (デフォルトズーム決定用)
+function isTouchDevice() {
+  return ('ontouchstart' in window) || (navigator.maxTouchPoints > 0) || window.innerWidth < 720;
 }
 
 // ----------------------------------------------------------------------------
@@ -891,19 +958,19 @@ async function loadAssets() {
     const img = await loadImage(MEDJED_FILES[type]);
     Assets.medjedImg[type] = img;
 
-    // 右向きキャッシュ
+    // 右向きキャッシュ — DPR 倍解像度でラスタライズ
     const cR = document.createElement('canvas');
-    cR.width = MEDJED_W; cR.height = MEDJED_H;
-    cR.getContext('2d').drawImage(img, 0, 0, MEDJED_W, MEDJED_H);
+    cR.width = MEDJED_W * DPR; cR.height = MEDJED_H * DPR;
+    cR.getContext('2d').drawImage(img, 0, 0, MEDJED_W * DPR, MEDJED_H * DPR);
     Assets.medjedCanvasR[type] = cR;
 
-    // 左向きキャッシュ (水平反転)
+    // 左向きキャッシュ (水平反転) — DPR 倍解像度
     const cL = document.createElement('canvas');
-    cL.width = MEDJED_W; cL.height = MEDJED_H;
+    cL.width = MEDJED_W * DPR; cL.height = MEDJED_H * DPR;
     const ctx = cL.getContext('2d');
-    ctx.translate(MEDJED_W, 0);
+    ctx.translate(MEDJED_W * DPR, 0);
     ctx.scale(-1, 1);
-    ctx.drawImage(img, 0, 0, MEDJED_W, MEDJED_H);
+    ctx.drawImage(img, 0, 0, MEDJED_W * DPR, MEDJED_H * DPR);
     Assets.medjedCanvasL[type] = cL;
   });
   await Promise.all(tasks);
@@ -1632,7 +1699,7 @@ class Medjed {
       ctx.arc(this.px, dy + MEDJED_H * 0.45, MEDJED_W * 0.78, 0, Math.PI * 2);
       ctx.fill();
     }
-    ctx.drawImage(cv, dx, dy);
+    ctx.drawImage(cv, dx, dy, MEDJED_W, MEDJED_H);
     // 落下安全マーク (右上に小さい葉) — フェード中もアルファ連動
     if (this.hasParachute) {
       ctx.fillStyle = '#3aa050';
@@ -1977,6 +2044,8 @@ function drawSpawnGoal(ctx, stage) {
 // レンダリング (フレームごと)
 // ----------------------------------------------------------------------------
 function render(ctx) {
+  // 論理座標で描画するため、フレームごとに DPR スケールへ復帰
+  ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
   drawBackground(ctx, world.stage.bg);
 
   // タイル描画
@@ -2112,6 +2181,7 @@ function gameLoop(now) {
 }
 
 function update(dt) {
+  if (State.previewMode) return; // プレビュー中はゲームロジック停止
   world.elapsed += dt;
   world.timeLeft = Math.max(0, world.timeLeft - dt);
   // スポーン (一時停止中はスキップ)
@@ -2408,7 +2478,9 @@ function startGame() {
   State.spawnPaused = false;
   document.getElementById('btn-speed').classList.remove('toggled');
   document.getElementById('btn-spawn-pause').classList.remove('toggled');
+  // プレビュー段階は常に 1x (全体把握)。スタート後にデフォルトズームへ
   setZoom(0);
+  enterPreview();
   // 初回 stage 1 のみチュートリアル
   if (State.stageIndex === 0 && !State.progress.tutorialShown) {
     State.paused = true;
@@ -2432,8 +2504,9 @@ function setupGameInput() {
 
   function getCellFromEvent(ev) {
     const rect = canvas.getBoundingClientRect();
-    const sx = (ev.clientX - rect.left) * (canvas.width / rect.width);
-    const sy = (ev.clientY - rect.top) * (canvas.height / rect.height);
+    // canvas.width は 1920 (DPR=2) だが、TILE は論理 32px なので論理座標に変換
+    const sx = (ev.clientX - rect.left) * (CANVAS_W / rect.width);
+    const sy = (ev.clientY - rect.top) * (CANVAS_H / rect.height);
     let col = Math.floor(sx / TILE);
     let row = Math.floor(sy / TILE);
     // キャンバス端をはみ出してもクランプして有効セルに収める
@@ -2668,7 +2741,7 @@ function setupEventHandlers() {
   };
   document.getElementById('btn-zoom').onclick = () => {
     Audio.sfx('click');
-    setZoom((State.zoom + 1) % 3);
+    setZoom(State.zoom === 0 ? 1 : 0);
   };
   document.getElementById('btn-tutorial-ok').onclick = () => {
     Audio.sfx('click');
@@ -2676,6 +2749,12 @@ function setupEventHandlers() {
     State.paused = false;
     State.progress.tutorialShown = true;
     saveProgress();
+    // チュートリアル後はタッチ環境で 4x ズーム
+    if (isTouchDevice()) setZoom(1);
+  };
+  document.getElementById('btn-preview-start').onclick = () => {
+    Audio.sfx('click');
+    exitPreview();
   };
 
   // 結果モーダル
@@ -2701,8 +2780,38 @@ function returnToTitle() {
   if (world) world.running = false;
   if (_rafId) { cancelAnimationFrame(_rafId); _rafId = null; }
   if (_resultTimer) { clearTimeout(_resultTimer); _resultTimer = null; }
+  document.getElementById('preview-banner').hidden = true;
+  State.previewMode = false;
   world = null;
   show('title-screen');
+}
+
+// ステージ開始前のプレビュー段階に入る — マップ全体を見せて配置・観察を許可
+function enterPreview() {
+  State.previewMode = true;
+  const stage = world.stage;
+  document.getElementById('preview-stage-name').textContent = stage.name;
+  // チュートリアル中(stage 1 初回)は preview を出さない
+  if (State.stageIndex === 0 && !State.progress.tutorialShown) {
+    State.previewMode = false;
+    return;
+  }
+  document.getElementById('preview-stage-info').innerHTML = `
+    <div class="row"><span>🚶 出現数</span><span>${stage.total}</span></div>
+    <div class="row"><span>🏆 必要救出</span><span>${stage.need}</span></div>
+    <div class="row"><span>💀 許容死亡</span><span>${stage.fail}</span></div>
+    <div class="row"><span>⏱ 制限時間</span><span>${stage.timeLimit}秒</span></div>
+    ${stage.pharaohs > 0 ? `<div class="row"><span>👑 ファラオ救出</span><span>${stage.pharaohs} (全員必須)</span></div>` : ''}
+  `;
+  document.getElementById('preview-banner').hidden = false;
+}
+
+// プレビューを抜けて本番開始
+function exitPreview() {
+  State.previewMode = false;
+  document.getElementById('preview-banner').hidden = true;
+  // タッチ環境はデフォルト 4x ズームへ
+  if (isTouchDevice()) setZoom(1);
 }
 
 function toggleMute() {
