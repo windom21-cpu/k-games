@@ -462,6 +462,7 @@
     <div class="stat">🚶 出現 <span class="num" id="hud-spawned">0</span>/<span id="hud-total">30</span></div>
     <div class="stat">🏆 救出 <span class="num safe" id="hud-saved">0</span>/<span id="hud-need">20</span></div>
     <div class="stat">💀 死亡 <span class="num danger" id="hud-dead">0</span>/<span id="hud-fail">5</span></div>
+    <div class="stat" id="hud-pharaoh-stat" style="display:none">👑 <span class="num" id="hud-pharaoh">0</span>/<span id="hud-pharaoh-total">5</span></div>
     <div class="stat">⏱ <span class="num" id="hud-time">2:00</span></div>
     <div id="hud-buttons">
       <button id="btn-pause">⏸</button>
@@ -675,6 +676,7 @@ function isStageUnlocked(stageIdx) {
 // ----------------------------------------------------------------------------
 const Audio = {
   ctx: null,
+  _last: {},  // 名前ごとの最終発火時刻
   ensure() {
     if (!this.ctx) {
       try {
@@ -700,6 +702,13 @@ const Audio = {
     if (State.muted) return;
     this.ensure();
     if (!this.ctx) return;
+    // 大量発火しがちな効果音は短いクールダウンで抑制
+    if (name === 'flip' || name === 'spawn' || name === 'death') {
+      const now = performance.now();
+      const last = this._last[name] || 0;
+      if (now - last < 90) return;
+      this._last[name] = now;
+    }
     switch (name) {
       case 'place':   this.beep(880, 0.08, 'square', 0.10); break;
       case 'remove':  this.beep(440, 0.08, 'square', 0.10); break;
@@ -1226,9 +1235,35 @@ class Medjed {
     if (this.atGoal || !this.alive) return;
     const cv = (this.dir > 0) ? Assets.medjedCanvasR[this.type] : Assets.medjedCanvasL[this.type];
     if (!cv) return;
-    // 描画位置: 中心 px, 足元 py。歩行時は上下にわずかに揺れる
     const bob = (this.state === 'walk') ? Math.sin(this.animTime * 0.012) * 1.5 : 0;
-    ctx.drawImage(cv, this.px - MEDJED_W / 2, this.py - MEDJED_H + bob);
+    const dx = this.px - MEDJED_W / 2;
+    const dy = this.py - MEDJED_H + bob;
+    // ファラオのハロ
+    if (this.type === 'B') {
+      const pulse = 0.35 + 0.15 * Math.sin(this.animTime * 0.005);
+      ctx.save();
+      ctx.fillStyle = `rgba(255, 220, 60, ${pulse})`;
+      ctx.beginPath();
+      ctx.arc(this.px, this.py - MEDJED_H * 0.55, MEDJED_W * 0.78, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+    }
+    ctx.drawImage(cv, dx, dy);
+    // 落下安全マーク (右上に小さい葉)
+    if (this.hasParachute) {
+      ctx.save();
+      ctx.fillStyle = '#3aa050';
+      ctx.beginPath();
+      ctx.ellipse(this.px + MEDJED_W * 0.4, this.py - MEDJED_H + 2, 4, 6, Math.PI / 4, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.strokeStyle = '#205028';
+      ctx.lineWidth = 0.8;
+      ctx.beginPath();
+      ctx.moveTo(this.px + MEDJED_W * 0.4 - 3, this.py - MEDJED_H + 5);
+      ctx.lineTo(this.px + MEDJED_W * 0.4 + 3, this.py - MEDJED_H);
+      ctx.stroke();
+      ctx.restore();
+    }
   }
 }
 
@@ -1735,6 +1770,15 @@ function updateHUD() {
   document.getElementById('hud-need').textContent = stage.need;
   document.getElementById('hud-dead').textContent = world.dead;
   document.getElementById('hud-fail').textContent = stage.fail;
+  // ファラオ (隠しステージ用)
+  const pStat = document.getElementById('hud-pharaoh-stat');
+  if (stage.pharaohs > 0) {
+    pStat.style.display = '';
+    document.getElementById('hud-pharaoh').textContent = world.savedPharaoh;
+    document.getElementById('hud-pharaoh-total').textContent = stage.pharaohs;
+  } else {
+    pStat.style.display = 'none';
+  }
   // タイマー
   const t = Math.ceil(world.timeLeft);
   const m = Math.floor(t / 60);
@@ -1840,8 +1884,14 @@ function showResult() {
   const isLastNormal = State.stageIndex === 7;
   const isHidden = State.stageIndex === 8;
   const nextBtn = document.getElementById('btn-result-next');
-  nextBtn.style.display = (world.won && !isHidden) ? '' : 'none';
-  if (isLastNormal) nextBtn.textContent = '隠しステージへ →';
+  let canGoNext = false;
+  if (world.won) {
+    if (isHidden) canGoNext = false;
+    else if (isLastNormal) canGoNext = (grade === 'S' || grade === 'A');
+    else canGoNext = true;
+  }
+  nextBtn.style.display = canGoNext ? '' : 'none';
+  if (isLastNormal) nextBtn.textContent = '✨ 隠しステージへ →';
   else nextBtn.textContent = '次のステージ →';
 
   // 進捗保存
