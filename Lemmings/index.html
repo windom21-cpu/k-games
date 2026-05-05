@@ -128,6 +128,35 @@
     50% { transform: translateY(-6px); }
   }
 
+  /* 横切るメジェド */
+  .walking-band {
+    position: absolute;
+    bottom: 0; left: 0; right: 0;
+    height: 60px;
+    pointer-events: none;
+    overflow: hidden;
+    z-index: 1;
+  }
+  .walking-band img {
+    position: absolute;
+    bottom: 4px;
+    width: 36px;
+    height: auto;
+    animation: walk-across linear infinite;
+    transform: translateY(0);
+  }
+  .walking-band img.bob {
+    animation: walk-across linear infinite, walk-bob 0.6s ease-in-out infinite;
+  }
+  @keyframes walk-across {
+    0%   { left: -50px; }
+    100% { left: 100%; }
+  }
+  @keyframes walk-bob {
+    0%, 100% { transform: translateY(0); }
+    50%      { transform: translateY(-3px); }
+  }
+
   .menu {
     display: flex; flex-direction: column; gap: 10px;
     align-items: stretch;
@@ -175,15 +204,24 @@
   }
   .stage-grid button {
     aspect-ratio: 1;
-    font-size: 18px;
-    padding: 0;
+    font-size: 14px;
+    padding: 4px 4px 6px;
     display: flex; flex-direction: column;
-    align-items: center; justify-content: center;
+    align-items: center; justify-content: space-between;
     line-height: 1.2;
-    min-height: 70px;
+    min-height: 95px;
+    gap: 2px;
+  }
+  .stage-grid button .stage-num { font-size: 14px; font-weight: bold; }
+  .stage-grid button canvas {
+    width: 100%;
+    height: 40px;
+    background: #fce4a0;
+    border: 1px solid #5a3018;
+    image-rendering: pixelated;
   }
   .stage-grid button .star {
-    font-size: 12px; color: var(--accent); margin-top: 2px;
+    font-size: 11px; color: var(--accent); margin: 0;
   }
   .stage-grid button.locked {
     background: #6a5a45;
@@ -268,6 +306,11 @@
     padding: 4px 10px; font-size: 13px;
     border-radius: 4px; border-width: 1px;
   }
+  #hud-buttons button.toggled {
+    background: var(--accent);
+    color: var(--ink);
+    border-color: #fff;
+  }
 
   #canvas-wrap {
     flex: 1 1 auto;
@@ -321,9 +364,15 @@
   }
   .item-btn:disabled { opacity: 0.35; cursor: not-allowed; }
   .item-btn .icon { font-size: 22px; line-height: 1; margin-bottom: 2px; }
-  .item-btn .count { font-weight: bold; color: var(--accent); }
+  .item-btn .count { font-weight: bold; color: var(--accent); display: inline-block; }
   .item-btn.active .count { color: var(--ink); }
   .item-btn .name { font-size: 10px; }
+  @keyframes count-flash {
+    0%   { color: #ff4030; transform: scale(1.5); }
+    100% { color: var(--accent); transform: scale(1); }
+  }
+  .item-btn .count.flash { animation: count-flash 0.45s ease-out; }
+  .item-btn .count.empty { color: #ff5050; }
 
   /* ===== モーダル / 結果画面 ===== */
   .modal-overlay {
@@ -377,6 +426,22 @@
     display: flex; gap: 8px; justify-content: center; margin-top: 12px;
     flex-wrap: wrap;
   }
+  .modal-box .unlock-banner {
+    margin: 12px 0;
+    padding: 10px 12px;
+    background: linear-gradient(90deg, #ffe070, #ffb040, #ffe070, #ffb040, #ffe070);
+    background-size: 300% 100%;
+    color: #3a2010;
+    border-radius: 8px;
+    font-weight: bold;
+    font-size: 16px;
+    border: 2px solid #c08020;
+    animation: unlock-shimmer 1.4s linear infinite;
+  }
+  @keyframes unlock-shimmer {
+    0%   { background-position: 0% 50%; }
+    100% { background-position: 100% 50%; }
+  }
 
   /* ===== ロード画面 ===== */
   #loading {
@@ -426,6 +491,7 @@
     <a href="../index.html">← K-games</a>
   </div>
   <div class="version" id="version-label"></div>
+  <div class="walking-band" id="walking-band"></div>
 </div>
 
 <!-- ===== ステージ選択 ===== -->
@@ -599,10 +665,12 @@
     <div class="stat" id="hud-pharaoh-stat" style="display:none">👑 <span class="num" id="hud-pharaoh">0</span>/<span id="hud-pharaoh-total">5</span></div>
     <div class="stat">⏱ <span class="num" id="hud-time">2:00</span></div>
     <div id="hud-buttons">
-      <button id="btn-pause">⏸</button>
-      <button id="btn-reset">⟳</button>
+      <button id="btn-spawn-pause" title="スポーン一時停止">⏯</button>
+      <button id="btn-speed" title="2倍速">⏩</button>
+      <button id="btn-pause" title="一時停止">⏸</button>
+      <button id="btn-reset" title="リセット">⟳</button>
       <button id="btn-mute-game">🔊</button>
-      <button id="btn-quit">×</button>
+      <button id="btn-quit" title="やめる">×</button>
     </div>
   </div>
   <div id="canvas-wrap">
@@ -616,11 +684,31 @@
   <div class="modal-box" id="result-box">
     <h2 id="result-title">クリア!</h2>
     <div class="grade" id="result-grade">A</div>
+    <div class="unlock-banner" id="result-unlock" hidden>✨ 隠しステージ9 解放! ✨</div>
     <div class="stats" id="result-stats"></div>
     <div class="actions">
       <button id="btn-result-retry">もう一度</button>
       <button id="btn-result-next">次へ</button>
       <button id="btn-result-menu">メニュー</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== チュートリアルモーダル (stage 1 初回のみ) ===== -->
+<div id="tutorial-modal" class="modal-overlay" hidden>
+  <div class="modal-box" style="max-width: 380px; text-align: left;">
+    <h2 style="text-align: center;">遊び方</h2>
+    <p>左の門から <b>メジェド</b> たちが <b>右へ歩いてきます</b>。</p>
+    <p>下のアイテムバーから <b>⬛ ブロック</b> や <b>🌉 橋</b> を選び、<br>
+       マスをタップ/クリックで配置して、ピラミッドへ導いてください。</p>
+    <p>規定数を救出すれば <b>クリア</b>!<br>
+       詰まったら <b>⏯ スポーン一時停止</b> で立て直し、<br>
+       焦るときは <b>⏩ 2倍速</b> で送り。</p>
+    <p style="text-align:center; margin-top: 12px;">
+      <small>※ 詳しい操作は ⏵ 操作説明 から</small>
+    </p>
+    <div class="actions">
+      <button id="btn-tutorial-ok">▶ はじめる</button>
     </div>
   </div>
 </div>
@@ -725,8 +813,9 @@ const State = {
   stageIndex: 0,         // 現在のステージ (0-based)
   paused: false,
   muted: false,
-  progress: { cleared: {}, stage8Grade: null },  // localStorage 同期
-  // ゲーム実行中の状態 (game 画面で使用)
+  speedMul: 1,           // 1 or 2 (2倍速トグル)
+  spawnPaused: false,    // スポーン一時停止
+  progress: { cleared: {}, stage8Grade: null, tutorialShown: false },
   game: null,
 };
 
@@ -782,6 +871,7 @@ function loadProgress() {
     if (obj && typeof obj === 'object') {
       State.progress.cleared = obj.cleared || {};
       State.progress.stage8Grade = obj.stage8Grade || null;
+      State.progress.tutorialShown = !!obj.tutorialShown;
       State.muted = !!obj.muted;
     }
   } catch (e) { /* ignore */ }
@@ -791,9 +881,13 @@ function saveProgress() {
     localStorage.setItem(STORAGE_KEY, JSON.stringify({
       cleared: State.progress.cleared,
       stage8Grade: State.progress.stage8Grade,
+      tutorialShown: State.progress.tutorialShown,
       muted: State.muted,
     }));
   } catch (e) { /* ignore */ }
+}
+function gradeRank(g) {
+  return { S: 4, A: 3, B: 2, C: 1 }[g] || 0;
 }
 function isStageUnlocked(stageIdx) {
   // 0-based
@@ -850,6 +944,12 @@ const Audio = {
       case 'remove':  this.beep(440, 0.08, 'square', 0.10); break;
       case 'spawn':   this.beep(660, 0.05, 'sine',   0.06); break;
       case 'goal':    this.beep(1320, 0.10, 'triangle', 0.12); setTimeout(()=>this.beep(1760, 0.10, 'triangle', 0.12), 80); break;
+      case 'pharaoh-goal':
+        this.beep(880, 0.09, 'triangle', 0.14);
+        setTimeout(()=>this.beep(1175, 0.09, 'triangle', 0.14), 90);
+        setTimeout(()=>this.beep(1568, 0.10, 'triangle', 0.14), 180);
+        setTimeout(()=>this.beep(2093, 0.16, 'triangle', 0.14), 280);
+        break;
       case 'death':   this.beep(220, 0.20, 'sawtooth', 0.10); break;
       case 'flip':    this.beep(330, 0.06, 'square', 0.07); break;
       case 'win':
@@ -1124,6 +1224,24 @@ function buildTitleScreen() {
     row.appendChild(slot);
   });
   document.getElementById('version-label').textContent = VERSION;
+
+  // タイトル下端に横切るメジェドのアニメ (CSS keyframe で animation-duration / delay を散らす)
+  const band = document.getElementById('walking-band');
+  band.innerHTML = '';
+  const lineup = ['A', 'D', 'F', 'A', 'E', 'A', 'F'];
+  lineup.forEach((type, i) => {
+    const img = document.createElement('img');
+    img.src = MEDJED_FILES[type];
+    img.alt = '';
+    img.className = 'bob';
+    const dur = 11 + Math.random() * 6;       // 11〜17 秒で横切る
+    const delay = -(i * 2.2 + Math.random() * 1.5); // 負ディレイで開始位置を散らす
+    img.style.animationDuration = `${dur}s, 0.6s`;
+    img.style.animationDelay = `${delay}s, ${-Math.random() * 0.6}s`;
+    if (type === 'F') img.style.width = '28px';
+    if (type === 'D' || type === 'E') img.style.width = '34px';
+    band.appendChild(img);
+  });
 }
 
 // ----------------------------------------------------------------------------
@@ -1135,7 +1253,7 @@ function buildStageSelect() {
   for (let i = 0; i < 9; i++) {
     const btn = document.createElement('button');
     const unlocked = isStageUnlocked(i);
-    const cleared = !!State.progress.cleared[i];
+    const grade = State.progress.cleared[i];
     const isHidden = (i === 8);
     if (!unlocked) {
       btn.className = 'locked';
@@ -1143,9 +1261,24 @@ function buildStageSelect() {
       btn.innerHTML = '🔒<br><span style="font-size:11px">?</span>';
     } else {
       if (isHidden) btn.className = 'hidden-stage';
-      const star = cleared ? '<div class="star">★ クリア</div>' : '';
-      const label = isHidden ? `Stage 9<br><span style="font-size:10px">隠し</span>` : `Stage ${i + 1}`;
-      btn.innerHTML = label + star;
+      const numEl = document.createElement('div');
+      numEl.className = 'stage-num';
+      numEl.innerHTML = isHidden
+        ? 'Stage 9<br><span style="font-size:9px">隠し</span>'
+        : `Stage ${i + 1}`;
+      btn.appendChild(numEl);
+
+      const cv = document.createElement('canvas');
+      cv.width = 90;
+      cv.height = 40;
+      drawStageThumbnail(cv, STAGES[i]);
+      btn.appendChild(cv);
+
+      const starEl = document.createElement('div');
+      starEl.className = 'star';
+      starEl.textContent = grade ? `★ ${grade}` : ' ';
+      btn.appendChild(starEl);
+
       btn.onclick = () => {
         Audio.sfx('click');
         State.stageIndex = i;
@@ -1154,6 +1287,56 @@ function buildStageSelect() {
     }
     grid.appendChild(btn);
   }
+}
+
+function drawStageThumbnail(canvas, stage) {
+  const ctx = canvas.getContext('2d');
+  const sx = canvas.width / COLS;
+  const sy = canvas.height / ROWS;
+  // 背景
+  if (stage.bg === 'pyramid') {
+    const grd = ctx.createLinearGradient(0, 0, 0, canvas.height);
+    grd.addColorStop(0, '#3a2858');
+    grd.addColorStop(1, '#c87038');
+    ctx.fillStyle = grd;
+  } else {
+    const grd = ctx.createLinearGradient(0, 0, 0, canvas.height);
+    grd.addColorStop(0, '#fce4a0');
+    grd.addColorStop(1, '#e89968');
+    ctx.fillStyle = grd;
+  }
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  // タイル
+  const tiles = stage.tiles;
+  for (let r = 0; r < ROWS; r++) {
+    for (let c = 0; c < COLS; c++) {
+      const t = tiles[r][c];
+      if (t === T.EMPTY) continue;
+      let color;
+      switch (t) {
+        case T.GROUND: color = '#7a5a30'; break;
+        case T.SAND:   color = '#c8a868'; break;
+        case T.STONE:  color = '#8b8a85'; break;
+        case T.SPIKE:  color = '#444';    break;
+        case T.WATER:  color = '#3a8acc'; break;
+        case T.LAVA:   color = '#c83820'; break;
+        default: continue;
+      }
+      ctx.fillStyle = color;
+      ctx.fillRect(Math.floor(c * sx), Math.floor(r * sy), Math.ceil(sx) + 1, Math.ceil(sy) + 1);
+    }
+  }
+  // スポーン (黒い四角)
+  ctx.fillStyle = '#1a0a08';
+  ctx.fillRect(stage.spawn.col * sx, stage.spawn.row * sy, Math.max(2, sx * 1.2), Math.max(2, sy * 1.2));
+  // ゴール (黄色三角ピラミッド)
+  ctx.fillStyle = '#d4af37';
+  ctx.beginPath();
+  ctx.moveTo(stage.goal.col * sx - 1, (stage.goal.row + 1) * sy);
+  ctx.lineTo((stage.goal.col + 1) * sx + 1, (stage.goal.row + 1) * sy);
+  ctx.lineTo((stage.goal.col + 0.5) * sx, (stage.goal.row - 0.5) * sy);
+  ctx.closePath();
+  ctx.fill();
 }
 
 // ----------------------------------------------------------------------------
@@ -1193,17 +1376,25 @@ class Medjed {
     this.state = 'dead';
     this.deathReason = reason;
     Audio.sfx('death');
+    spawnFx('death', this.px, this.py - MEDJED_H * 0.4);
   }
 
   reachGoal() {
     if (this.atGoal || !this.alive) return;
     this.atGoal = true;
     this.state = 'exit';
-    Audio.sfx('goal');
+    this.exitTime = 0;
+    if (this.type === 'B') Audio.sfx('pharaoh-goal');
+    else Audio.sfx('goal');
+    spawnFx('goal-sparkle', this.px, this.py - MEDJED_H * 0.4, { life: 0.6 });
   }
 
   update(dt, world) {
-    if (!this.alive || this.atGoal) return;
+    if (!this.alive) return;
+    if (this.atGoal) {
+      this.exitTime = (this.exitTime || 0) + dt;
+      return;
+    }
     this.animTime += dt * 1000;
 
     // ミイラの呪い (たまに反転)
@@ -1367,39 +1558,46 @@ class Medjed {
   }
 
   draw(ctx) {
-    // 死亡 (短時間表示) や脱出は描画スキップ
-    if (this.atGoal || !this.alive) return;
+    if (!this.alive) return;
+    // ゴール後 0.5 秒だけフェードアウト+上昇しながら描画
+    const FADE_DUR = 0.5;
+    if (this.atGoal && this.exitTime >= FADE_DUR) return;
     const cv = (this.dir > 0) ? Assets.medjedCanvasR[this.type] : Assets.medjedCanvasL[this.type];
     if (!cv) return;
     const bob = (this.state === 'walk') ? Math.sin(this.animTime * 0.012) * 1.5 : 0;
     const dx = this.px - MEDJED_W / 2;
-    const dy = this.py - MEDJED_H + bob;
+    let dy = this.py - MEDJED_H + bob;
+    let alpha = 1;
+    if (this.atGoal) {
+      const p = this.exitTime / FADE_DUR;
+      alpha = 1 - p;
+      dy -= p * 18; // 上方向にふわっと浮く
+    }
+    ctx.save();
+    ctx.globalAlpha = alpha;
     // ファラオのハロ
     if (this.type === 'B') {
       const pulse = 0.35 + 0.15 * Math.sin(this.animTime * 0.005);
-      ctx.save();
-      ctx.fillStyle = `rgba(255, 220, 60, ${pulse})`;
+      ctx.fillStyle = `rgba(255, 220, 60, ${pulse * alpha})`;
       ctx.beginPath();
-      ctx.arc(this.px, this.py - MEDJED_H * 0.55, MEDJED_W * 0.78, 0, Math.PI * 2);
+      ctx.arc(this.px, dy + MEDJED_H * 0.45, MEDJED_W * 0.78, 0, Math.PI * 2);
       ctx.fill();
-      ctx.restore();
     }
     ctx.drawImage(cv, dx, dy);
-    // 落下安全マーク (右上に小さい葉)
+    // 落下安全マーク (右上に小さい葉) — フェード中もアルファ連動
     if (this.hasParachute) {
-      ctx.save();
       ctx.fillStyle = '#3aa050';
       ctx.beginPath();
-      ctx.ellipse(this.px + MEDJED_W * 0.4, this.py - MEDJED_H + 2, 4, 6, Math.PI / 4, 0, Math.PI * 2);
+      ctx.ellipse(this.px + MEDJED_W * 0.4, dy + 2, 4, 6, Math.PI / 4, 0, Math.PI * 2);
       ctx.fill();
       ctx.strokeStyle = '#205028';
       ctx.lineWidth = 0.8;
       ctx.beginPath();
-      ctx.moveTo(this.px + MEDJED_W * 0.4 - 3, this.py - MEDJED_H + 5);
-      ctx.lineTo(this.px + MEDJED_W * 0.4 + 3, this.py - MEDJED_H);
+      ctx.moveTo(this.px + MEDJED_W * 0.4 - 3, dy + 5);
+      ctx.lineTo(this.px + MEDJED_W * 0.4 + 3, dy);
       ctx.stroke();
-      ctx.restore();
     }
+    ctx.restore();
   }
 }
 
@@ -1414,6 +1612,7 @@ function newWorld(stage) {
   return {
     stage,
     medjeds: [],
+    fx: [],   // 短命の演出オブジェクト (death / sparkle 等)
     spawned: 0,
     saved: 0,
     dead: 0,
@@ -1430,6 +1629,11 @@ function newWorld(stage) {
     selectedItem: null, // 'BLOCK' など
     placedTiles: [],    // 撤去用に保持
   };
+}
+
+function spawnFx(type, x, y, opts = {}) {
+  if (!world) return;
+  world.fx.push({ type, x, y, t: 0, life: opts.life || 0.6, ...opts });
 }
 
 // ----------------------------------------------------------------------------
@@ -1741,9 +1945,52 @@ function render(ctx) {
   // メジェド描画
   for (const m of world.medjeds) m.draw(ctx);
 
+  // 演出 (死亡 X / ゴール sparkle 等)
+  drawFx(ctx);
+
   // ホバー中のアイテムプレビュー
   if (world.selectedItem && world.hoverCell) {
     drawItemPreview(ctx, world.selectedItem, world.hoverCell.col, world.hoverCell.row);
+  }
+}
+
+function drawFx(ctx) {
+  for (const f of world.fx) {
+    const p = f.t / f.life; // 0..1
+    if (f.type === 'death') {
+      const a = 1 - p;
+      ctx.save();
+      ctx.globalAlpha = Math.max(0, a);
+      // 赤い ✕ マーク (拡大しながらフェード)
+      const r = 8 + p * 14;
+      ctx.strokeStyle = '#e02828';
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.moveTo(f.x - r, f.y - r); ctx.lineTo(f.x + r, f.y + r);
+      ctx.moveTo(f.x + r, f.y - r); ctx.lineTo(f.x - r, f.y + r);
+      ctx.stroke();
+      // 砂埃のパフ
+      ctx.fillStyle = `rgba(180, 140, 100, ${a * 0.5})`;
+      ctx.beginPath();
+      ctx.arc(f.x, f.y + r * 0.5, r * 1.4, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+    } else if (f.type === 'goal-sparkle') {
+      const a = 1 - p;
+      ctx.save();
+      ctx.globalAlpha = a;
+      ctx.fillStyle = '#ffe070';
+      const r = 4 + p * 8;
+      for (let i = 0; i < 5; i++) {
+        const ang = (i / 5) * Math.PI * 2 + p * Math.PI;
+        const dx = Math.cos(ang) * r * 2;
+        const dy = Math.sin(ang) * r * 2 - p * 16;
+        ctx.beginPath();
+        ctx.arc(f.x + dx, f.y + dy, 2, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      ctx.restore();
+    }
   }
 }
 
@@ -1778,11 +2025,12 @@ let _lastFrame = 0;
 let _rafId = null;
 function gameLoop(now) {
   if (!world || !world.running) return;
-  const dt = Math.min(0.05, (now - _lastFrame) / 1000 || 0);
+  let dt = Math.min(0.05, (now - _lastFrame) / 1000 || 0);
   _lastFrame = now;
 
   if (!State.paused && !world.finished) {
-    update(dt);
+    // 2倍速トグル
+    update(dt * State.speedMul);
   }
 
   const ctx = document.getElementById('game-canvas').getContext('2d');
@@ -1795,8 +2043,8 @@ function gameLoop(now) {
 function update(dt) {
   world.elapsed += dt;
   world.timeLeft = Math.max(0, world.timeLeft - dt);
-  // スポーン
-  if (world.spawned < world.stage.total) {
+  // スポーン (一時停止中はスキップ)
+  if (world.spawned < world.stage.total && !State.spawnPaused) {
     world.spawnTimer -= dt;
     if (world.spawnTimer <= 0) {
       spawnOneMedjed();
@@ -1809,6 +2057,10 @@ function update(dt) {
   let deadCount = 0;
   for (const m of world.medjeds) if (!m.alive) deadCount++;
   world.dead = deadCount;
+
+  // 演出オブジェクト更新
+  for (const f of world.fx) f.t += dt;
+  world.fx = world.fx.filter(f => f.t < f.life);
 
   // タイムアップ
   if (world.timeLeft <= 0 && !world.finished) {
@@ -1865,11 +2117,13 @@ function checkEndCondition() {
   }
 }
 
+let _resultTimer = null;
 function endGame(won) {
   if (world.finished) return;
   world.finished = true;
   world.won = won;
-  setTimeout(showResult, 600);
+  if (_resultTimer) clearTimeout(_resultTimer);
+  _resultTimer = setTimeout(() => { _resultTimer = null; showResult(); }, 600);
 }
 
 // プレイヤーが手動で評価へ進む (規定数を満たしているなら勝利)
@@ -1969,7 +2223,10 @@ function refreshItemBar() {
     btn.classList.toggle('active', world.selectedItem === item.id);
     btn.disabled = world.budget[item.id] <= 0;
     const cnt = document.getElementById(`cnt-${item.id}`);
-    if (cnt) cnt.textContent = world.budget[item.id];
+    if (cnt) {
+      cnt.textContent = world.budget[item.id];
+      cnt.classList.toggle('empty', world.budget[item.id] <= 0);
+    }
   }
 }
 
@@ -2002,6 +2259,15 @@ function showResult() {
   gradeEl.className = 'grade ' + grade;
   gradeEl.style.display = world.won ? '' : 'none';
 
+  // 隠し解放演出
+  const unlockEl = document.getElementById('result-unlock');
+  if (justUnlockedStage9) {
+    unlockEl.hidden = false;
+    Audio.sfx('pharaoh-goal');
+  } else {
+    unlockEl.hidden = true;
+  }
+
   document.getElementById('result-stats').innerHTML = `
     <div class="row"><span>救出</span><span>${world.saved} / ${stage.need}</span></div>
     <div class="row"><span>死亡</span><span>${world.dead} / ${stage.fail}</span></div>
@@ -2023,12 +2289,21 @@ function showResult() {
   if (isLastNormal) nextBtn.textContent = '✨ 隠しステージへ →';
   else nextBtn.textContent = '次のステージ →';
 
-  // 進捗保存
+  // 進捗保存 — ベストグレードのみ保持(再プレイで低評価による上書き防止)
+  let justUnlockedStage9 = false;
   if (world.won) {
-    State.progress.cleared[State.stageIndex] = grade;
+    const prev = State.progress.cleared[State.stageIndex];
+    if (!prev || gradeRank(grade) > gradeRank(prev)) {
+      State.progress.cleared[State.stageIndex] = grade;
+    }
     if (State.stageIndex === 7) {
-      // stage 8 のグレード記録 (S または A で stage 9 解放)
-      State.progress.stage8Grade = grade;
+      const prev8 = State.progress.stage8Grade;
+      const wasUnlocked = prev8 === 'S' || prev8 === 'A';
+      if (!prev8 || gradeRank(grade) > gradeRank(prev8)) {
+        State.progress.stage8Grade = grade;
+      }
+      const nowUnlocked = State.progress.stage8Grade === 'S' || State.progress.stage8Grade === 'A';
+      justUnlockedStage9 = !wasUnlocked && nowUnlocked;
     }
     saveProgress();
   }
@@ -2040,6 +2315,8 @@ function showResult() {
 // ゲーム開始
 // ----------------------------------------------------------------------------
 function startGame() {
+  // 古い遅延結果モーダルをクリア
+  if (_resultTimer) { clearTimeout(_resultTimer); _resultTimer = null; }
   show('game-screen');
   const stage = STAGES[State.stageIndex];
   if (!stage) return;
@@ -2054,7 +2331,17 @@ function startGame() {
   // モーダル全閉じ
   document.getElementById('result-modal').hidden = true;
   document.getElementById('pause-modal').hidden = true;
+  document.getElementById('tutorial-modal').hidden = true;
   State.paused = false;
+  State.speedMul = 1;
+  State.spawnPaused = false;
+  document.getElementById('btn-speed').classList.remove('toggled');
+  document.getElementById('btn-spawn-pause').classList.remove('toggled');
+  // 初回 stage 1 のみチュートリアル
+  if (State.stageIndex === 0 && !State.progress.tutorialShown) {
+    State.paused = true;
+    document.getElementById('tutorial-modal').hidden = false;
+  }
   // ループ開始
   if (_rafId) cancelAnimationFrame(_rafId);
   _lastFrame = performance.now();
@@ -2148,6 +2435,13 @@ function placeItem(itemId, col, row) {
   world.budget[itemId]--;
   Audio.sfx('place');
   refreshItemBar();
+  // カウントを一瞬点滅
+  const cntEl = document.getElementById(`cnt-${itemId}`);
+  if (cntEl) {
+    cntEl.classList.remove('flash');
+    void cntEl.offsetWidth; // reflow して再アニメ
+    cntEl.classList.add('flash');
+  }
   if (world.budget[itemId] <= 0) {
     world.selectedItem = null;
     refreshItemBar();
@@ -2256,6 +2550,23 @@ function setupEventHandlers() {
   };
   document.getElementById('btn-reset').onclick = () => { Audio.sfx('click'); startGame(); };
   document.getElementById('btn-quit').onclick = () => { Audio.sfx('click'); returnToTitle(); };
+  document.getElementById('btn-speed').onclick = () => {
+    Audio.sfx('click');
+    State.speedMul = (State.speedMul === 1) ? 2 : 1;
+    document.getElementById('btn-speed').classList.toggle('toggled', State.speedMul > 1);
+  };
+  document.getElementById('btn-spawn-pause').onclick = () => {
+    Audio.sfx('click');
+    State.spawnPaused = !State.spawnPaused;
+    document.getElementById('btn-spawn-pause').classList.toggle('toggled', State.spawnPaused);
+  };
+  document.getElementById('btn-tutorial-ok').onclick = () => {
+    Audio.sfx('click');
+    document.getElementById('tutorial-modal').hidden = true;
+    State.paused = false;
+    State.progress.tutorialShown = true;
+    saveProgress();
+  };
 
   // 結果モーダル
   document.getElementById('btn-result-retry').onclick = () => {
@@ -2279,6 +2590,7 @@ function setupEventHandlers() {
 function returnToTitle() {
   if (world) world.running = false;
   if (_rafId) { cancelAnimationFrame(_rafId); _rafId = null; }
+  if (_resultTimer) { clearTimeout(_resultTimer); _resultTimer = null; }
   world = null;
   show('title-screen');
 }
