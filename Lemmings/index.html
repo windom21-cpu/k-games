@@ -584,6 +584,7 @@
     <ul>
       <li>下部のアイテムボタンをタップ / クリック して選択</li>
       <li>マス目をタップ / クリック で配置</li>
+      <li><b>スマホはドラッグで微調整可能</b> — 指を置いたまま動かすと配置先のセルが追従。指を離した時点で確定。指の下に隠れた状態でも、画面上下左右に伸びるクロスヘア+大枠でセル位置を確認できる</li>
       <li>アイテム未選択でマスをタップ、または PC は右クリックで <b>撤去</b></li>
       <li>各アイテムには使用上限あり (HUD のカウンタで確認)</li>
     </ul>
@@ -733,7 +734,7 @@
 // ============================================================================
 // メジェドを救え! — main script
 // ============================================================================
-const VERSION = 'v1.1.0';
+const VERSION = 'v1.1.1';
 
 // ----------------------------------------------------------------------------
 // 定数
@@ -2009,13 +2010,35 @@ function drawItemPreview(ctx, itemId, col, row) {
   ctx.restore();
   // 配置可否枠
   const ok = canPlaceItem(itemId, col, row);
-  ctx.strokeStyle = ok ? '#80ff80' : '#ff5050';
-  ctx.lineWidth = 2;
   let w = TILE, h = TILE;
   let x = col * TILE, y = row * TILE;
   if (itemId === 'BRIDGE') w = TILE * 3;
   if (itemId === 'LADDER') { h = TILE * 3; y = (row - 2) * TILE; }
-  ctx.strokeRect(x, y, w, h);
+  // タッチ中は大きな外枠+クロスヘアで指の下から「はみ出す」視認性を確保
+  if (isTouchActive()) {
+    ctx.save();
+    const pulse = 0.6 + 0.4 * Math.sin(performance.now() / 150);
+    ctx.strokeStyle = ok ? `rgba(80,255,80,${pulse})` : `rgba(255,80,80,${pulse})`;
+    ctx.lineWidth = 4;
+    ctx.strokeRect(x - 10, y - 10, w + 20, h + 20);
+    // 上下左右に伸びる十字線(指で隠れない位置に)
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.moveTo(x + w / 2, 0);
+    ctx.lineTo(x + w / 2, y - 10);
+    ctx.moveTo(x + w / 2, y + h + 10);
+    ctx.lineTo(x + w / 2, CANVAS_H);
+    ctx.moveTo(0, y + h / 2);
+    ctx.lineTo(x - 10, y + h / 2);
+    ctx.moveTo(x + w + 10, y + h / 2);
+    ctx.lineTo(CANVAS_W, y + h / 2);
+    ctx.stroke();
+    ctx.restore();
+  } else {
+    ctx.strokeStyle = ok ? '#80ff80' : '#ff5050';
+    ctx.lineWidth = 2;
+    ctx.strokeRect(x, y, w, h);
+  }
 }
 
 // ----------------------------------------------------------------------------
@@ -2352,6 +2375,7 @@ function startGame() {
 // 入力 (Canvas クリック / タップ)
 // ----------------------------------------------------------------------------
 let _inputBound = false;
+let _touchCell = null;        // タッチ中のセル (ドラッグで更新)
 function setupGameInput() {
   if (_inputBound) return;
   _inputBound = true;
@@ -2361,12 +2385,15 @@ function setupGameInput() {
     const rect = canvas.getBoundingClientRect();
     const sx = (ev.clientX - rect.left) * (canvas.width / rect.width);
     const sy = (ev.clientY - rect.top) * (canvas.height / rect.height);
-    return {
-      col: Math.floor(sx / TILE),
-      row: Math.floor(sy / TILE),
-    };
+    let col = Math.floor(sx / TILE);
+    let row = Math.floor(sy / TILE);
+    // キャンバス端をはみ出してもクランプして有効セルに収める
+    col = Math.max(0, Math.min(COLS - 1, col));
+    row = Math.max(0, Math.min(ROWS - 1, row));
+    return { col, row };
   }
 
+  // ===== マウス (PC) =====
   canvas.addEventListener('mousemove', ev => {
     if (!world) return;
     world.hoverCell = getCellFromEvent(ev);
@@ -2376,20 +2403,10 @@ function setupGameInput() {
   });
   canvas.addEventListener('click', ev => {
     if (!world || State.paused || world.finished) return;
+    if (_touchCell !== null) return; // タッチ済みのクリック合成は無視
     const { col, row } = getCellFromEvent(ev);
     handleCellClick(col, row);
   });
-  // タッチ
-  canvas.addEventListener('touchstart', ev => {
-    if (!world || State.paused || world.finished) return;
-    if (ev.touches.length !== 1) return;
-    ev.preventDefault();
-    const t = ev.touches[0];
-    const fakeEv = { clientX: t.clientX, clientY: t.clientY };
-    const cell = getCellFromEvent(fakeEv);
-    world.hoverCell = cell;
-    handleCellClick(cell.col, cell.row);
-  }, { passive: false });
   // 右クリックで撤去
   canvas.addEventListener('contextmenu', ev => {
     ev.preventDefault();
@@ -2397,7 +2414,45 @@ function setupGameInput() {
     const { col, row } = getCellFromEvent(ev);
     removeItemAt(col, row);
   });
+
+  // ===== タッチ (スマホ): ドラッグで位置調整 → 離した時点で配置 =====
+  canvas.addEventListener('touchstart', ev => {
+    if (!world || State.paused || world.finished) return;
+    if (ev.touches.length !== 1) return;
+    ev.preventDefault();
+    const t = ev.touches[0];
+    const cell = getCellFromEvent({ clientX: t.clientX, clientY: t.clientY });
+    _touchCell = cell;
+    world.hoverCell = cell;
+  }, { passive: false });
+
+  canvas.addEventListener('touchmove', ev => {
+    if (!_touchCell || !world) return;
+    if (ev.touches.length !== 1) return;
+    ev.preventDefault();
+    const t = ev.touches[0];
+    const cell = getCellFromEvent({ clientX: t.clientX, clientY: t.clientY });
+    _touchCell = cell;
+    world.hoverCell = cell;
+  }, { passive: false });
+
+  canvas.addEventListener('touchend', ev => {
+    if (!_touchCell) return;
+    ev.preventDefault();
+    if (world && !State.paused && !world.finished) {
+      handleCellClick(_touchCell.col, _touchCell.row);
+    }
+    _touchCell = null;
+    if (world) world.hoverCell = null;
+  }, { passive: false });
+
+  canvas.addEventListener('touchcancel', () => {
+    _touchCell = null;
+    if (world) world.hoverCell = null;
+  });
 }
+
+function isTouchActive() { return _touchCell !== null; }
 
 function handleCellClick(col, row) {
   if (!world.selectedItem) {
