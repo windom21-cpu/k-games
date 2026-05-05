@@ -321,6 +321,7 @@
     overflow: hidden;
     background: #000;
     position: relative;
+    -webkit-overflow-scrolling: touch;
   }
   #game-canvas {
     display: block;
@@ -328,6 +329,29 @@
     image-rendering: -webkit-optimize-contrast;
     max-width: 100%;
     max-height: 100%;
+  }
+  /* ズーム時 — overflow を有効化して大きく表示 */
+  #canvas-wrap.zoom2 {
+    overflow: auto;
+    align-items: flex-start;
+    justify-content: flex-start;
+  }
+  #canvas-wrap.zoom2 #game-canvas {
+    width: 200%;
+    height: auto;
+    max-width: none;
+    max-height: none;
+  }
+  #canvas-wrap.zoom3 {
+    overflow: auto;
+    align-items: flex-start;
+    justify-content: flex-start;
+  }
+  #canvas-wrap.zoom3 #game-canvas {
+    width: 300%;
+    height: auto;
+    max-width: none;
+    max-height: none;
   }
 
   #item-bar {
@@ -666,6 +690,7 @@
     <div class="stat" id="hud-pharaoh-stat" style="display:none">👑 <span class="num" id="hud-pharaoh">0</span>/<span id="hud-pharaoh-total">5</span></div>
     <div class="stat">⏱ <span class="num" id="hud-time">2:00</span></div>
     <div id="hud-buttons">
+      <button id="btn-zoom" title="ズーム (1x → 2x → 3x)">🔍 1x</button>
       <button id="btn-spawn-pause" title="スポーン一時停止">⏯</button>
       <button id="btn-speed" title="2倍速">⏩</button>
       <button id="btn-pause" title="一時停止">⏸</button>
@@ -734,7 +759,7 @@
 // ============================================================================
 // メジェドを救え! — main script
 // ============================================================================
-const VERSION = 'v1.1.1';
+const VERSION = 'v1.2.0';
 
 // ----------------------------------------------------------------------------
 // 定数
@@ -816,9 +841,32 @@ const State = {
   muted: false,
   speedMul: 1,           // 1 or 2 (2倍速トグル)
   spawnPaused: false,    // スポーン一時停止
+  zoom: 0,               // 0=1x / 1=2x / 2=3x
   progress: { cleared: {}, stage8Grade: null, tutorialShown: false },
   game: null,
 };
+
+function setZoom(level) {
+  State.zoom = level;
+  const wrap = document.getElementById('canvas-wrap');
+  wrap.classList.remove('zoom2', 'zoom3');
+  if (level === 1) wrap.classList.add('zoom2');
+  if (level === 2) wrap.classList.add('zoom3');
+  const btn = document.getElementById('btn-zoom');
+  if (btn) {
+    btn.textContent = '🔍 ' + (level === 0 ? '1x' : level === 1 ? '2x' : '3x');
+    btn.classList.toggle('toggled', level > 0);
+  }
+  // ズームON時は中央付近にスクロール
+  if (level > 0) {
+    setTimeout(() => {
+      wrap.scrollLeft = (wrap.scrollWidth - wrap.clientWidth) * 0.05; // 開始地点の少し右
+      wrap.scrollTop  = (wrap.scrollHeight - wrap.clientHeight) * 0.6; // 地面寄り
+    }, 30);
+  } else {
+    wrap.scrollLeft = 0; wrap.scrollTop = 0;
+  }
+}
 
 // ----------------------------------------------------------------------------
 // SVG → Image 読み込み + プリラスタライズ
@@ -2360,6 +2408,7 @@ function startGame() {
   State.spawnPaused = false;
   document.getElementById('btn-speed').classList.remove('toggled');
   document.getElementById('btn-spawn-pause').classList.remove('toggled');
+  setZoom(0);
   // 初回 stage 1 のみチュートリアル
   if (State.stageIndex === 0 && !State.progress.tutorialShown) {
     State.paused = true;
@@ -2416,9 +2465,11 @@ function setupGameInput() {
   });
 
   // ===== タッチ (スマホ): ドラッグで位置調整 → 離した時点で配置 =====
+  // アイテム選択時のみキャプチャ。未選択時はブラウザのデフォルト動作 (ズーム時のスクロール) を維持
   canvas.addEventListener('touchstart', ev => {
     if (!world || State.paused || world.finished) return;
     if (ev.touches.length !== 1) return;
+    if (!world.selectedItem) return; // 撤去モードはネイティブ click に任せる(スクロール可能)
     ev.preventDefault();
     const t = ev.touches[0];
     const cell = getCellFromEvent({ clientX: t.clientX, clientY: t.clientY });
@@ -2614,6 +2665,10 @@ function setupEventHandlers() {
     Audio.sfx('click');
     State.spawnPaused = !State.spawnPaused;
     document.getElementById('btn-spawn-pause').classList.toggle('toggled', State.spawnPaused);
+  };
+  document.getElementById('btn-zoom').onclick = () => {
+    Audio.sfx('click');
+    setZoom((State.zoom + 1) % 3);
   };
   document.getElementById('btn-tutorial-ok').onclick = () => {
     Audio.sfx('click');
