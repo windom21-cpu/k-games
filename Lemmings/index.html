@@ -2259,6 +2259,25 @@ function showResult() {
   gradeEl.className = 'grade ' + grade;
   gradeEl.style.display = world.won ? '' : 'none';
 
+  // 進捗保存 — ベストグレードのみ保持(再プレイで低評価による上書き防止)
+  let justUnlockedStage9 = false;
+  if (world.won) {
+    const prev = State.progress.cleared[State.stageIndex];
+    if (!prev || gradeRank(grade) > gradeRank(prev)) {
+      State.progress.cleared[State.stageIndex] = grade;
+    }
+    if (State.stageIndex === 7) {
+      const prev8 = State.progress.stage8Grade;
+      const wasUnlocked = prev8 === 'S' || prev8 === 'A';
+      if (!prev8 || gradeRank(grade) > gradeRank(prev8)) {
+        State.progress.stage8Grade = grade;
+      }
+      const nowUnlocked = State.progress.stage8Grade === 'S' || State.progress.stage8Grade === 'A';
+      justUnlockedStage9 = !wasUnlocked && nowUnlocked;
+    }
+    saveProgress();
+  }
+
   // 隠し解放演出
   const unlockEl = document.getElementById('result-unlock');
   if (justUnlockedStage9) {
@@ -2288,25 +2307,6 @@ function showResult() {
   nextBtn.style.display = canGoNext ? '' : 'none';
   if (isLastNormal) nextBtn.textContent = '✨ 隠しステージへ →';
   else nextBtn.textContent = '次のステージ →';
-
-  // 進捗保存 — ベストグレードのみ保持(再プレイで低評価による上書き防止)
-  let justUnlockedStage9 = false;
-  if (world.won) {
-    const prev = State.progress.cleared[State.stageIndex];
-    if (!prev || gradeRank(grade) > gradeRank(prev)) {
-      State.progress.cleared[State.stageIndex] = grade;
-    }
-    if (State.stageIndex === 7) {
-      const prev8 = State.progress.stage8Grade;
-      const wasUnlocked = prev8 === 'S' || prev8 === 'A';
-      if (!prev8 || gradeRank(grade) > gradeRank(prev8)) {
-        State.progress.stage8Grade = grade;
-      }
-      const nowUnlocked = State.progress.stage8Grade === 'S' || State.progress.stage8Grade === 'A';
-      justUnlockedStage9 = !wasUnlocked && nowUnlocked;
-    }
-    saveProgress();
-  }
 
   modal.hidden = false;
 }
