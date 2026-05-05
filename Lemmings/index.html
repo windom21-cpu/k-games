@@ -1,0 +1,2092 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+<title>メジェドを救え! — K-games</title>
+<meta name="description" content="メジェド神を導いてゴールへ運ぶ、レミングス風の簡略版パズルアクション。">
+<link rel="canonical" href="https://windom21-cpu.github.io/k-games/Lemmings/">
+<meta property="og:type" content="website">
+<meta property="og:title" content="メジェドを救え! | K-games">
+<meta property="og:description" content="メジェド神を導いてゴールへ運ぶ、レミングス風の簡略版パズルアクション。">
+<meta property="og:url" content="https://windom21-cpu.github.io/k-games/Lemmings/">
+<meta property="og:site_name" content="K-games">
+<meta name="twitter:card" content="summary">
+<meta property="og:image" content="https://windom21-cpu.github.io/k-games/icon-512.png">
+<meta property="og:image:width" content="512">
+<meta property="og:image:height" content="512">
+<link rel="icon" type="image/svg+xml" href="/k-games/favicon.svg">
+<link rel="icon" type="image/png" sizes="32x32" href="/k-games/favicon-32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="/k-games/favicon-16.png">
+<link rel="apple-touch-icon" href="/k-games/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-title" content="K-games">
+<style>
+  :root {
+    --sand: #e8c98a;
+    --sand-dark: #b8965a;
+    --stone: #8b7355;
+    --stone-dark: #5a4a35;
+    --sky-1: #fce4a0;
+    --sky-2: #e89968;
+    --ink: #2a1810;
+    --hud-bg: #1c1208;
+    --hud-fg: #f4e0a8;
+    --accent: #d4af37;
+    --danger: #c83020;
+    --safe: #4a8a3a;
+    --ui-btn: #3a2818;
+    --ui-btn-hover: #5a3828;
+  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body {
+    margin: 0; padding: 0;
+    height: 100%;
+    overflow: hidden;
+    background: linear-gradient(180deg, var(--sky-1) 0%, var(--sky-2) 100%);
+    color: var(--ink);
+    font-family: "MS UI Gothic", "ＭＳ ＵＩ Ｇｏｔｈｉｃ", "MSUIGothic", "Hiragino Kaku Gothic ProN", sans-serif;
+    user-select: none; -webkit-user-select: none;
+    touch-action: manipulation;
+  }
+  button {
+    font-family: inherit;
+    cursor: pointer;
+    background: var(--ui-btn);
+    color: var(--hud-fg);
+    border: 2px solid var(--accent);
+    border-radius: 6px;
+    padding: 10px 18px;
+    font-size: 16px;
+    font-weight: bold;
+    transition: background 0.1s, transform 0.05s;
+  }
+  button:hover:not(:disabled) { background: var(--ui-btn-hover); }
+  button:active:not(:disabled) { transform: translateY(1px); }
+  button:disabled { opacity: 0.4; cursor: not-allowed; }
+
+  .screen {
+    position: absolute; inset: 0;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    padding: 12px;
+  }
+  .screen[hidden] { display: none !important; }
+
+  /* ===== タイトル画面 ===== */
+  #title-screen {
+    background: radial-gradient(ellipse at center top, #fff5d6 0%, #f0c878 50%, #c89858 100%);
+  }
+  #title-screen h1 {
+    font-size: clamp(32px, 7vw, 56px);
+    margin: 4px 0 8px;
+    color: var(--ink);
+    text-shadow: 2px 2px 0 var(--accent), 4px 4px 0 var(--stone-dark);
+    letter-spacing: 2px;
+  }
+  #title-screen .subtitle {
+    font-size: clamp(11px, 2vw, 14px);
+    margin: 0 0 16px;
+    color: var(--stone-dark);
+    letter-spacing: 4px;
+  }
+  .medjed-row {
+    display: flex;
+    flex-wrap: nowrap;
+    justify-content: center;
+    align-items: flex-end;
+    gap: clamp(4px, 1vw, 12px);
+    margin: 12px 0 24px;
+    width: 100%;
+    max-width: 720px;
+  }
+  .medjed-row .slot {
+    flex: 1 1 0;
+    min-width: 0;
+    display: flex; flex-direction: column;
+    align-items: center;
+    animation: medjed-bob 2.4s ease-in-out infinite;
+  }
+  .medjed-row .slot:nth-child(1) { animation-delay: 0.0s; }
+  .medjed-row .slot:nth-child(2) { animation-delay: 0.2s; }
+  .medjed-row .slot:nth-child(3) { animation-delay: 0.4s; }
+  .medjed-row .slot:nth-child(4) { animation-delay: 0.6s; }
+  .medjed-row .slot:nth-child(5) { animation-delay: 0.8s; }
+  .medjed-row .slot:nth-child(6) { animation-delay: 1.0s; }
+  .medjed-row img {
+    width: 100%;
+    height: auto;
+    max-height: 32vh;
+    image-rendering: -webkit-optimize-contrast;
+  }
+  .medjed-row .label {
+    font-size: clamp(9px, 1.4vw, 12px);
+    color: var(--ink);
+    margin-top: 2px;
+  }
+  @keyframes medjed-bob {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-6px); }
+  }
+
+  .menu {
+    display: flex; flex-direction: column; gap: 10px;
+    align-items: stretch;
+    min-width: 220px;
+  }
+  .menu button { font-size: 17px; padding: 12px 24px; }
+
+  .top-right {
+    position: absolute; top: 12px; right: 12px;
+    display: flex; gap: 8px;
+  }
+  .top-right button { padding: 6px 12px; font-size: 14px; }
+  .top-left {
+    position: absolute; top: 12px; left: 12px;
+    display: flex; gap: 8px;
+  }
+  .top-left button, .top-left a {
+    background: var(--ui-btn);
+    color: var(--hud-fg);
+    border: 2px solid var(--accent);
+    border-radius: 6px;
+    padding: 6px 12px;
+    font-size: 12px;
+    text-decoration: none;
+    font-weight: bold;
+  }
+
+  .version {
+    position: absolute; bottom: 8px; right: 12px;
+    font-size: 11px; color: var(--stone-dark); opacity: 0.6;
+  }
+
+  /* ===== ステージ選択 ===== */
+  #stage-select h2 {
+    font-size: 28px; margin: 8px 0 16px;
+    color: var(--ink);
+    text-shadow: 2px 2px 0 var(--accent);
+  }
+  .stage-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+    max-width: 420px;
+    margin-bottom: 16px;
+  }
+  .stage-grid button {
+    aspect-ratio: 1;
+    font-size: 18px;
+    padding: 0;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    line-height: 1.2;
+    min-height: 70px;
+  }
+  .stage-grid button .star {
+    font-size: 12px; color: var(--accent); margin-top: 2px;
+  }
+  .stage-grid button.locked {
+    background: #6a5a45;
+    color: #aaa;
+    border-color: #6a5a45;
+  }
+  .stage-grid button.hidden-stage {
+    background: #5a3a8a;
+    border-color: #d4af37;
+    color: #ffe070;
+  }
+
+  /* ===== 操作説明 ===== */
+  #help-screen {
+    background: rgba(255, 248, 220, 0.95);
+    overflow-y: auto;
+  }
+  #help-screen .help-box {
+    max-width: 560px;
+    background: #fff8dc;
+    border: 4px double var(--ink);
+    padding: 16px 20px;
+    margin: 12px;
+    font-size: 14px;
+    line-height: 1.6;
+  }
+  #help-screen h2 { margin: 0 0 12px; font-size: 22px; }
+  #help-screen h3 { margin: 14px 0 6px; font-size: 16px; color: var(--stone-dark); }
+  #help-screen ul { margin: 4px 0; padding-left: 22px; }
+  #help-screen .item-row {
+    display: flex; align-items: center; gap: 8px; margin: 4px 0;
+  }
+  #help-screen .item-icon {
+    font-size: 22px; width: 30px; text-align: center;
+  }
+
+  /* ===== ゲーム画面 ===== */
+  #game-screen {
+    background: linear-gradient(180deg, #fce4a0 0%, #e89968 100%);
+    justify-content: flex-start;
+    padding: 0;
+  }
+  #hud {
+    width: 100%;
+    background: var(--hud-bg);
+    color: var(--hud-fg);
+    padding: 6px 10px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 4px 12px;
+    font-size: 14px;
+    border-bottom: 2px solid var(--accent);
+  }
+  #hud .stat {
+    display: flex; align-items: center; gap: 4px;
+    white-space: nowrap;
+  }
+  #hud .stat .num { color: var(--accent); font-weight: bold; min-width: 1.5em; text-align: right; }
+  #hud .stat .num.danger { color: #ff7060; }
+  #hud .stat .num.safe { color: #80e060; }
+  #hud-title { font-weight: bold; color: var(--accent); }
+  #hud-buttons { display: flex; gap: 6px; }
+  #hud-buttons button {
+    padding: 4px 10px; font-size: 13px;
+    border-radius: 4px; border-width: 1px;
+  }
+
+  #canvas-wrap {
+    flex: 1 1 auto;
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    background: #000;
+    position: relative;
+  }
+  #game-canvas {
+    display: block;
+    background: #87ceeb;
+    image-rendering: -webkit-optimize-contrast;
+    max-width: 100%;
+    max-height: 100%;
+  }
+
+  #item-bar {
+    width: 100%;
+    background: var(--hud-bg);
+    border-top: 2px solid var(--accent);
+    padding: 6px;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 4px;
+  }
+  .item-btn {
+    background: var(--ui-btn);
+    color: var(--hud-fg);
+    border: 2px solid var(--stone);
+    border-radius: 6px;
+    padding: 4px 6px;
+    min-width: 64px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    cursor: pointer;
+    font-size: 11px;
+    line-height: 1.2;
+    transition: all 0.1s;
+  }
+  .item-btn:hover:not(:disabled) { background: var(--ui-btn-hover); }
+  .item-btn.active {
+    background: var(--accent);
+    color: var(--ink);
+    border-color: #fff;
+    box-shadow: 0 0 8px var(--accent);
+  }
+  .item-btn:disabled { opacity: 0.35; cursor: not-allowed; }
+  .item-btn .icon { font-size: 22px; line-height: 1; margin-bottom: 2px; }
+  .item-btn .count { font-weight: bold; color: var(--accent); }
+  .item-btn.active .count { color: var(--ink); }
+  .item-btn .name { font-size: 10px; }
+
+  /* ===== モーダル / 結果画面 ===== */
+  .modal-overlay {
+    position: absolute; inset: 0;
+    background: rgba(0,0,0,0.7);
+    display: flex; align-items: center; justify-content: center;
+    z-index: 100;
+    padding: 12px;
+  }
+  .modal-overlay[hidden] { display: none !important; }
+  .modal-box {
+    background: #fff8dc;
+    border: 4px double var(--ink);
+    padding: 20px 24px;
+    text-align: center;
+    max-width: 90vw;
+    min-width: 280px;
+  }
+  .modal-box h2 {
+    margin: 0 0 12px;
+    font-size: 24px;
+    color: var(--ink);
+  }
+  .modal-box.win h2 { color: #2a7a30; }
+  .modal-box.lose h2 { color: var(--danger); }
+  .modal-box .stats {
+    margin: 12px 0;
+    font-size: 14px;
+    line-height: 1.7;
+  }
+  .modal-box .stats .row {
+    display: flex; justify-content: space-between;
+    border-bottom: 1px dotted #ccc;
+    padding: 2px 0;
+  }
+  .modal-box .grade {
+    display: inline-block;
+    margin: 8px 0;
+    padding: 4px 16px;
+    border-radius: 20px;
+    font-size: 18px;
+    font-weight: bold;
+    background: var(--accent);
+    color: var(--ink);
+  }
+  .modal-box .grade.S { background: #ffd700; }
+  .modal-box .grade.A { background: #c0e0c0; }
+  .modal-box .grade.B { background: #d0d0e0; }
+  .modal-box .grade.C { background: #e0c0a0; }
+  .modal-box .actions {
+    display: flex; gap: 8px; justify-content: center; margin-top: 12px;
+    flex-wrap: wrap;
+  }
+
+  /* ===== ロード画面 ===== */
+  #loading {
+    position: absolute; inset: 0;
+    display: flex; align-items: center; justify-content: center;
+    background: var(--sky-1);
+    color: var(--ink);
+    font-size: 18px;
+    z-index: 200;
+  }
+
+  /* ===== タッチデバイスでのレスポンシブ ===== */
+  @media (max-height: 480px) {
+    #title-screen h1 { font-size: clamp(24px, 6vw, 36px); margin: 2px 0; }
+    .medjed-row { margin: 4px 0 8px; }
+    .medjed-row img { max-height: 22vh; }
+    .menu { gap: 6px; }
+    .menu button { padding: 8px 16px; font-size: 14px; }
+  }
+  @media (max-width: 600px) {
+    #hud { font-size: 12px; padding: 4px 6px; }
+    .item-btn { min-width: 54px; padding: 3px 4px; }
+    .item-btn .icon { font-size: 18px; }
+    .item-btn .name { font-size: 9px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ===== ロード画面 ===== -->
+<div id="loading">読み込み中...</div>
+
+<!-- ===== タイトル画面 ===== -->
+<div id="title-screen" class="screen" hidden>
+  <h1>メジェドを救え!</h1>
+  <div class="subtitle">— Save the Medjed! —</div>
+  <div class="medjed-row" id="title-medjed-row"></div>
+  <div class="menu">
+    <button id="btn-start">▶ はじめる</button>
+    <button id="btn-stage-select">ステージ選択</button>
+    <button id="btn-help">⏵ 操作説明</button>
+  </div>
+  <div class="top-right">
+    <button id="btn-mute-title" title="効果音">🔊</button>
+  </div>
+  <div class="top-left">
+    <a href="../index.html">← K-games</a>
+  </div>
+  <div class="version" id="version-label"></div>
+</div>
+
+<!-- ===== ステージ選択 ===== -->
+<div id="stage-select" class="screen" hidden>
+  <h2>ステージ選択</h2>
+  <div class="stage-grid" id="stage-grid"></div>
+  <button id="btn-stage-back">← もどる</button>
+</div>
+
+<!-- ===== 操作説明 ===== -->
+<div id="help-screen" class="screen" hidden>
+  <div class="help-box">
+    <h2>操作説明</h2>
+    <p>メジェド神たちは右へ向かって歩きます。壁にぶつかると反転、棘や落とし穴に落ちると死亡。<strong>規定数のメジェドをゴールへ導いて</strong>ください。</p>
+
+    <h3>アイテム配置</h3>
+    <ul>
+      <li>下部のアイテムボタンをタップ → マス目をタップで配置</li>
+      <li>同じマスにもう一度配置動作 = 撤去</li>
+      <li>各アイテムには使用上限があります</li>
+    </ul>
+
+    <h3>アイテム一覧</h3>
+    <div class="item-row"><span class="item-icon">⬛</span><span><strong>ブロック</strong> — 1マスの足場。穴埋め・棘の上覆い・かさ上げ。</span></div>
+    <div class="item-row"><span class="item-icon">🔺</span><span><strong>ランプ</strong> — 1マス段差を斜面にして越える。</span></div>
+    <div class="item-row"><span class="item-icon">🌉</span><span><strong>橋</strong> — 横3マスの板で広い穴をまたぐ。</span></div>
+    <div class="item-row"><span class="item-icon">🪜</span><span><strong>はしご</strong> — 縦3マスのハシゴで高い壁を登る。</span></div>
+    <div class="item-row"><span class="item-icon">↔</span><span><strong>矢印</strong> — 通過時にメジェドの向きを反転。</span></div>
+    <div class="item-row"><span class="item-icon">🍃</span><span><strong>パラシュート</strong> — そのマスを通ったメジェドは以降の落下が安全に。</span></div>
+
+    <h3>クリア条件</h3>
+    <ul>
+      <li><strong>規定数のメジェドがゴール</strong>でステージクリア</li>
+      <li><strong>許容数を超える死亡</strong>でゲームオーバー</li>
+      <li>ステージ8を優秀な成績でクリアすると <strong>隠しステージ9</strong> 解放</li>
+    </ul>
+
+    <div class="actions" style="display:flex;gap:8px;justify-content:center;margin-top:14px;">
+      <button id="btn-help-back">← もどる</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== ゲーム画面 ===== -->
+<div id="game-screen" class="screen" hidden>
+  <div id="hud">
+    <div id="hud-title">Stage 1</div>
+    <div class="stat">🚶 出現 <span class="num" id="hud-spawned">0</span>/<span id="hud-total">30</span></div>
+    <div class="stat">🏆 救出 <span class="num safe" id="hud-saved">0</span>/<span id="hud-need">20</span></div>
+    <div class="stat">💀 死亡 <span class="num danger" id="hud-dead">0</span>/<span id="hud-fail">5</span></div>
+    <div id="hud-buttons">
+      <button id="btn-pause">⏸</button>
+      <button id="btn-reset">⟳</button>
+      <button id="btn-mute-game">🔊</button>
+      <button id="btn-quit">×</button>
+    </div>
+  </div>
+  <div id="canvas-wrap">
+    <canvas id="game-canvas" width="960" height="544"></canvas>
+  </div>
+  <div id="item-bar"></div>
+</div>
+
+<!-- ===== 結果モーダル ===== -->
+<div id="result-modal" class="modal-overlay" hidden>
+  <div class="modal-box" id="result-box">
+    <h2 id="result-title">クリア!</h2>
+    <div class="grade" id="result-grade">A</div>
+    <div class="stats" id="result-stats"></div>
+    <div class="actions">
+      <button id="btn-result-retry">もう一度</button>
+      <button id="btn-result-next">次へ</button>
+      <button id="btn-result-menu">メニュー</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== ポーズモーダル ===== -->
+<div id="pause-modal" class="modal-overlay" hidden>
+  <div class="modal-box">
+    <h2>一時停止</h2>
+    <div class="actions">
+      <button id="btn-pause-resume">▶ 再開</button>
+      <button id="btn-pause-reset">⟳ リセット</button>
+      <button id="btn-pause-menu">メニューへ</button>
+    </div>
+  </div>
+</div>
+
+<script>
+'use strict';
+
+// ============================================================================
+// メジェドを救え! — main script
+// ============================================================================
+const VERSION = 'v0.1.0';
+
+// ----------------------------------------------------------------------------
+// 定数
+// ----------------------------------------------------------------------------
+const TILE = 32;                     // タイル1辺(px)
+const COLS = 30;                     // 横タイル数
+const ROWS = 17;                     // 縦タイル数
+const CANVAS_W = TILE * COLS;        // 960
+const CANVAS_H = TILE * ROWS;        // 544
+const STORAGE_KEY = 'kgames-lemmings';
+
+// タイル種別
+const T = {
+  EMPTY:    0,
+  GROUND:   1,   // 地面 (硬い)
+  STONE:    2,   // 石 (硬い、別グラフィック)
+  SAND:     3,   // 砂 (柔らかい色、硬い)
+  SPIKE:    4,   // 棘 (即死)
+  WATER:    5,   // 水 (即死)
+  LAVA:     6,   // 溶岩 (即死)
+  GOAL:     7,   // ゴール (ピラミッド)
+  SPAWN:    8,   // スポーン地点 (装飾)
+  // プレイヤー配置物
+  BLOCK:    20,
+  RAMP_R:   21,  // 右上り斜面
+  RAMP_L:   22,  // 左上り斜面
+  BRIDGE:   23,  // 横長板 (3マス連続のうちの1マス)
+  LADDER:   24,  // 縦長はしご (3マス連続のうちの1マス)
+  ARROW_R:  25,  // 強制右
+  ARROW_L:  26,  // 強制左
+  PARACHUTE: 27, // パラシュート給油ゾーン
+};
+
+const SOLID_TILES = new Set([T.GROUND, T.STONE, T.SAND, T.BLOCK, T.BRIDGE, T.LADDER, T.RAMP_R, T.RAMP_L]);
+const HAZARD_TILES = new Set([T.SPIKE, T.WATER, T.LAVA]);
+const PLACED_TILES = new Set([T.BLOCK, T.RAMP_R, T.RAMP_L, T.BRIDGE, T.LADDER, T.ARROW_R, T.ARROW_L, T.PARACHUTE]);
+
+// アイテム種別 (UI 用)
+const ITEMS = [
+  { id: 'BLOCK',     icon: '⬛', name: 'ブロック',   tile: T.BLOCK,    cells: 1 },
+  { id: 'RAMP',      icon: '🔺', name: 'ランプ',     tile: T.RAMP_R,   cells: 1 },
+  { id: 'BRIDGE',    icon: '🌉', name: '橋',         tile: T.BRIDGE,   cells: 3 }, // 横3マス
+  { id: 'LADDER',    icon: '🪜', name: 'はしご',     tile: T.LADDER,   cells: 3 }, // 縦3マス
+  { id: 'ARROW_R',   icon: '➡',  name: '右矢印',     tile: T.ARROW_R,  cells: 1 },
+  { id: 'ARROW_L',   icon: '⬅',  name: '左矢印',     tile: T.ARROW_L,  cells: 1 },
+  { id: 'PARACHUTE', icon: '🍃', name: '落下安全',   tile: T.PARACHUTE, cells: 1 },
+];
+
+// メジェドのキャラ種別 (= SVG ファイル)
+const MEDJED_TYPES = ['A', 'B', 'C', 'D', 'E', 'F'];
+const MEDJED_FILES = {
+  A: 'medjed_A_basic.svg',
+  B: 'medjed_B_pharaoh.svg',
+  C: 'medjed_C_warrior.svg',
+  D: 'medjed_D_priest.svg',
+  E: 'medjed_E_mummy.svg',
+  F: 'medjed_F_child.svg',
+};
+const MEDJED_LABELS = {
+  A: '基本', B: 'ファラオ', C: '戦士', D: '司祭', E: 'ミイラ', F: '子供',
+};
+
+// メジェド描画サイズ (ピクセル)
+const MEDJED_W = 28;
+const MEDJED_H = 36;
+
+// 物理パラメータ
+const GRAVITY = 240;            // px/s^2
+const FALL_DEATH_TILES = 3.5;   // この高さ超で着地すると死亡
+const BASE_SPEED = 32;          // px/s (1マス/秒)
+
+// ----------------------------------------------------------------------------
+// グローバル状態
+// ----------------------------------------------------------------------------
+const State = {
+  screen: 'loading',     // 'loading' | 'title' | 'stageSelect' | 'help' | 'game'
+  stageIndex: 0,         // 現在のステージ (0-based)
+  paused: false,
+  muted: false,
+  progress: { cleared: {}, stage8Grade: null },  // localStorage 同期
+  // ゲーム実行中の状態 (game 画面で使用)
+  game: null,
+};
+
+// ----------------------------------------------------------------------------
+// SVG → Image 読み込み + プリラスタライズ
+// ----------------------------------------------------------------------------
+const Assets = {
+  medjedImg: {},          // type → HTMLImageElement
+  medjedCanvasR: {},      // type → 右向きラスタ
+  medjedCanvasL: {},      // type → 左向きラスタ
+};
+
+function loadImage(src) {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => resolve(img);
+    img.onerror = () => reject(new Error('Failed to load ' + src));
+    img.src = src;
+  });
+}
+
+async function loadAssets() {
+  const tasks = MEDJED_TYPES.map(async type => {
+    const img = await loadImage(MEDJED_FILES[type]);
+    Assets.medjedImg[type] = img;
+
+    // 右向きキャッシュ
+    const cR = document.createElement('canvas');
+    cR.width = MEDJED_W; cR.height = MEDJED_H;
+    cR.getContext('2d').drawImage(img, 0, 0, MEDJED_W, MEDJED_H);
+    Assets.medjedCanvasR[type] = cR;
+
+    // 左向きキャッシュ (水平反転)
+    const cL = document.createElement('canvas');
+    cL.width = MEDJED_W; cL.height = MEDJED_H;
+    const ctx = cL.getContext('2d');
+    ctx.translate(MEDJED_W, 0);
+    ctx.scale(-1, 1);
+    ctx.drawImage(img, 0, 0, MEDJED_W, MEDJED_H);
+    Assets.medjedCanvasL[type] = cL;
+  });
+  await Promise.all(tasks);
+}
+
+// ----------------------------------------------------------------------------
+// localStorage 進捗
+// ----------------------------------------------------------------------------
+function loadProgress() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return;
+    const obj = JSON.parse(raw);
+    if (obj && typeof obj === 'object') {
+      State.progress.cleared = obj.cleared || {};
+      State.progress.stage8Grade = obj.stage8Grade || null;
+      State.muted = !!obj.muted;
+    }
+  } catch (e) { /* ignore */ }
+}
+function saveProgress() {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({
+      cleared: State.progress.cleared,
+      stage8Grade: State.progress.stage8Grade,
+      muted: State.muted,
+    }));
+  } catch (e) { /* ignore */ }
+}
+function isStageUnlocked(stageIdx) {
+  // 0-based
+  if (stageIdx === 0) return true;
+  if (stageIdx === 8) {
+    // hidden stage: stage 8 (index 7) を S または A 評価でクリア
+    const g = State.progress.stage8Grade;
+    return g === 'S' || g === 'A';
+  }
+  // 直前のステージがクリア済み
+  return !!State.progress.cleared[stageIdx - 1];
+}
+
+// ----------------------------------------------------------------------------
+// 効果音 (Web Audio)
+// ----------------------------------------------------------------------------
+const Audio = {
+  ctx: null,
+  ensure() {
+    if (!this.ctx) {
+      try {
+        this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+      } catch (e) { return; }
+    }
+    if (this.ctx.state === 'suspended') this.ctx.resume();
+  },
+  beep(freq, dur, type = 'sine', vol = 0.15) {
+    if (State.muted || !this.ctx) return;
+    const t0 = this.ctx.currentTime;
+    const osc = this.ctx.createOscillator();
+    const gain = this.ctx.createGain();
+    osc.type = type;
+    osc.frequency.setValueAtTime(freq, t0);
+    gain.gain.setValueAtTime(vol, t0);
+    gain.gain.exponentialRampToValueAtTime(0.001, t0 + dur);
+    osc.connect(gain).connect(this.ctx.destination);
+    osc.start(t0);
+    osc.stop(t0 + dur);
+  },
+  sfx(name) {
+    if (State.muted) return;
+    this.ensure();
+    if (!this.ctx) return;
+    switch (name) {
+      case 'place':   this.beep(880, 0.08, 'square', 0.10); break;
+      case 'remove':  this.beep(440, 0.08, 'square', 0.10); break;
+      case 'spawn':   this.beep(660, 0.05, 'sine',   0.06); break;
+      case 'goal':    this.beep(1320, 0.10, 'triangle', 0.12); setTimeout(()=>this.beep(1760, 0.10, 'triangle', 0.12), 80); break;
+      case 'death':   this.beep(220, 0.20, 'sawtooth', 0.10); break;
+      case 'flip':    this.beep(330, 0.06, 'square', 0.07); break;
+      case 'win':
+        this.beep(523, 0.12, 'triangle', 0.14);
+        setTimeout(()=>this.beep(659, 0.12, 'triangle', 0.14), 130);
+        setTimeout(()=>this.beep(784, 0.12, 'triangle', 0.14), 260);
+        setTimeout(()=>this.beep(1047, 0.20, 'triangle', 0.14), 390);
+        break;
+      case 'lose':
+        this.beep(330, 0.18, 'sawtooth', 0.12);
+        setTimeout(()=>this.beep(247, 0.18, 'sawtooth', 0.12), 200);
+        setTimeout(()=>this.beep(165, 0.30, 'sawtooth', 0.12), 400);
+        break;
+      case 'click':   this.beep(550, 0.04, 'square', 0.08); break;
+    }
+  },
+};
+
+// ----------------------------------------------------------------------------
+// ステージ定義
+// ----------------------------------------------------------------------------
+function makeGrid(fill) {
+  const g = [];
+  for (let r = 0; r < ROWS; r++) {
+    g.push(new Array(COLS).fill(fill));
+  }
+  return g;
+}
+function fillRow(tiles, row, type, c0 = 0, c1 = COLS - 1) {
+  for (let c = c0; c <= c1; c++) tiles[row][c] = type;
+}
+function fillRect(tiles, c0, r0, c1, r1, type) {
+  for (let r = r0; r <= r1; r++)
+    for (let c = c0; c <= c1; c++)
+      tiles[r][c] = type;
+}
+// 標準的な地面 (top: SAND/STONE, depth: GROUND) を敷く。穴 (pits) を引き算
+function laySimpleGround(tiles, topRow, topType, pits = []) {
+  for (let c = 0; c < COLS; c++) {
+    let inPit = false;
+    for (const [c0, c1] of pits) if (c >= c0 && c <= c1) { inPit = true; break; }
+    if (inPit) continue;
+    tiles[topRow][c] = topType;
+    for (let r = topRow + 1; r < ROWS; r++) tiles[r][c] = T.GROUND;
+  }
+}
+
+const STAGES = [];
+
+// === Stage 1: チュートリアル — 平地のみ ===
+STAGES.push((() => {
+  const tiles = makeGrid(T.EMPTY);
+  laySimpleGround(tiles, 13, T.SAND);
+  return {
+    name: 'Stage 1: はじめの一歩',
+    tiles,
+    spawn: { col: 1, row: 12 },
+    goal:  { col: 28, row: 12 },
+    total: 30, need: 18, fail: 6,
+    speed: 1.0, spawnInterval: 1.4,
+    budget: { BLOCK: 2, RAMP: 1, BRIDGE: 0, LADDER: 0, ARROW_R: 0, ARROW_L: 0, PARACHUTE: 0 },
+    medjedTypes: ['A'],
+    pharaohs: 0,
+    bg: 'desert',
+  };
+})());
+
+// === Stage 2 — 落とし穴 1 個 ===
+STAGES.push((() => {
+  const tiles = makeGrid(T.EMPTY);
+  laySimpleGround(tiles, 13, T.SAND, [[14, 15]]);
+  return {
+    name: 'Stage 2: 落とし穴',
+    tiles,
+    spawn: { col: 1, row: 12 },
+    goal:  { col: 28, row: 12 },
+    total: 40, need: 26, fail: 8,
+    speed: 1.1, spawnInterval: 1.2,
+    budget: { BLOCK: 3, RAMP: 1, BRIDGE: 1, LADDER: 0, ARROW_R: 0, ARROW_L: 0, PARACHUTE: 0 },
+    medjedTypes: ['A'],
+    pharaohs: 0,
+    bg: 'desert',
+  };
+})());
+
+// === Stage 3 — 棘の床 ===
+STAGES.push((() => {
+  const tiles = makeGrid(T.EMPTY);
+  laySimpleGround(tiles, 13, T.SAND);
+  // 棘 3マス
+  for (let c = 12; c <= 14; c++) tiles[12][c] = T.SPIKE;
+  return {
+    name: 'Stage 3: 棘の床',
+    tiles,
+    spawn: { col: 1, row: 12 },
+    goal:  { col: 28, row: 12 },
+    total: 50, need: 32, fail: 10,
+    speed: 1.2, spawnInterval: 1.0,
+    budget: { BLOCK: 4, RAMP: 0, BRIDGE: 1, LADDER: 0, ARROW_R: 0, ARROW_L: 0, PARACHUTE: 0 },
+    medjedTypes: ['A'],
+    pharaohs: 0,
+    bg: 'desert',
+  };
+})());
+
+// === Stage 4 — 段差 ===
+STAGES.push((() => {
+  const tiles = makeGrid(T.EMPTY);
+  laySimpleGround(tiles, 13, T.SAND);
+  // 中央に 2マス高の壁 (col 14-15, rows 11-12)
+  fillRect(tiles, 14, 11, 15, 12, T.STONE);
+  return {
+    name: 'Stage 4: 段差を越えて',
+    tiles,
+    spawn: { col: 1, row: 12 },
+    goal:  { col: 28, row: 12 },
+    total: 60, need: 38, fail: 10,
+    speed: 1.3, spawnInterval: 0.85,
+    budget: { BLOCK: 3, RAMP: 2, BRIDGE: 0, LADDER: 1, ARROW_R: 0, ARROW_L: 0, PARACHUTE: 0 },
+    medjedTypes: ['A', 'F'],
+    pharaohs: 0,
+    bg: 'desert',
+  };
+})());
+
+// === Stage 5 — 広い穴 + 棘 ===
+STAGES.push((() => {
+  const tiles = makeGrid(T.EMPTY);
+  laySimpleGround(tiles, 13, T.SAND, [[8, 11]]);
+  // 棘ゾーン
+  for (let c = 18; c <= 20; c++) tiles[12][c] = T.SPIKE;
+  return {
+    name: 'Stage 5: 砂漠の罠',
+    tiles,
+    spawn: { col: 1, row: 12 },
+    goal:  { col: 28, row: 12 },
+    total: 70, need: 44, fail: 12,
+    speed: 1.5, spawnInterval: 0.7,
+    budget: { BLOCK: 4, RAMP: 1, BRIDGE: 1, LADDER: 0, ARROW_R: 0, ARROW_L: 1, PARACHUTE: 0 },
+    medjedTypes: ['A', 'F', 'D'],
+    pharaohs: 0,
+    bg: 'desert',
+  };
+})());
+
+// === Stage 6 — 高所からの落下 ===
+STAGES.push((() => {
+  const tiles = makeGrid(T.EMPTY);
+  // 左の高台 cols 0-12, top at row 7
+  for (let c = 0; c <= 12; c++) {
+    tiles[7][c] = T.STONE;
+    for (let r = 8; r < ROWS; r++) tiles[r][c] = T.GROUND;
+  }
+  // 右の低地 cols 13-29, top at row 13
+  for (let c = 13; c < COLS; c++) {
+    tiles[13][c] = T.SAND;
+    for (let r = 14; r < ROWS; r++) tiles[r][c] = T.GROUND;
+  }
+  return {
+    name: 'Stage 6: 崖からの大跳躍',
+    tiles,
+    spawn: { col: 1, row: 6 },
+    goal:  { col: 28, row: 12 },
+    total: 80, need: 50, fail: 14,
+    speed: 1.7, spawnInterval: 0.55,
+    budget: { BLOCK: 3, RAMP: 1, BRIDGE: 0, LADDER: 0, ARROW_R: 1, ARROW_L: 0, PARACHUTE: 2 },
+    medjedTypes: ['A', 'F', 'D'],
+    pharaohs: 0,
+    bg: 'desert',
+  };
+})());
+
+// === Stage 7 — 複合 ===
+STAGES.push((() => {
+  const tiles = makeGrid(T.EMPTY);
+  laySimpleGround(tiles, 13, T.SAND, [[6, 7], [18, 20]]);
+  // 中央に高い壁 (col 12-13, rows 10-12)
+  fillRect(tiles, 12, 10, 13, 12, T.STONE);
+  // 棘
+  for (let c = 23; c <= 25; c++) tiles[12][c] = T.SPIKE;
+  return {
+    name: 'Stage 7: 試練の道',
+    tiles,
+    spawn: { col: 1, row: 12 },
+    goal:  { col: 28, row: 12 },
+    total: 90, need: 58, fail: 14,
+    speed: 1.9, spawnInterval: 0.45,
+    budget: { BLOCK: 3, RAMP: 2, BRIDGE: 1, LADDER: 1, ARROW_R: 1, ARROW_L: 1, PARACHUTE: 1 },
+    medjedTypes: ['A', 'F', 'D'],
+    pharaohs: 0,
+    bg: 'desert',
+  };
+})());
+
+// === Stage 8 — 最終 ===
+STAGES.push((() => {
+  const tiles = makeGrid(T.EMPTY);
+  // 左から: 棘, 大穴, 高台, 棘, 細道
+  laySimpleGround(tiles, 13, T.SAND, [[7, 10], [20, 22]]);
+  // 棘群
+  for (let c = 4; c <= 5; c++) tiles[12][c] = T.SPIKE;
+  for (let c = 16; c <= 17; c++) tiles[12][c] = T.SPIKE;
+  // 高台 (cols 13-15, rows 9-12)
+  fillRect(tiles, 13, 9, 15, 12, T.STONE);
+  // 大穴の底に水
+  for (let c = 7; c <= 10; c++) tiles[16][c] = T.WATER;
+  return {
+    name: 'Stage 8: メジェドの王国',
+    tiles,
+    spawn: { col: 1, row: 12 },
+    goal:  { col: 28, row: 12 },
+    total: 100, need: 70, fail: 15,
+    speed: 2.2, spawnInterval: 0.35,
+    budget: { BLOCK: 4, RAMP: 2, BRIDGE: 1, LADDER: 1, ARROW_R: 1, ARROW_L: 1, PARACHUTE: 1 },
+    medjedTypes: ['A', 'F', 'D'],
+    pharaohs: 0,
+    bg: 'desert',
+  };
+})());
+
+// === Stage 9 (隠し) — ファラオを救え ===
+STAGES.push((() => {
+  const tiles = makeGrid(T.EMPTY);
+  laySimpleGround(tiles, 13, T.STONE, [[6, 8], [14, 16], [22, 24]]);
+  // ピラミッド風の棘
+  for (let c = 10; c <= 11; c++) tiles[12][c] = T.SPIKE;
+  for (let c = 19; c <= 20; c++) tiles[12][c] = T.SPIKE;
+  // 溶岩
+  for (let c = 14; c <= 16; c++) tiles[16][c] = T.LAVA;
+  return {
+    name: 'Stage 9: ファラオの呪い',
+    tiles,
+    spawn: { col: 1, row: 12 },
+    goal:  { col: 28, row: 12 },
+    total: 60, need: 45, fail: 5,
+    speed: 2.0, spawnInterval: 0.5,
+    budget: { BLOCK: 5, RAMP: 2, BRIDGE: 2, LADDER: 1, ARROW_R: 2, ARROW_L: 2, PARACHUTE: 2 },
+    medjedTypes: ['A', 'F', 'D', 'E'],  // ミイラ混入
+    pharaohs: 5,                         // ファラオ5体 — 全員救出必須
+    bg: 'pyramid',
+  };
+})());
+
+// ----------------------------------------------------------------------------
+// 画面切り替え
+// ----------------------------------------------------------------------------
+function show(screenId) {
+  const ids = ['title-screen', 'stage-select', 'help-screen', 'game-screen'];
+  ids.forEach(id => {
+    document.getElementById(id).hidden = (id !== screenId);
+  });
+  State.screen = screenId;
+}
+
+// ----------------------------------------------------------------------------
+// タイトル画面構築
+// ----------------------------------------------------------------------------
+function buildTitleScreen() {
+  const row = document.getElementById('title-medjed-row');
+  row.innerHTML = '';
+  MEDJED_TYPES.forEach(type => {
+    const slot = document.createElement('div');
+    slot.className = 'slot';
+    const img = document.createElement('img');
+    img.src = MEDJED_FILES[type];
+    img.alt = MEDJED_LABELS[type];
+    slot.appendChild(img);
+    const label = document.createElement('div');
+    label.className = 'label';
+    label.textContent = MEDJED_LABELS[type];
+    slot.appendChild(label);
+    row.appendChild(slot);
+  });
+  document.getElementById('version-label').textContent = VERSION;
+}
+
+// ----------------------------------------------------------------------------
+// ステージ選択画面構築
+// ----------------------------------------------------------------------------
+function buildStageSelect() {
+  const grid = document.getElementById('stage-grid');
+  grid.innerHTML = '';
+  for (let i = 0; i < 9; i++) {
+    const btn = document.createElement('button');
+    const unlocked = isStageUnlocked(i);
+    const cleared = !!State.progress.cleared[i];
+    const isHidden = (i === 8);
+    if (!unlocked) {
+      btn.className = 'locked';
+      btn.disabled = true;
+      btn.innerHTML = '🔒<br><span style="font-size:11px">?</span>';
+    } else {
+      if (isHidden) btn.className = 'hidden-stage';
+      const star = cleared ? '<div class="star">★ クリア</div>' : '';
+      const label = isHidden ? `Stage 9<br><span style="font-size:10px">隠し</span>` : `Stage ${i + 1}`;
+      btn.innerHTML = label + star;
+      btn.onclick = () => {
+        Audio.sfx('click');
+        State.stageIndex = i;
+        startGame();
+      };
+    }
+    grid.appendChild(btn);
+  }
+}
+
+// ----------------------------------------------------------------------------
+// メジェド (歩行ユニット)
+// ----------------------------------------------------------------------------
+class Medjed {
+  constructor(col, row, type, dir = 1) {
+    // px = 中心 X, py = 足元 Y
+    this.px = (col + 0.5) * TILE;
+    this.py = (row + 1) * TILE;
+    this.type = type;
+    this.dir = dir;
+    this.state = 'walk';      // walk | fall | climb | dead | exit
+    this.vy = 0;
+    this.fallStartY = this.py;
+    this.hasParachute = false;
+    this.deathReason = null;
+    this.alive = true;
+    this.atGoal = false;
+    this.animTime = Math.random() * 1000;
+    // ミイラ用: 時々左に歩く呪い
+    this.cursedFlipTimer = 0;
+  }
+
+  // 速度修飾子 (キャラ別)
+  get speedModifier() {
+    if (this.type === 'F') return 1.4;  // 子供は速い
+    if (this.type === 'D') return 0.7;  // 司祭は遅い
+    if (this.type === 'E') return 0.85; // ミイラはちょい遅
+    if (this.type === 'B') return 0.9;  // ファラオもやや慎重
+    return 1.0;
+  }
+
+  die(reason) {
+    if (!this.alive) return;
+    this.alive = false;
+    this.state = 'dead';
+    this.deathReason = reason;
+    Audio.sfx('death');
+  }
+
+  reachGoal() {
+    if (this.atGoal || !this.alive) return;
+    this.atGoal = true;
+    this.state = 'exit';
+    Audio.sfx('goal');
+  }
+
+  update(dt, world) {
+    if (!this.alive || this.atGoal) return;
+    this.animTime += dt * 1000;
+
+    // ミイラの呪い (たまに反転)
+    if (this.type === 'E' && this.state === 'walk') {
+      this.cursedFlipTimer += dt;
+      if (this.cursedFlipTimer > 3.5 && Math.random() < 0.02) {
+        this.dir = -this.dir;
+        this.cursedFlipTimer = 0;
+        Audio.sfx('flip');
+      }
+    }
+
+    if (this.state === 'walk') {
+      this.updateWalk(dt, world);
+    } else if (this.state === 'fall') {
+      this.updateFall(dt, world);
+    }
+  }
+
+  // タイル取得 (範囲外は EMPTY、左右の縁は WALL 扱い)
+  tileAt(col, row) {
+    if (col < 0 || col >= COLS) return T.GROUND; // 縁は壁扱い
+    if (row < 0) return T.EMPTY;
+    if (row >= ROWS) return T.GROUND;             // 底面の下は壁(着地)
+    return world.stage.tiles[row][col];
+  }
+
+  updateWalk(dt, world) {
+    const speed = world.stage.speed * BASE_SPEED * this.speedModifier;
+    const tiles = world.stage.tiles;
+    const footRow = Math.round(this.py / TILE);
+    const curCol = Math.floor(this.px / TILE);
+
+    // ゴール判定
+    if (curCol === world.stage.goal.col && footRow - 1 === world.stage.goal.row) {
+      this.reachGoal();
+      world.saved++;
+      if (this.type === 'B') world.savedPharaoh++;
+      return;
+    }
+
+    // 現在位置の本体タイル (footRow-1) と床タイル (footRow) の効果
+    const bodyTile = (tiles[footRow - 1] && tiles[footRow - 1][curCol]) || T.EMPTY;
+    if (HAZARD_TILES.has(bodyTile)) {
+      this.die('hazard');
+      if (this.type === 'B') world.deadPharaoh++;
+      return;
+    }
+    // ARROW: 通過時に方向強制
+    if (bodyTile === T.ARROW_R && this.dir !== 1) { this.dir = 1; Audio.sfx('flip'); }
+    else if (bodyTile === T.ARROW_L && this.dir !== -1) { this.dir = -1; Audio.sfx('flip'); }
+    // PARACHUTE: 通過で羽を獲得
+    if (bodyTile === T.PARACHUTE && !this.hasParachute) {
+      this.hasParachute = true;
+    }
+
+    // 移動候補位置
+    const newPx = this.px + this.dir * speed * dt;
+    const newCol = Math.floor(newPx / TILE);
+
+    // 同じ列内で完結するなら、まずタイル変化なしで移動
+    if (newCol === curCol) {
+      this.px = newPx;
+      return;
+    }
+
+    // 隣の列に踏み込もうとしている = 衝突解析
+    const aheadCol = newCol; // 1列ぶん進んだ先
+    const bodyAhead = (tiles[footRow - 1] && tiles[footRow - 1][aheadCol]) ?? T.GROUND;
+    const headAhead = (tiles[footRow - 2] && tiles[footRow - 2][aheadCol]) ?? T.EMPTY;
+    const floorAhead = (tiles[footRow] && tiles[footRow][aheadCol]) ?? T.EMPTY;
+
+    // 範囲外 (左右の縁) は壁
+    if (aheadCol < 0 || aheadCol >= COLS) {
+      this.dir = -this.dir;
+      Audio.sfx('flip');
+      return;
+    }
+
+    const bodySolid = SOLID_TILES.has(bodyAhead);
+    const headSolid = SOLID_TILES.has(headAhead);
+    const floorSolid = SOLID_TILES.has(floorAhead);
+    const floorHazard = HAZARD_TILES.has(floorAhead);
+
+    // 障害物チェック
+    if (bodySolid) {
+      // はしご: 上端までテレポート登攀
+      if (bodyAhead === T.LADDER) {
+        let topRow = footRow - 1;
+        while (topRow > 0 && tiles[topRow - 1] && tiles[topRow - 1][aheadCol] === T.LADDER) topRow--;
+        // topRow = はしごの最上段の row。その上に立つ → feet は row=topRow の上端 = py = topRow*TILE
+        this.px = newPx;
+        this.py = topRow * TILE;
+        return;
+      }
+      if (headSolid) {
+        // 2マス壁 → 反転 (位置はそのまま)
+        this.dir = -this.dir;
+        Audio.sfx('flip');
+        return;
+      }
+      // 1マス段差 → 自動上り
+      this.px = newPx;
+      this.py -= TILE;
+      return;
+    }
+
+    // 体の高さに障害物なし → 進む
+    this.px = newPx;
+    if (floorHazard) {
+      // 進む先の床が棘/水 → 落下じゃなく着地して即死
+      this.die('hazard');
+      if (this.type === 'B') world.deadPharaoh++;
+      return;
+    }
+    if (!floorSolid) {
+      // 足場なし → 落下開始
+      this.state = 'fall';
+      this.vy = 0;
+      this.fallStartY = this.py;
+    }
+  }
+
+  updateFall(dt, world) {
+    const tiles = world.stage.tiles;
+    this.vy += GRAVITY * dt;
+    if (this.hasParachute) {
+      this.vy = Math.min(this.vy, 50);
+    }
+    const newPy = this.py + this.vy * dt;
+    const col = Math.floor(this.px / TILE);
+    const newRow = Math.floor(newPy / TILE);
+
+    // 画面下に落ちたら死亡
+    if (newRow > ROWS) {
+      this.die('void');
+      if (this.type === 'B') world.deadPharaoh++;
+      return;
+    }
+
+    // 着地候補タイル
+    const landingTile = (tiles[newRow] && tiles[newRow][col]) ?? T.EMPTY;
+    if (SOLID_TILES.has(landingTile)) {
+      // 着地
+      this.py = newRow * TILE;
+      const fallTiles = (this.py - this.fallStartY) / TILE;
+      this.vy = 0;
+      // 着地点の本体位置に棘?
+      const bodyHere = (tiles[newRow - 1] && tiles[newRow - 1][col]) ?? T.EMPTY;
+      if (HAZARD_TILES.has(bodyHere)) {
+        this.die('hazard');
+        if (this.type === 'B') world.deadPharaoh++;
+        return;
+      }
+      if (fallTiles > FALL_DEATH_TILES && !this.hasParachute) {
+        this.die('fall');
+        if (this.type === 'B') world.deadPharaoh++;
+        return;
+      }
+      this.state = 'walk';
+      return;
+    }
+    if (HAZARD_TILES.has(landingTile)) {
+      this.die('hazard');
+      if (this.type === 'B') world.deadPharaoh++;
+      return;
+    }
+    this.py = newPy;
+  }
+
+  draw(ctx) {
+    // 死亡 (短時間表示) や脱出は描画スキップ
+    if (this.atGoal || !this.alive) return;
+    const cv = (this.dir > 0) ? Assets.medjedCanvasR[this.type] : Assets.medjedCanvasL[this.type];
+    if (!cv) return;
+    // 描画位置: 中心 px, 足元 py。歩行時は上下にわずかに揺れる
+    const bob = (this.state === 'walk') ? Math.sin(this.animTime * 0.012) * 1.5 : 0;
+    ctx.drawImage(cv, this.px - MEDJED_W / 2, this.py - MEDJED_H + bob);
+  }
+}
+
+// ----------------------------------------------------------------------------
+// ワールド (ゲーム実行中の状態オブジェクト)
+// ----------------------------------------------------------------------------
+let world = null;
+
+function newWorld(stage) {
+  // budget をディープコピー
+  const budget = { ...stage.budget };
+  return {
+    stage,
+    medjeds: [],
+    spawned: 0,
+    saved: 0,
+    dead: 0,
+    savedPharaoh: 0,
+    deadPharaoh: 0,
+    spawnTimer: 0.5, // 最初の出現まで少し遅延
+    elapsed: 0,
+    running: true,
+    finished: false,    // win/lose 確定後 true
+    won: false,
+    budget,
+    selectedItem: null, // 'BLOCK' など
+    placedTiles: [],    // 撤去用に保持: { col, row, prevTile }[]
+  };
+}
+
+// ----------------------------------------------------------------------------
+// 描画 — タイル
+// ----------------------------------------------------------------------------
+function drawTile(ctx, col, row, tileType) {
+  const x = col * TILE;
+  const y = row * TILE;
+  switch (tileType) {
+    case T.GROUND:
+      ctx.fillStyle = '#7a5a30';
+      ctx.fillRect(x, y, TILE, TILE);
+      ctx.fillStyle = '#5a4020';
+      // ドット模様
+      for (let i = 0; i < 3; i++) {
+        const px = x + ((i * 11 + col * 7 + row * 5) % (TILE - 4));
+        const py = y + ((i * 13 + row * 3) % (TILE - 4));
+        ctx.fillRect(px, py, 3, 3);
+      }
+      break;
+    case T.SAND:
+      ctx.fillStyle = '#e8c98a';
+      ctx.fillRect(x, y, TILE, TILE);
+      ctx.fillStyle = '#c8a868';
+      ctx.fillRect(x, y + TILE - 4, TILE, 4);
+      // 上面ライン
+      ctx.fillStyle = '#fdecc8';
+      ctx.fillRect(x, y, TILE, 2);
+      break;
+    case T.STONE:
+      ctx.fillStyle = '#8b8a85';
+      ctx.fillRect(x, y, TILE, TILE);
+      ctx.strokeStyle = '#5a5955';
+      ctx.lineWidth = 1;
+      ctx.strokeRect(x + 0.5, y + 0.5, TILE - 1, TILE - 1);
+      // ブロックライン
+      ctx.beginPath();
+      ctx.moveTo(x, y + TILE / 2); ctx.lineTo(x + TILE, y + TILE / 2);
+      ctx.moveTo(x + TILE / 2, y); ctx.lineTo(x + TILE / 2, y + TILE / 2);
+      ctx.moveTo(x + TILE / 4, y + TILE / 2); ctx.lineTo(x + TILE / 4, y + TILE);
+      ctx.moveTo(x + TILE * 3 / 4, y + TILE / 2); ctx.lineTo(x + TILE * 3 / 4, y + TILE);
+      ctx.stroke();
+      break;
+    case T.SPIKE:
+      ctx.fillStyle = '#c8a868';
+      ctx.fillRect(x, y + TILE - 4, TILE, 4);
+      ctx.fillStyle = '#444';
+      for (let i = 0; i < 4; i++) {
+        const sx = x + i * (TILE / 4);
+        ctx.beginPath();
+        ctx.moveTo(sx, y + TILE);
+        ctx.lineTo(sx + TILE / 8, y + 4);
+        ctx.lineTo(sx + TILE / 4, y + TILE);
+        ctx.closePath();
+        ctx.fill();
+      }
+      ctx.fillStyle = '#888';
+      for (let i = 0; i < 4; i++) {
+        const sx = x + i * (TILE / 4) + 2;
+        ctx.fillRect(sx, y + 6, 1, TILE - 10);
+      }
+      break;
+    case T.WATER: {
+      const t = (performance.now() / 600) % 1;
+      ctx.fillStyle = '#3a8acc';
+      ctx.fillRect(x, y, TILE, TILE);
+      ctx.fillStyle = '#5aaaee';
+      const wave = Math.sin(t * Math.PI * 2 + col * 0.7) * 2;
+      ctx.fillRect(x, y + 4 + wave, TILE, 3);
+      ctx.fillRect(x, y + 12, TILE, 1);
+      break;
+    }
+    case T.LAVA: {
+      const t = (performance.now() / 400) % 1;
+      ctx.fillStyle = '#c83820';
+      ctx.fillRect(x, y, TILE, TILE);
+      ctx.fillStyle = '#ff8030';
+      const wave = Math.sin(t * Math.PI * 2 + col * 0.9) * 2;
+      ctx.fillRect(x, y + 3 + wave, TILE, 3);
+      ctx.fillStyle = '#ffe060';
+      ctx.fillRect(x + 4, y + 2, TILE - 8, 1);
+      break;
+    }
+    case T.BLOCK:
+      ctx.fillStyle = '#a86838';
+      ctx.fillRect(x + 2, y + 2, TILE - 4, TILE - 4);
+      ctx.strokeStyle = '#5a3018';
+      ctx.lineWidth = 2;
+      ctx.strokeRect(x + 2, y + 2, TILE - 4, TILE - 4);
+      ctx.fillStyle = '#c88858';
+      ctx.fillRect(x + 4, y + 4, TILE - 8, 3);
+      break;
+    case T.RAMP_R:
+      ctx.fillStyle = '#a86838';
+      ctx.beginPath();
+      ctx.moveTo(x, y + TILE);
+      ctx.lineTo(x + TILE, y + TILE);
+      ctx.lineTo(x + TILE, y);
+      ctx.closePath();
+      ctx.fill();
+      ctx.strokeStyle = '#5a3018';
+      ctx.lineWidth = 2;
+      ctx.stroke();
+      break;
+    case T.RAMP_L:
+      ctx.fillStyle = '#a86838';
+      ctx.beginPath();
+      ctx.moveTo(x, y + TILE);
+      ctx.lineTo(x + TILE, y + TILE);
+      ctx.lineTo(x, y);
+      ctx.closePath();
+      ctx.fill();
+      ctx.strokeStyle = '#5a3018';
+      ctx.lineWidth = 2;
+      ctx.stroke();
+      break;
+    case T.BRIDGE:
+      ctx.fillStyle = '#8b6f47';
+      ctx.fillRect(x, y + TILE - 8, TILE, 6);
+      ctx.fillStyle = '#5a3a18';
+      ctx.fillRect(x, y + TILE - 8, TILE, 1);
+      ctx.fillRect(x, y + TILE - 3, TILE, 1);
+      // 木目
+      ctx.fillStyle = '#6a4a28';
+      ctx.fillRect(x + TILE / 2, y + TILE - 7, 1, 4);
+      break;
+    case T.LADDER:
+      ctx.fillStyle = '#8b6f47';
+      ctx.fillRect(x + 4, y, 4, TILE);
+      ctx.fillRect(x + TILE - 8, y, 4, TILE);
+      ctx.fillStyle = '#a08858';
+      // 横棒
+      ctx.fillRect(x + 4, y + 6, TILE - 8, 3);
+      ctx.fillRect(x + 4, y + 16, TILE - 8, 3);
+      ctx.fillRect(x + 4, y + 26, TILE - 8, 3);
+      break;
+    case T.ARROW_R:
+    case T.ARROW_L: {
+      const right = tileType === T.ARROW_R;
+      ctx.fillStyle = 'rgba(255, 220, 80, 0.8)';
+      ctx.fillRect(x + 2, y + 2, TILE - 4, TILE - 4);
+      ctx.strokeStyle = '#806020';
+      ctx.lineWidth = 2;
+      ctx.strokeRect(x + 2, y + 2, TILE - 4, TILE - 4);
+      ctx.fillStyle = '#604010';
+      ctx.beginPath();
+      if (right) {
+        ctx.moveTo(x + 8, y + TILE / 2 - 6);
+        ctx.lineTo(x + TILE - 8, y + TILE / 2);
+        ctx.lineTo(x + 8, y + TILE / 2 + 6);
+      } else {
+        ctx.moveTo(x + TILE - 8, y + TILE / 2 - 6);
+        ctx.lineTo(x + 8, y + TILE / 2);
+        ctx.lineTo(x + TILE - 8, y + TILE / 2 + 6);
+      }
+      ctx.closePath();
+      ctx.fill();
+      break;
+    }
+    case T.PARACHUTE:
+      ctx.fillStyle = 'rgba(160, 240, 160, 0.6)';
+      ctx.fillRect(x + 2, y + 2, TILE - 4, TILE - 4);
+      // 葉のマーク
+      ctx.fillStyle = '#2a8a3a';
+      ctx.beginPath();
+      ctx.ellipse(x + TILE / 2, y + TILE / 2, 8, 12, Math.PI / 4, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.strokeStyle = '#1a5a20';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(x + TILE / 2 - 5, y + TILE / 2 + 5);
+      ctx.lineTo(x + TILE / 2 + 5, y + TILE / 2 - 5);
+      ctx.stroke();
+      break;
+  }
+}
+
+function drawBackground(ctx, bg) {
+  // グラデーション空 (砂漠風)
+  const grd = ctx.createLinearGradient(0, 0, 0, CANVAS_H);
+  if (bg === 'pyramid') {
+    grd.addColorStop(0, '#3a2858');
+    grd.addColorStop(0.6, '#8a4a48');
+    grd.addColorStop(1, '#c87038');
+  } else {
+    grd.addColorStop(0, '#fce4a0');
+    grd.addColorStop(0.7, '#f4ba78');
+    grd.addColorStop(1, '#e89968');
+  }
+  ctx.fillStyle = grd;
+  ctx.fillRect(0, 0, CANVAS_W, CANVAS_H);
+
+  // 遠景 — 三角ピラミッド
+  if (bg === 'pyramid') {
+    ctx.fillStyle = '#5a4030';
+    ctx.beginPath();
+    ctx.moveTo(120, CANVAS_H - 120);
+    ctx.lineTo(280, CANVAS_H - 120);
+    ctx.lineTo(200, CANVAS_H - 280);
+    ctx.closePath();
+    ctx.fill();
+    ctx.fillStyle = '#7a5040';
+    ctx.beginPath();
+    ctx.moveTo(560, CANVAS_H - 120);
+    ctx.lineTo(820, CANVAS_H - 120);
+    ctx.lineTo(690, CANVAS_H - 350);
+    ctx.closePath();
+    ctx.fill();
+  } else {
+    // 遠景の砂漠ピラミッド (薄め)
+    ctx.fillStyle = 'rgba(180, 130, 80, 0.5)';
+    ctx.beginPath();
+    ctx.moveTo(420, CANVAS_H - 130);
+    ctx.lineTo(620, CANVAS_H - 130);
+    ctx.lineTo(520, CANVAS_H - 250);
+    ctx.closePath();
+    ctx.fill();
+    ctx.fillStyle = 'rgba(160, 110, 60, 0.6)';
+    ctx.beginPath();
+    ctx.moveTo(700, CANVAS_H - 130);
+    ctx.lineTo(900, CANVAS_H - 130);
+    ctx.lineTo(800, CANVAS_H - 290);
+    ctx.closePath();
+    ctx.fill();
+    // 太陽
+    ctx.fillStyle = '#ffe070';
+    ctx.beginPath();
+    ctx.arc(800, 80, 30, 0, Math.PI * 2);
+    ctx.fill();
+  }
+}
+
+function drawSpawnGoal(ctx, stage) {
+  // スポーン口 (左の門)
+  const sx = stage.spawn.col * TILE;
+  const sy = stage.spawn.row * TILE;
+  ctx.fillStyle = '#3a2818';
+  ctx.fillRect(sx - 4, sy - 4, TILE + 8, TILE + 4);
+  ctx.fillStyle = '#5a3a20';
+  ctx.fillRect(sx - 2, sy - 2, TILE + 4, TILE);
+  ctx.fillStyle = '#1a0a08';
+  ctx.fillRect(sx + 4, sy + 6, TILE - 8, TILE - 4);
+  // 上飾り
+  ctx.fillStyle = '#d4af37';
+  ctx.fillRect(sx - 4, sy - 8, TILE + 8, 4);
+
+  // ゴール (ピラミッド)
+  const gx = stage.goal.col * TILE;
+  const gy = stage.goal.row * TILE;
+  ctx.fillStyle = '#d4af37';
+  ctx.beginPath();
+  ctx.moveTo(gx - 8, gy + TILE);
+  ctx.lineTo(gx + TILE + 8, gy + TILE);
+  ctx.lineTo(gx + TILE / 2, gy - 8);
+  ctx.closePath();
+  ctx.fill();
+  ctx.strokeStyle = '#8a6a18';
+  ctx.lineWidth = 2;
+  ctx.stroke();
+  // 入口
+  ctx.fillStyle = '#1a0a08';
+  ctx.fillRect(gx + 8, gy + TILE - 18, TILE - 16, 18);
+  // 上にメジェドの目印
+  if (Assets.medjedCanvasR.B) {
+    ctx.drawImage(Assets.medjedCanvasR.B, gx - 4, gy - 30, 24, 30);
+  }
+}
+
+// ----------------------------------------------------------------------------
+// レンダリング (フレームごと)
+// ----------------------------------------------------------------------------
+function render(ctx) {
+  drawBackground(ctx, world.stage.bg);
+
+  // タイル描画
+  const tiles = world.stage.tiles;
+  for (let r = 0; r < ROWS; r++) {
+    for (let c = 0; c < COLS; c++) {
+      const t = tiles[r][c];
+      if (t !== T.EMPTY) drawTile(ctx, c, r, t);
+    }
+  }
+
+  // スポーンとゴールの装飾
+  drawSpawnGoal(ctx, world.stage);
+
+  // メジェド描画
+  for (const m of world.medjeds) m.draw(ctx);
+
+  // ホバー中のアイテムプレビュー
+  if (world.selectedItem && world.hoverCell) {
+    drawItemPreview(ctx, world.selectedItem, world.hoverCell.col, world.hoverCell.row);
+  }
+}
+
+function drawItemPreview(ctx, itemId, col, row) {
+  const item = ITEMS.find(i => i.id === itemId);
+  if (!item) return;
+  ctx.save();
+  ctx.globalAlpha = 0.5;
+  if (itemId === 'BRIDGE') {
+    for (let i = 0; i < 3; i++) drawTile(ctx, col + i, row, T.BRIDGE);
+  } else if (itemId === 'LADDER') {
+    for (let i = 0; i < 3; i++) drawTile(ctx, col, row - i, T.LADDER);
+  } else {
+    drawTile(ctx, col, row, item.tile);
+  }
+  ctx.restore();
+  // 配置可否枠
+  const ok = canPlaceItem(itemId, col, row);
+  ctx.strokeStyle = ok ? '#80ff80' : '#ff5050';
+  ctx.lineWidth = 2;
+  let w = TILE, h = TILE;
+  let x = col * TILE, y = row * TILE;
+  if (itemId === 'BRIDGE') w = TILE * 3;
+  if (itemId === 'LADDER') { h = TILE * 3; y = (row - 2) * TILE; }
+  ctx.strokeRect(x, y, w, h);
+}
+
+// ----------------------------------------------------------------------------
+// ゲームループ
+// ----------------------------------------------------------------------------
+let _lastFrame = 0;
+let _rafId = null;
+function gameLoop(now) {
+  if (!world || !world.running) return;
+  const dt = Math.min(0.05, (now - _lastFrame) / 1000 || 0);
+  _lastFrame = now;
+
+  if (!State.paused && !world.finished) {
+    update(dt);
+  }
+
+  const ctx = document.getElementById('game-canvas').getContext('2d');
+  render(ctx);
+  updateHUD();
+
+  _rafId = requestAnimationFrame(gameLoop);
+}
+
+function update(dt) {
+  world.elapsed += dt;
+  // スポーン
+  if (world.spawned < world.stage.total) {
+    world.spawnTimer -= dt;
+    if (world.spawnTimer <= 0) {
+      spawnOneMedjed();
+      world.spawnTimer += world.stage.spawnInterval;
+    }
+  }
+  // 各メジェド更新
+  for (const m of world.medjeds) m.update(dt, world);
+  // 死亡カウントを反映 (新しく死んだ分)
+  let deadCount = 0;
+  for (const m of world.medjeds) if (!m.alive) deadCount++;
+  world.dead = deadCount;
+
+  // 終了判定
+  checkEndCondition();
+}
+
+function spawnOneMedjed() {
+  const stage = world.stage;
+  // タイプ選択
+  let type = 'A';
+  // ファラオ枠を残数の最後にまとめて出す
+  const remaining = stage.total - world.spawned;
+  if (stage.pharaohs > 0 && remaining <= stage.pharaohs) {
+    type = 'B';
+  } else {
+    const types = stage.medjedTypes || ['A'];
+    // A の比率を高めに
+    const r = Math.random();
+    if (r < 0.55 && types.includes('A')) type = 'A';
+    else type = types[Math.floor(Math.random() * types.length)];
+  }
+  const m = new Medjed(stage.spawn.col, stage.spawn.row, type, 1);
+  world.medjeds.push(m);
+  world.spawned++;
+  Audio.sfx('spawn');
+}
+
+function checkEndCondition() {
+  const stage = world.stage;
+  // 失敗: 死亡数が許容を超えた
+  if (world.dead > stage.fail) {
+    world.finished = true;
+    world.won = false;
+    setTimeout(showResult, 600);
+    return;
+  }
+  // 失敗: ファラオが死亡
+  if (stage.pharaohs > 0 && world.deadPharaoh > 0) {
+    world.finished = true;
+    world.won = false;
+    setTimeout(showResult, 600);
+    return;
+  }
+  // 成功: 規定数救出 (ファラオは別カウント)
+  const allSpawned = world.spawned >= stage.total;
+  if (world.saved >= stage.need) {
+    if (stage.pharaohs > 0 && world.savedPharaoh < stage.pharaohs) {
+      // ファラオ全員救出待ち
+      if (allSpawned && remainingActive() === 0) {
+        // もう全員出尽くしてアクティブ0、ファラオが救出されないなら失敗
+        world.finished = true;
+        world.won = false;
+        setTimeout(showResult, 600);
+        return;
+      }
+      return;
+    }
+    world.finished = true;
+    world.won = true;
+    setTimeout(showResult, 600);
+    return;
+  }
+  // 全員出尽くして規定に届かない場合は失敗
+  if (allSpawned && remainingActive() === 0) {
+    world.finished = true;
+    world.won = (world.saved >= stage.need);
+    setTimeout(showResult, 600);
+  }
+}
+
+function remainingActive() {
+  let n = 0;
+  for (const m of world.medjeds) if (m.alive && !m.atGoal) n++;
+  return n;
+}
+
+// ----------------------------------------------------------------------------
+// HUD
+// ----------------------------------------------------------------------------
+function updateHUD() {
+  const stage = world.stage;
+  document.getElementById('hud-title').textContent = stage.name;
+  document.getElementById('hud-spawned').textContent = world.spawned;
+  document.getElementById('hud-total').textContent = stage.total;
+  document.getElementById('hud-saved').textContent = world.saved;
+  document.getElementById('hud-need').textContent = stage.need;
+  document.getElementById('hud-dead').textContent = world.dead;
+  document.getElementById('hud-fail').textContent = stage.fail;
+}
+
+// ----------------------------------------------------------------------------
+// アイテム配置 (次タスクで本格化。最低限の関数を用意)
+// ----------------------------------------------------------------------------
+function canPlaceItem(itemId, col, row) {
+  if (!world) return false;
+  if (world.budget[itemId] <= 0) return false;
+  const tiles = world.stage.tiles;
+  if (col < 0 || col >= COLS || row < 0 || row >= ROWS) return false;
+  if (itemId === 'BRIDGE') {
+    if (col + 2 >= COLS) return false;
+    for (let i = 0; i < 3; i++) if (tiles[row][col + i] !== T.EMPTY) return false;
+    return true;
+  }
+  if (itemId === 'LADDER') {
+    if (row - 2 < 0) return false;
+    for (let i = 0; i < 3; i++) if (tiles[row - i][col] !== T.EMPTY) return false;
+    return true;
+  }
+  return tiles[row][col] === T.EMPTY;
+}
+
+// ----------------------------------------------------------------------------
+// アイテムバー UI
+// ----------------------------------------------------------------------------
+function buildItemBar() {
+  const bar = document.getElementById('item-bar');
+  bar.innerHTML = '';
+  for (const item of ITEMS) {
+    const btn = document.createElement('button');
+    btn.className = 'item-btn';
+    btn.dataset.itemId = item.id;
+    btn.innerHTML = `<span class="icon">${item.icon}</span><span class="name">${item.name}</span><span class="count" id="cnt-${item.id}">${world.budget[item.id]}</span>`;
+    if (world.budget[item.id] <= 0) btn.disabled = true;
+    btn.onclick = () => {
+      if (world.budget[item.id] <= 0) return;
+      world.selectedItem = (world.selectedItem === item.id) ? null : item.id;
+      Audio.sfx('click');
+      refreshItemBar();
+    };
+    bar.appendChild(btn);
+  }
+}
+function refreshItemBar() {
+  for (const item of ITEMS) {
+    const btn = document.querySelector(`.item-btn[data-item-id="${item.id}"]`);
+    if (!btn) continue;
+    btn.classList.toggle('active', world.selectedItem === item.id);
+    btn.disabled = world.budget[item.id] <= 0;
+    const cnt = document.getElementById(`cnt-${item.id}`);
+    if (cnt) cnt.textContent = world.budget[item.id];
+  }
+}
+
+// ----------------------------------------------------------------------------
+// 結果表示
+// ----------------------------------------------------------------------------
+function showResult() {
+  const stage = world.stage;
+  Audio.sfx(world.won ? 'win' : 'lose');
+  const modal = document.getElementById('result-modal');
+  const box = document.getElementById('result-box');
+  box.className = 'modal-box ' + (world.won ? 'win' : 'lose');
+  document.getElementById('result-title').textContent =
+    world.won ? '🎉 クリア!' : '💀 ゲームオーバー';
+
+  // 評価 (S/A/B/C)
+  let grade = 'C';
+  if (world.won) {
+    const ratio = world.saved / stage.total;
+    if (world.dead === 0 && ratio >= 0.9) grade = 'S';
+    else if (world.dead <= Math.floor(stage.fail * 0.4) && ratio >= 0.75) grade = 'A';
+    else if (ratio >= 0.65) grade = 'B';
+    else grade = 'C';
+  }
+  const gradeEl = document.getElementById('result-grade');
+  gradeEl.textContent = grade;
+  gradeEl.className = 'grade ' + grade;
+  gradeEl.style.display = world.won ? '' : 'none';
+
+  document.getElementById('result-stats').innerHTML = `
+    <div class="row"><span>救出</span><span>${world.saved} / ${stage.need}</span></div>
+    <div class="row"><span>死亡</span><span>${world.dead} / ${stage.fail}</span></div>
+    <div class="row"><span>出現</span><span>${world.spawned} / ${stage.total}</span></div>
+    ${stage.pharaohs > 0 ? `<div class="row"><span>ファラオ救出</span><span>${world.savedPharaoh} / ${stage.pharaohs}</span></div>` : ''}
+  `;
+
+  // 「次へ」ボタンの表示
+  const isLastNormal = State.stageIndex === 7;
+  const isHidden = State.stageIndex === 8;
+  const nextBtn = document.getElementById('btn-result-next');
+  nextBtn.style.display = (world.won && !isHidden) ? '' : 'none';
+  if (isLastNormal) nextBtn.textContent = '隠しステージへ →';
+  else nextBtn.textContent = '次のステージ →';
+
+  // 進捗保存
+  if (world.won) {
+    State.progress.cleared[State.stageIndex] = grade;
+    if (State.stageIndex === 7) {
+      // stage 8 のグレード記録 (S または A で stage 9 解放)
+      State.progress.stage8Grade = grade;
+    }
+    saveProgress();
+  }
+
+  modal.hidden = false;
+}
+
+// ----------------------------------------------------------------------------
+// ゲーム開始
+// ----------------------------------------------------------------------------
+function startGame() {
+  show('game-screen');
+  const stage = STAGES[State.stageIndex];
+  if (!stage) return;
+  // 元の tiles を非破壊で複製 (アイテム配置用)
+  const stageCopy = {
+    ...stage,
+    tiles: stage.tiles.map(row => row.slice()),
+  };
+  world = newWorld(stageCopy);
+  buildItemBar();
+  setupGameInput();
+  // モーダル全閉じ
+  document.getElementById('result-modal').hidden = true;
+  document.getElementById('pause-modal').hidden = true;
+  State.paused = false;
+  // ループ開始
+  if (_rafId) cancelAnimationFrame(_rafId);
+  _lastFrame = performance.now();
+  _rafId = requestAnimationFrame(gameLoop);
+}
+
+// ----------------------------------------------------------------------------
+// 入力 (Canvas クリック / タップ)
+// ----------------------------------------------------------------------------
+let _inputBound = false;
+function setupGameInput() {
+  if (_inputBound) return;
+  _inputBound = true;
+  const canvas = document.getElementById('game-canvas');
+
+  function getCellFromEvent(ev) {
+    const rect = canvas.getBoundingClientRect();
+    const sx = (ev.clientX - rect.left) * (canvas.width / rect.width);
+    const sy = (ev.clientY - rect.top) * (canvas.height / rect.height);
+    return {
+      col: Math.floor(sx / TILE),
+      row: Math.floor(sy / TILE),
+    };
+  }
+
+  canvas.addEventListener('mousemove', ev => {
+    if (!world) return;
+    world.hoverCell = getCellFromEvent(ev);
+  });
+  canvas.addEventListener('mouseleave', () => {
+    if (world) world.hoverCell = null;
+  });
+  canvas.addEventListener('click', ev => {
+    if (!world || State.paused || world.finished) return;
+    const { col, row } = getCellFromEvent(ev);
+    handleCellClick(col, row);
+  });
+  // タッチ
+  canvas.addEventListener('touchstart', ev => {
+    if (!world || State.paused || world.finished) return;
+    if (ev.touches.length !== 1) return;
+    ev.preventDefault();
+    const t = ev.touches[0];
+    const fakeEv = { clientX: t.clientX, clientY: t.clientY };
+    const cell = getCellFromEvent(fakeEv);
+    world.hoverCell = cell;
+    handleCellClick(cell.col, cell.row);
+  }, { passive: false });
+  // 右クリックで撤去
+  canvas.addEventListener('contextmenu', ev => {
+    ev.preventDefault();
+    if (!world || State.paused || world.finished) return;
+    const { col, row } = getCellFromEvent(ev);
+    removeItemAt(col, row);
+  });
+}
+
+function handleCellClick(col, row) {
+  if (!world.selectedItem) {
+    // 撤去モード: クリックしたセルにアイテムがあれば撤去
+    removeItemAt(col, row);
+    return;
+  }
+  placeItem(world.selectedItem, col, row);
+}
+
+function placeItem(itemId, col, row) {
+  if (!canPlaceItem(itemId, col, row)) {
+    // 既存アイテムに重なっていたら撤去だけ
+    if (PLACED_TILES.has(world.stage.tiles[row]?.[col])) {
+      removeItemAt(col, row);
+    }
+    return;
+  }
+  const tiles = world.stage.tiles;
+  if (itemId === 'BRIDGE') {
+    for (let i = 0; i < 3; i++) {
+      tiles[row][col + i] = T.BRIDGE;
+      world.placedTiles.push({ col: col + i, row, itemId: 'BRIDGE', headOf: i === 0 });
+    }
+  } else if (itemId === 'LADDER') {
+    for (let i = 0; i < 3; i++) {
+      tiles[row - i][col] = T.LADDER;
+      world.placedTiles.push({ col, row: row - i, itemId: 'LADDER', headOf: i === 0 });
+    }
+  } else {
+    const item = ITEMS.find(i => i.id === itemId);
+    tiles[row][col] = item.tile;
+    world.placedTiles.push({ col, row, itemId, headOf: true });
+  }
+  world.budget[itemId]--;
+  Audio.sfx('place');
+  refreshItemBar();
+  if (world.budget[itemId] <= 0) {
+    world.selectedItem = null;
+    refreshItemBar();
+  }
+}
+
+function removeItemAt(col, row) {
+  // 該当セルの配置物を探す
+  const idx = world.placedTiles.findIndex(p => p.col === col && p.row === row);
+  if (idx < 0) return;
+  const placed = world.placedTiles[idx];
+  // BRIDGE/LADDER は 3 セット同時に撤去
+  const setItems = world.placedTiles.filter(p => {
+    if (placed.itemId === 'BRIDGE') return p.itemId === 'BRIDGE' && p.row === placed.row && Math.abs(p.col - placed.col) <= 2 && areGroupedH(placed.col, placed.row, p.col, p.row, world);
+    if (placed.itemId === 'LADDER') return p.itemId === 'LADDER' && p.col === placed.col && Math.abs(p.row - placed.row) <= 2 && areGroupedV(placed.col, placed.row, p.col, p.row, world);
+    return p === placed;
+  });
+  // シンプル化: 同 itemId の最初の "head" を含むグループ
+  // → 簡略: クリックされたセルが BRIDGE/LADDER の場合、同itemId の隣接連続 3 セットを削除
+  const tiles = world.stage.tiles;
+  if (placed.itemId === 'BRIDGE') {
+    // 連続する BRIDGE 3 セットを探す
+    let c0 = col;
+    while (c0 - 1 >= 0 && tiles[row][c0 - 1] === T.BRIDGE) c0--;
+    for (let i = 0; i < 3; i++) {
+      tiles[row][c0 + i] = T.EMPTY;
+      const j = world.placedTiles.findIndex(p => p.col === c0 + i && p.row === row && p.itemId === 'BRIDGE');
+      if (j >= 0) world.placedTiles.splice(j, 1);
+    }
+    world.budget.BRIDGE++;
+  } else if (placed.itemId === 'LADDER') {
+    let r0 = row;
+    while (r0 + 1 < ROWS && tiles[r0 + 1][col] === T.LADDER) r0++;
+    for (let i = 0; i < 3; i++) {
+      tiles[r0 - i][col] = T.EMPTY;
+      const j = world.placedTiles.findIndex(p => p.col === col && p.row === r0 - i && p.itemId === 'LADDER');
+      if (j >= 0) world.placedTiles.splice(j, 1);
+    }
+    world.budget.LADDER++;
+  } else {
+    tiles[row][col] = T.EMPTY;
+    world.placedTiles.splice(idx, 1);
+    world.budget[placed.itemId]++;
+  }
+  Audio.sfx('remove');
+  refreshItemBar();
+}
+
+function areGroupedH() { return true; } // 簡略
+function areGroupedV() { return true; }
+
+// ----------------------------------------------------------------------------
+// イベントハンドラ
+// ----------------------------------------------------------------------------
+function setupEventHandlers() {
+  // タイトル
+  document.getElementById('btn-start').onclick = () => {
+    Audio.ensure(); Audio.sfx('click');
+    State.stageIndex = 0;
+    startGame();
+  };
+  document.getElementById('btn-stage-select').onclick = () => {
+    Audio.ensure(); Audio.sfx('click');
+    buildStageSelect();
+    show('stage-select');
+  };
+  document.getElementById('btn-help').onclick = () => {
+    Audio.ensure(); Audio.sfx('click');
+    show('help-screen');
+  };
+  document.getElementById('btn-mute-title').onclick = toggleMute;
+  document.getElementById('btn-mute-game').onclick = toggleMute;
+
+  // 戻る
+  document.getElementById('btn-stage-back').onclick = () => { Audio.sfx('click'); show('title-screen'); };
+  document.getElementById('btn-help-back').onclick = () => { Audio.sfx('click'); show('title-screen'); };
+
+  // ゲーム HUD
+  document.getElementById('btn-pause').onclick = () => {
+    Audio.sfx('click');
+    document.getElementById('pause-modal').hidden = false;
+    State.paused = true;
+  };
+  document.getElementById('btn-pause-resume').onclick = () => {
+    Audio.sfx('click');
+    document.getElementById('pause-modal').hidden = true;
+    State.paused = false;
+  };
+  document.getElementById('btn-pause-reset').onclick = () => {
+    Audio.sfx('click');
+    document.getElementById('pause-modal').hidden = true;
+    State.paused = false;
+    startGame();
+  };
+  document.getElementById('btn-pause-menu').onclick = () => {
+    Audio.sfx('click');
+    document.getElementById('pause-modal').hidden = true;
+    State.paused = false;
+    returnToTitle();
+  };
+  document.getElementById('btn-reset').onclick = () => { Audio.sfx('click'); startGame(); };
+  document.getElementById('btn-quit').onclick = () => { Audio.sfx('click'); returnToTitle(); };
+
+  // 結果モーダル
+  document.getElementById('btn-result-retry').onclick = () => {
+    Audio.sfx('click');
+    document.getElementById('result-modal').hidden = true;
+    startGame();
+  };
+  document.getElementById('btn-result-next').onclick = () => {
+    Audio.sfx('click');
+    document.getElementById('result-modal').hidden = true;
+    State.stageIndex = Math.min(State.stageIndex + 1, 8);
+    startGame();
+  };
+  document.getElementById('btn-result-menu').onclick = () => {
+    Audio.sfx('click');
+    document.getElementById('result-modal').hidden = true;
+    returnToTitle();
+  };
+}
+
+function returnToTitle() {
+  if (world) world.running = false;
+  if (_rafId) { cancelAnimationFrame(_rafId); _rafId = null; }
+  world = null;
+  show('title-screen');
+}
+
+function toggleMute() {
+  State.muted = !State.muted;
+  saveProgress();
+  const icon = State.muted ? '🔇' : '🔊';
+  document.getElementById('btn-mute-title').textContent = icon;
+  document.getElementById('btn-mute-game').textContent = icon;
+}
+
+// ----------------------------------------------------------------------------
+// 初期化
+// ----------------------------------------------------------------------------
+async function init() {
+  loadProgress();
+  try {
+    await loadAssets();
+  } catch (e) {
+    document.getElementById('loading').textContent = '読み込みに失敗しました: ' + e.message;
+    return;
+  }
+  buildTitleScreen();
+  setupEventHandlers();
+
+  // ミュート状態を反映
+  const icon = State.muted ? '🔇' : '🔊';
+  document.getElementById('btn-mute-title').textContent = icon;
+  document.getElementById('btn-mute-game').textContent = icon;
+
+  document.getElementById('loading').remove();
+  show('title-screen');
+}
+
+window.addEventListener('load', init);
+</script>
+</body>
+</html>
