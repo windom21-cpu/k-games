@@ -434,11 +434,12 @@
 
     <h3>アイテム一覧</h3>
     <div class="item-row"><span class="item-icon">⬛</span><span><strong>ブロック</strong> — 1マスの足場。穴埋め・棘の上覆い・かさ上げ。</span></div>
-    <div class="item-row"><span class="item-icon">🔺</span><span><strong>ランプ</strong> — 1マス段差を斜面にして越える。</span></div>
+    <div class="item-row"><span class="item-icon">🔺</span><span><strong>ランプ</strong> — 1マス段差を斜面で越える(三角形の足場)。</span></div>
     <div class="item-row"><span class="item-icon">🌉</span><span><strong>橋</strong> — 横3マスの板で広い穴をまたぐ。</span></div>
-    <div class="item-row"><span class="item-icon">🪜</span><span><strong>はしご</strong> — 縦3マスのハシゴで高い壁を登る。</span></div>
-    <div class="item-row"><span class="item-icon">↔</span><span><strong>矢印</strong> — 通過時にメジェドの向きを反転。</span></div>
-    <div class="item-row"><span class="item-icon">🍃</span><span><strong>パラシュート</strong> — そのマスを通ったメジェドは以降の落下が安全に。</span></div>
+    <div class="item-row"><span class="item-icon">🪜</span><span><strong>はしご</strong> — 縦3マスで壁を登り、上端に出る。</span></div>
+    <div class="item-row"><span class="item-icon">➡</span><span><strong>右矢印</strong> — 通過するメジェドを強制的に右向きに。</span></div>
+    <div class="item-row"><span class="item-icon">⬅</span><span><strong>左矢印</strong> — 通過するメジェドを強制的に左向きに。</span></div>
+    <div class="item-row"><span class="item-icon">🍃</span><span><strong>落下安全</strong> — そのマスを通ったメジェドは以降の高所落下が安全に。</span></div>
 
     <h3>クリア条件</h3>
     <ul>
@@ -1342,13 +1343,17 @@ function drawTile(ctx, col, row, tileType) {
       break;
     }
     case T.BLOCK:
+      // 上面 = タイル上端で feet と揃える
       ctx.fillStyle = '#a86838';
-      ctx.fillRect(x + 2, y + 2, TILE - 4, TILE - 4);
+      ctx.fillRect(x, y, TILE, TILE);
+      ctx.fillStyle = '#c88858';
+      ctx.fillRect(x, y, TILE, 4);                  // 上面ハイライト
       ctx.strokeStyle = '#5a3018';
       ctx.lineWidth = 2;
-      ctx.strokeRect(x + 2, y + 2, TILE - 4, TILE - 4);
-      ctx.fillStyle = '#c88858';
-      ctx.fillRect(x + 4, y + 4, TILE - 8, 3);
+      ctx.strokeRect(x + 1, y + 1, TILE - 2, TILE - 2);
+      // ベルト/縄目
+      ctx.fillStyle = '#7a4828';
+      ctx.fillRect(x + 6, y + TILE / 2 - 1, TILE - 12, 2);
       break;
     case T.RAMP_R:
       ctx.fillStyle = '#a86838';
@@ -1375,14 +1380,32 @@ function drawTile(ctx, col, row, tileType) {
       ctx.stroke();
       break;
     case T.BRIDGE:
-      ctx.fillStyle = '#8b6f47';
-      ctx.fillRect(x, y + TILE - 8, TILE, 6);
+      // 厚い板を上端 (足元) に。下に縄/支柱を描いて吊り橋感を出す
+      ctx.fillStyle = '#a0805a';
+      ctx.fillRect(x, y, TILE, 10);
+      ctx.fillStyle = '#caa078';
+      ctx.fillRect(x, y, TILE, 2);          // 上面ハイライト
       ctx.fillStyle = '#5a3a18';
-      ctx.fillRect(x, y + TILE - 8, TILE, 1);
-      ctx.fillRect(x, y + TILE - 3, TILE, 1);
-      // 木目
+      ctx.fillRect(x, y + 9, TILE, 1);       // 板の下縁
       ctx.fillStyle = '#6a4a28';
-      ctx.fillRect(x + TILE / 2, y + TILE - 7, 1, 4);
+      // 板の継ぎ目
+      ctx.fillRect(x + TILE / 2 - 1, y + 1, 1, 8);
+      // 支柱 (吊り)
+      ctx.strokeStyle = '#5a3a18';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(x + 4, y + 10);
+      ctx.lineTo(x + 4, y + TILE - 2);
+      ctx.moveTo(x + TILE - 4, y + 10);
+      ctx.lineTo(x + TILE - 4, y + TILE - 2);
+      ctx.stroke();
+      // クロス縄
+      ctx.beginPath();
+      ctx.moveTo(x + 4, y + 14);
+      ctx.lineTo(x + TILE - 4, y + 22);
+      ctx.moveTo(x + TILE - 4, y + 14);
+      ctx.lineTo(x + 4, y + 22);
+      ctx.stroke();
       break;
     case T.LADDER:
       ctx.fillStyle = '#8b6f47';
