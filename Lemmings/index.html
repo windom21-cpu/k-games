@@ -459,60 +459,41 @@
     100% { background-position: 100% 50%; }
   }
 
-  /* ===== プレビューバナー (ステージ開始前) ===== */
+  /* ===== プレビューバナー (ステージ開始前) — Canvas 右上の浮きボタン ===== */
   .preview-banner {
     position: absolute;
-    top: 50%; left: 50%;
-    transform: translate(-50%, -50%);
+    top: 8px; right: 8px;
     z-index: 80;
     pointer-events: auto;
   }
   .preview-banner[hidden] { display: none; }
   .preview-box {
-    background: rgba(28, 18, 8, 0.92);
-    border: 3px solid var(--accent);
-    border-radius: 12px;
-    padding: 16px 24px;
+    background: rgba(28, 18, 8, 0.88);
+    border: 2px solid var(--accent);
+    border-radius: 8px;
+    padding: 6px 10px;
     color: var(--hud-fg);
     text-align: center;
-    box-shadow: 0 4px 24px rgba(0,0,0,0.6);
-    min-width: 240px;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.5);
     animation: preview-fade-in 0.3s ease;
   }
   @keyframes preview-fade-in {
-    from { opacity: 0; transform: scale(0.85); }
-    to   { opacity: 1; transform: scale(1); }
-  }
-  .preview-stage {
-    font-size: 18px;
-    font-weight: bold;
-    color: var(--accent);
-    margin-bottom: 6px;
-  }
-  .preview-info {
-    font-size: 13px;
-    line-height: 1.6;
-    margin-bottom: 12px;
-    color: #f4e0a8;
-  }
-  .preview-info .row {
-    display: flex; justify-content: space-between; gap: 16px;
-    border-bottom: 1px dotted #5a4020;
-    padding: 2px 0;
+    from { opacity: 0; transform: translateY(-8px); }
+    to   { opacity: 1; transform: translateY(0); }
   }
   #btn-preview-start {
-    font-size: 18px;
-    padding: 10px 24px;
+    font-size: 15px;
+    padding: 6px 14px;
     background: var(--accent);
     color: var(--ink);
     border-color: #fff;
   }
   #btn-preview-start:hover { background: #ffd060; }
   .preview-tip {
-    font-size: 11px;
-    margin-top: 8px;
+    font-size: 10px;
+    margin-top: 3px;
     color: #c8a868;
-    opacity: 0.85;
+    white-space: nowrap;
   }
 
   /* ===== ロード画面 ===== */
@@ -632,13 +613,13 @@
         <td align="center"><img src="medjed_E_mummy.svg" width="60" alt="ミイラ" style="vertical-align:middle"></td>
         <td align="center"><b>ミイラ</b></td>
         <td>包帯姿に赤い目。歩行はやや遅め (0.85倍)。<br>
-            <b>呪いでまれに左に方向転換する</b>。隠しステージ9でのみ登場。</td>
+            <b>呪いでまれに左に方向転換する</b>。隠しステージ10でのみ登場。</td>
       </tr>
       <tr>
         <td align="center"><img src="medjed_B_pharaoh.svg" width="60" alt="ファラオ" style="vertical-align:middle"></td>
         <td align="center"><b>ファラオ</b></td>
         <td>青いネメス頭巾と金の縞。黄金のハロが目印。<br>
-            <b>隠しステージ9 で終盤に5体出現</b>。
+            <b>隠しステージ10 で終盤に5体出現</b>。
             <b>全員を救出しなければ勝利できない</b>(1体でも死ぬと即敗北)。</td>
       </tr>
       <tr>
@@ -698,7 +679,7 @@
       <li><b>規定数のメジェド救出</b>で勝利、未達 or 許容超死亡で敗北</li>
       <li>規定数を満たした時点で打ち切るには ⏸ ポーズ →「🏁 いまの結果で評価」</li>
       <li><b>制限時間</b>内に終わらなければタイムアップ(時点で評価)</li>
-      <li>ステージ8を S または A 評価でクリアすると <b>隠しステージ9</b> 解放</li>
+      <li>ステージ8を S または A 評価でクリアすると <b>隠しステージ10</b> 解放</li>
     </ul>
 
     <hr width="80%">
@@ -751,6 +732,13 @@
   </div>
   <div id="canvas-wrap">
     <canvas id="game-canvas" width="1920" height="1088" style="aspect-ratio: 960 / 544;"></canvas>
+    <!-- プレビュー浮きボタン: マップを塞がないよう Canvas 右上に小さく配置 -->
+    <div id="preview-banner" class="preview-banner" hidden>
+      <div class="preview-box">
+        <button id="btn-preview-start">▶ スタート</button>
+        <div class="preview-tip">アイテム配置可</div>
+      </div>
+    </div>
   </div>
   <div id="item-bar"></div>
 </div>
@@ -760,23 +748,13 @@
   <div class="modal-box" id="result-box">
     <h2 id="result-title">クリア!</h2>
     <div class="grade" id="result-grade">A</div>
-    <div class="unlock-banner" id="result-unlock" hidden>✨ 隠しステージ9 解放! ✨</div>
+    <div class="unlock-banner" id="result-unlock" hidden>✨ 隠しステージ10 解放! ✨</div>
     <div class="stats" id="result-stats"></div>
     <div class="actions">
       <button id="btn-result-retry">もう一度</button>
       <button id="btn-result-next">次へ</button>
       <button id="btn-result-menu">メニュー</button>
     </div>
-  </div>
-</div>
-
-<!-- ===== プレビュー (各ステージ開始時 — マップ全体を見せる) ===== -->
-<div id="preview-banner" class="preview-banner" hidden>
-  <div class="preview-box">
-    <div class="preview-stage" id="preview-stage-name">Stage 1</div>
-    <div class="preview-info" id="preview-stage-info"></div>
-    <button id="btn-preview-start">▶ スタート</button>
-    <div class="preview-tip">アイテムは開始前でも配置できます</div>
   </div>
 </div>
 
@@ -819,7 +797,7 @@
 // ============================================================================
 // メジェドを救え! — main script
 // ============================================================================
-const VERSION = 'v1.3.0';
+const VERSION = 'v1.4.0';
 
 // ----------------------------------------------------------------------------
 // 定数
@@ -1008,8 +986,8 @@ function gradeRank(g) {
 function isStageUnlocked(stageIdx) {
   // 0-based
   if (stageIdx === 0) return true;
-  if (stageIdx === 8) {
-    // hidden stage: stage 8 (index 7) を S または A 評価でクリア
+  if (stageIdx === 9) {
+    // hidden stage (Stage 10): Stage 8 (index 7) を S/A クリア
     const g = State.progress.stage8Grade;
     return g === 'S' || g === 'A';
   }
@@ -1286,7 +1264,41 @@ STAGES.push((() => {
   };
 })());
 
-// === Stage 9 (隠し) — ファラオを救え ===
+// === Stage 9 — 神々の階段 (上下方向のジグザグ降下) ===
+STAGES.push((() => {
+  const tiles = makeGrid(T.EMPTY);
+  // 5段の階段状足場 (各落差 3 タイル = 安全圏)
+  // 段1: row 2 cols 0-10 (top)
+  for (let c = 0; c <= 10; c++) { tiles[2][c] = T.SAND; tiles[3][c] = T.GROUND; }
+  // 段2: row 5 cols 10-29
+  for (let c = 10; c <= 29; c++) { tiles[5][c] = T.SAND; tiles[6][c] = T.GROUND; }
+  // 段3: row 8 cols 0-19
+  for (let c = 0; c <= 19; c++) { tiles[8][c] = T.SAND; tiles[9][c] = T.GROUND; }
+  // 段4: row 11 cols 9-29
+  for (let c = 9; c <= 29; c++) { tiles[11][c] = T.SAND; tiles[12][c] = T.GROUND; }
+  // 底: row 14 cols 0-29
+  for (let c = 0; c < COLS; c++) {
+    tiles[14][c] = T.SAND;
+    for (let r = 15; r < ROWS; r++) tiles[r][c] = T.GROUND;
+  }
+  // 底の左寄りに棘 — 着地後左向きのままだと刺さる。ARROW_R か BLOCK壁 で右へ折り返す必要
+  tiles[13][4] = T.SPIKE;
+  tiles[13][5] = T.SPIKE;
+  return {
+    name: 'Stage 9: 神々の階段',
+    tiles,
+    spawn: { col: 1, row: 1 },
+    goal:  { col: 28, row: 13 },
+    total: 50, need: 32, fail: 10,
+    speed: 1.6, spawnInterval: 0.7, timeLimit: 150,
+    budget: { BLOCK: 2, RAMP: 1, BRIDGE: 1, LADDER: 0, ARROW_R: 1, ARROW_L: 0, PARACHUTE: 1 },
+    medjedTypes: ['A', 'F', 'D'],
+    pharaohs: 0,
+    bg: 'desert',
+  };
+})());
+
+// === Stage 10 (隠し) — ファラオを救え ===
 STAGES.push((() => {
   const tiles = makeGrid(T.EMPTY);
   laySimpleGround(tiles, 13, T.STONE, [[6, 8], [14, 16], [22, 24]]);
@@ -1296,7 +1308,7 @@ STAGES.push((() => {
   // 溶岩
   for (let c = 14; c <= 16; c++) tiles[16][c] = T.LAVA;
   return {
-    name: 'Stage 9: ファラオの呪い',
+    name: 'Stage 10: ファラオの呪い',
     tiles,
     spawn: { col: 1, row: 12 },
     goal:  { col: 28, row: 12 },
@@ -1366,11 +1378,11 @@ function buildTitleScreen() {
 function buildStageSelect() {
   const grid = document.getElementById('stage-grid');
   grid.innerHTML = '';
-  for (let i = 0; i < 9; i++) {
+  for (let i = 0; i < 10; i++) {
     const btn = document.createElement('button');
     const unlocked = isStageUnlocked(i);
     const grade = State.progress.cleared[i];
-    const isHidden = (i === 8);
+    const isHidden = (i === 9);
     if (!unlocked) {
       btn.className = 'locked';
       btn.disabled = true;
@@ -1380,7 +1392,7 @@ function buildStageSelect() {
       const numEl = document.createElement('div');
       numEl.className = 'stage-num';
       numEl.innerHTML = isHidden
-        ? 'Stage 9<br><span style="font-size:9px">隠し</span>'
+        ? 'Stage 10<br><span style="font-size:9px">隠し</span>'
         : `Stage ${i + 1}`;
       btn.appendChild(numEl);
 
@@ -2401,7 +2413,7 @@ function showResult() {
   gradeEl.style.display = world.won ? '' : 'none';
 
   // 進捗保存 — ベストグレードのみ保持(再プレイで低評価による上書き防止)
-  let justUnlockedStage9 = false;
+  let justUnlockedHidden = false;
   if (world.won) {
     const prev = State.progress.cleared[State.stageIndex];
     if (!prev || gradeRank(grade) > gradeRank(prev)) {
@@ -2414,14 +2426,14 @@ function showResult() {
         State.progress.stage8Grade = grade;
       }
       const nowUnlocked = State.progress.stage8Grade === 'S' || State.progress.stage8Grade === 'A';
-      justUnlockedStage9 = !wasUnlocked && nowUnlocked;
+      justUnlockedHidden = !wasUnlocked && nowUnlocked;
     }
     saveProgress();
   }
 
   // 隠し解放演出
   const unlockEl = document.getElementById('result-unlock');
-  if (justUnlockedStage9) {
+  if (justUnlockedHidden) {
     unlockEl.hidden = false;
     Audio.sfx('pharaoh-goal');
   } else {
@@ -2435,19 +2447,16 @@ function showResult() {
     ${stage.pharaohs > 0 ? `<div class="row"><span>ファラオ救出</span><span>${world.savedPharaoh} / ${stage.pharaohs}</span></div>` : ''}
   `;
 
-  // 「次へ」ボタンの表示
-  const isLastNormal = State.stageIndex === 7;
-  const isHidden = State.stageIndex === 8;
+  // 「次へ」ボタンの表示 — 次ステージが解放済みのときだけ出す
+  const nextIdx = State.stageIndex + 1;
+  const isHidden = State.stageIndex === 9;
   const nextBtn = document.getElementById('btn-result-next');
   let canGoNext = false;
-  if (world.won) {
-    if (isHidden) canGoNext = false;
-    else if (isLastNormal) canGoNext = (grade === 'S' || grade === 'A');
-    else canGoNext = true;
+  if (world.won && !isHidden && nextIdx < 10) {
+    canGoNext = isStageUnlocked(nextIdx);
   }
   nextBtn.style.display = canGoNext ? '' : 'none';
-  if (isLastNormal) nextBtn.textContent = '✨ 隠しステージへ →';
-  else nextBtn.textContent = '次のステージ →';
+  nextBtn.textContent = (nextIdx === 9) ? '✨ 隠しステージへ →' : '次のステージ →';
 
   modal.hidden = false;
 }
@@ -2766,7 +2775,7 @@ function setupEventHandlers() {
   document.getElementById('btn-result-next').onclick = () => {
     Audio.sfx('click');
     document.getElementById('result-modal').hidden = true;
-    State.stageIndex = Math.min(State.stageIndex + 1, 8);
+    State.stageIndex = Math.min(State.stageIndex + 1, 9);
     startGame();
   };
   document.getElementById('btn-result-menu').onclick = () => {
@@ -2787,22 +2796,14 @@ function returnToTitle() {
 }
 
 // ステージ開始前のプレビュー段階に入る — マップ全体を見せて配置・観察を許可
+// 各種ステータス(出現/救出/死亡/制限時間/ファラオ)は HUD に常時表示されているのでパネル側からは省略
 function enterPreview() {
   State.previewMode = true;
-  const stage = world.stage;
-  document.getElementById('preview-stage-name').textContent = stage.name;
   // チュートリアル中(stage 1 初回)は preview を出さない
   if (State.stageIndex === 0 && !State.progress.tutorialShown) {
     State.previewMode = false;
     return;
   }
-  document.getElementById('preview-stage-info').innerHTML = `
-    <div class="row"><span>🚶 出現数</span><span>${stage.total}</span></div>
-    <div class="row"><span>🏆 必要救出</span><span>${stage.need}</span></div>
-    <div class="row"><span>💀 許容死亡</span><span>${stage.fail}</span></div>
-    <div class="row"><span>⏱ 制限時間</span><span>${stage.timeLimit}秒</span></div>
-    ${stage.pharaohs > 0 ? `<div class="row"><span>👑 ファラオ救出</span><span>${stage.pharaohs} (全員必須)</span></div>` : ''}
-  `;
   document.getElementById('preview-banner').hidden = false;
 }
 
