@@ -613,13 +613,13 @@
         <td align="center"><img src="medjed_E_mummy.svg" width="60" alt="ミイラ" style="vertical-align:middle"></td>
         <td align="center"><b>ミイラ</b></td>
         <td>包帯姿に赤い目。歩行はやや遅め (0.85倍)。<br>
-            <b>呪いでまれに左に方向転換する</b>。隠しステージ10でのみ登場。</td>
+            <b>呪いでまれに左に方向転換する</b>。隠しステージ11でのみ登場。</td>
       </tr>
       <tr>
         <td align="center"><img src="medjed_B_pharaoh.svg" width="60" alt="ファラオ" style="vertical-align:middle"></td>
         <td align="center"><b>ファラオ</b></td>
         <td>青いネメス頭巾と金の縞。黄金のハロが目印。<br>
-            <b>隠しステージ10 で終盤に5体出現</b>。
+            <b>隠しステージ11 で終盤に5体出現</b>。
             <b>全員を救出しなければ勝利できない</b>(1体でも死ぬと即敗北)。</td>
       </tr>
       <tr>
@@ -679,7 +679,7 @@
       <li><b>規定数のメジェド救出</b>で勝利、未達 or 許容超死亡で敗北</li>
       <li>規定数を満たした時点で打ち切るには ⏸ ポーズ →「🏁 いまの結果で評価」</li>
       <li><b>制限時間</b>内に終わらなければタイムアップ(時点で評価)</li>
-      <li>ステージ8を S または A 評価でクリアすると <b>隠しステージ10</b> 解放</li>
+      <li>ステージ8を S または A 評価でクリアすると <b>隠しステージ11</b> 解放</li>
     </ul>
 
     <hr width="80%">
@@ -748,7 +748,7 @@
   <div class="modal-box" id="result-box">
     <h2 id="result-title">クリア!</h2>
     <div class="grade" id="result-grade">A</div>
-    <div class="unlock-banner" id="result-unlock" hidden>✨ 隠しステージ10 解放! ✨</div>
+    <div class="unlock-banner" id="result-unlock" hidden>✨ 隠しステージ11 解放! ✨</div>
     <div class="stats" id="result-stats"></div>
     <div class="actions">
       <button id="btn-result-retry">もう一度</button>
@@ -797,7 +797,7 @@
 // ============================================================================
 // メジェドを救え! — main script
 // ============================================================================
-const VERSION = 'v1.4.0';
+const VERSION = 'v1.5.0';
 
 // ----------------------------------------------------------------------------
 // 定数
@@ -986,8 +986,8 @@ function gradeRank(g) {
 function isStageUnlocked(stageIdx) {
   // 0-based
   if (stageIdx === 0) return true;
-  if (stageIdx === 9) {
-    // hidden stage (Stage 10): Stage 8 (index 7) を S/A クリア
+  if (stageIdx === 10) {
+    // hidden stage (Stage 11): Stage 8 (index 7) を S/A クリア
     const g = State.progress.stage8Grade;
     return g === 'S' || g === 'A';
   }
@@ -1298,7 +1298,39 @@ STAGES.push((() => {
   };
 })());
 
-// === Stage 10 (隠し) — ファラオを救え ===
+// === Stage 10 — 時の試練 (難・縦方向 + 子供と神官のみ) ===
+STAGES.push((() => {
+  const tiles = makeGrid(T.EMPTY);
+  // 段1: row 2 cols 0-4 (短い上段)
+  for (let c = 0; c <= 4; c++)  { tiles[2][c]  = T.SAND;  tiles[3][c]  = T.GROUND; }
+  // 段2: row 5 cols 5-19 (棘 row 4 cols 12-13 を BLOCK+BRIDGE で越える)
+  for (let c = 5; c <= 19; c++) { tiles[5][c]  = T.SAND;  tiles[6][c]  = T.GROUND; }
+  tiles[4][12] = T.SPIKE; tiles[4][13] = T.SPIKE;
+  // 段3: row 8 cols 18-29
+  for (let c = 18; c <= 29; c++){ tiles[8][c]  = T.SAND;  tiles[9][c]  = T.GROUND; }
+  // 段4: row 11 cols 0-21 (棘 row 10 cols 9-10 を ARROW_R で左→右に転換して回避)
+  for (let c = 0; c <= 21; c++) { tiles[11][c] = T.SAND;  tiles[12][c] = T.GROUND; }
+  tiles[10][9] = T.SPIKE; tiles[10][10] = T.SPIKE;
+  // 底: row 14 cols 0-29
+  for (let c = 0; c < COLS; c++) {
+    tiles[14][c] = T.SAND;
+    for (let r = 15; r < ROWS; r++) tiles[r][c] = T.GROUND;
+  }
+  return {
+    name: 'Stage 10: 時の試練',
+    tiles,
+    spawn: { col: 1, row: 1 },
+    goal:  { col: 28, row: 13 },
+    total: 60, need: 40, fail: 8,
+    speed: 2.0, spawnInterval: 0.4, timeLimit: 90,
+    budget: { BLOCK: 2, RAMP: 1, BRIDGE: 1, LADDER: 0, ARROW_R: 2, ARROW_L: 0, PARACHUTE: 1 },
+    medjedTypes: ['F', 'D'],   // 子供 (×1.4) と神官 (×0.7) のみ — 速度差で時間圧
+    pharaohs: 0,
+    bg: 'desert',
+  };
+})());
+
+// === Stage 11 (隠し) — ファラオを救え ===
 STAGES.push((() => {
   const tiles = makeGrid(T.EMPTY);
   laySimpleGround(tiles, 13, T.STONE, [[6, 8], [14, 16], [22, 24]]);
@@ -1308,7 +1340,7 @@ STAGES.push((() => {
   // 溶岩
   for (let c = 14; c <= 16; c++) tiles[16][c] = T.LAVA;
   return {
-    name: 'Stage 10: ファラオの呪い',
+    name: 'Stage 11: ファラオの呪い',
     tiles,
     spawn: { col: 1, row: 12 },
     goal:  { col: 28, row: 12 },
@@ -1378,11 +1410,11 @@ function buildTitleScreen() {
 function buildStageSelect() {
   const grid = document.getElementById('stage-grid');
   grid.innerHTML = '';
-  for (let i = 0; i < 10; i++) {
+  for (let i = 0; i < 11; i++) {
     const btn = document.createElement('button');
     const unlocked = isStageUnlocked(i);
     const grade = State.progress.cleared[i];
-    const isHidden = (i === 9);
+    const isHidden = (i === 10);
     if (!unlocked) {
       btn.className = 'locked';
       btn.disabled = true;
@@ -1392,7 +1424,7 @@ function buildStageSelect() {
       const numEl = document.createElement('div');
       numEl.className = 'stage-num';
       numEl.innerHTML = isHidden
-        ? 'Stage 10<br><span style="font-size:9px">隠し</span>'
+        ? 'Stage 11<br><span style="font-size:9px">隠し</span>'
         : `Stage ${i + 1}`;
       btn.appendChild(numEl);
 
@@ -2449,14 +2481,14 @@ function showResult() {
 
   // 「次へ」ボタンの表示 — 次ステージが解放済みのときだけ出す
   const nextIdx = State.stageIndex + 1;
-  const isHidden = State.stageIndex === 9;
+  const isHidden = State.stageIndex === 10;
   const nextBtn = document.getElementById('btn-result-next');
   let canGoNext = false;
-  if (world.won && !isHidden && nextIdx < 10) {
+  if (world.won && !isHidden && nextIdx < 11) {
     canGoNext = isStageUnlocked(nextIdx);
   }
   nextBtn.style.display = canGoNext ? '' : 'none';
-  nextBtn.textContent = (nextIdx === 9) ? '✨ 隠しステージへ →' : '次のステージ →';
+  nextBtn.textContent = (nextIdx === 10) ? '✨ 隠しステージへ →' : '次のステージ →';
 
   modal.hidden = false;
 }
@@ -2775,7 +2807,7 @@ function setupEventHandlers() {
   document.getElementById('btn-result-next').onclick = () => {
     Audio.sfx('click');
     document.getElementById('result-modal').hidden = true;
-    State.stageIndex = Math.min(State.stageIndex + 1, 9);
+    State.stageIndex = Math.min(State.stageIndex + 1, 10);
     startGame();
   };
   document.getElementById('btn-result-menu').onclick = () => {
