@@ -261,13 +261,10 @@
   .help-page h3 { font-size: 20px; font-weight: normal; margin: 18px 0 6px; }
   .help-page p { margin: 8px 0; }
   .help-page ul { margin: 6px 0 6px 24px; padding: 0; }
-  .help-page table {
-    border-collapse: collapse;
-    background: #ffffff;
-  }
-  .help-page table td, .help-page table th {
-    color: #222;
-  }
+  /* テーブルは <table border="1" cellpadding="8" align="center" width="90%"> をそのまま使い、
+     CSS で枠を上書きしない (HTML4風レトロスタイル レシピ準拠) */
+  .help-page table { background: #ffffff; }
+  .help-page table td, .help-page table th { color: #222; }
   .help-page a:link    { color: #0033cc; }
   .help-page a:visited { color: #660099; }
   .help-page hr { border: 0; border-top: 1px solid #222; }
@@ -797,7 +794,7 @@
 // ============================================================================
 // メジェドを救え! — main script
 // ============================================================================
-const VERSION = 'v1.5.0';
+const VERSION = 'v1.5.1';
 
 // ----------------------------------------------------------------------------
 // 定数
