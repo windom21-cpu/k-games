@@ -59,10 +59,21 @@
     position: absolute; inset: 0;
     display: none;
     flex-direction: column;
-    align-items: center; justify-content: center;
-    padding: 16px;
+    align-items: center;
+    /* "safe center": centers when it fits, falls back to start when content
+       is taller than viewport so it can scroll naturally */
+    justify-content: safe center;
+    padding: 16px 16px 32px;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
   }
   .screen.active { display: flex; }
+  /* The game screen hosts a canvas — never scroll, never grow */
+  #screen-game {
+    padding: 0;
+    overflow: hidden;
+    justify-content: center;
+  }
   .panel {
     background: var(--paper);
     border: 4px solid var(--ink);
@@ -242,11 +253,15 @@
     position: absolute; inset: 0;
     background: rgba(0,0,0,0.45);
     display: none;
-    align-items: center; justify-content: center;
+    align-items: center;
+    justify-content: safe center;  /* see .screen rationale */
     z-index: 100;
-    padding: 16px;
+    padding: 16px 16px 32px;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
   }
   .modal-back.show { display: flex; }
+  .modal { flex-shrink: 0; }
   .modal {
     background: var(--paper);
     border: 4px solid var(--ink);
@@ -354,7 +369,7 @@
       <button class="cute small" id="btn-howto">📖 そうさせつめい</button>
       <button class="cute small" id="btn-hi">🏆 ハイスコア</button>
     </div>
-    <div class="version">v1.0.0</div>
+    <div class="version">v1.0.1</div>
     <div class="portrait-hint">よこむきが おすすめ</div>
   </div>
 
@@ -494,7 +509,7 @@
 // =====================================================
 // CONSTANTS
 // =====================================================
-const VERSION = '1.0.0';
+const VERSION = '1.0.1';
 const CANVAS_W = 960;
 const CANVAS_H = 540;
 const STORAGE_KEY = 'kgames-yuto-garden';
