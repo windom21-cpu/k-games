@@ -1,0 +1,2382 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+<title>ゆうとの花だん — K-games</title>
+<meta name="description" content="ちびっこのゆうとと畑で花を育てて、ママにプレゼントしよう。タイミングよくお世話して、スコアを競う絵本風育成ゲーム。">
+<link rel="canonical" href="https://windom21-cpu.github.io/k-games/yuto-garden/">
+<meta property="og:type" content="website">
+<meta property="og:title" content="ゆうとの花だん | K-games">
+<meta property="og:description" content="ちびっこのゆうとと畑で花を育てて、ママにプレゼントしよう。タイミングよくお世話して、スコアを競う絵本風育成ゲーム。">
+<meta property="og:url" content="https://windom21-cpu.github.io/k-games/yuto-garden/">
+<meta property="og:site_name" content="K-games">
+<meta name="twitter:card" content="summary">
+<meta property="og:image" content="https://windom21-cpu.github.io/k-games/icon-512.png">
+<meta property="og:image:width" content="512">
+<meta property="og:image:height" content="512">
+<link rel="icon" type="image/svg+xml" href="/k-games/favicon.svg">
+<link rel="icon" type="image/png" sizes="32x32" href="/k-games/favicon-32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="/k-games/favicon-16.png">
+<link rel="apple-touch-icon" href="/k-games/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-title" content="K-games">
+<style>
+  :root {
+    --sky-1: #cfe9f7;
+    --sky-2: #f7e8c4;
+    --grass: #b9dc7e;
+    --grass-d: #7fb155;
+    --soil: #a06b3f;
+    --soil-d: #6c4220;
+    --ink: #3d2a18;
+    --pink: #ff8eb0;
+    --pink-d: #d96189;
+    --yellow: #ffd84d;
+    --green: #6ec06e;
+    --paper: #fff8e7;
+    --paper-d: #e7d8a6;
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0; padding: 0;
+    width: 100%; height: 100%;
+    background: linear-gradient(180deg, #cfe9f7 0%, #f7e8c4 65%, #c5e09b 100%);
+    color: var(--ink);
+    font-family: "Comic Sans MS", "Chalkboard SE", "M PLUS Rounded 1c",
+                 "Hiragino Maru Gothic ProN", "ヒラギノ丸ゴ ProN W4",
+                 "Yu Gothic", "メイリオ", sans-serif;
+    overflow: hidden;
+    user-select: none; -webkit-user-select: none;
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+  }
+  #app {
+    position: fixed; inset: 0;
+    display: flex; align-items: center; justify-content: center;
+  }
+  /* Screens */
+  .screen {
+    position: absolute; inset: 0;
+    display: none;
+    flex-direction: column;
+    align-items: center; justify-content: center;
+    padding: 16px;
+  }
+  .screen.active { display: flex; }
+  .panel {
+    background: var(--paper);
+    border: 4px solid var(--ink);
+    border-radius: 22px;
+    padding: 22px 28px;
+    box-shadow: 0 6px 0 rgba(0,0,0,0.10);
+    max-width: 92vw;
+    text-align: center;
+  }
+  h1.big {
+    font-size: clamp(28px, 6vw, 56px);
+    margin: 0 0 6px;
+    color: var(--pink-d);
+    text-shadow: 2px 2px 0 #fff, 4px 4px 0 rgba(0,0,0,0.12);
+    letter-spacing: 0.05em;
+  }
+  h1.big .heart { color: var(--pink); font-size: 0.8em; }
+  h2.med {
+    font-size: clamp(20px, 3.6vw, 32px);
+    margin: 0 0 14px;
+    color: var(--ink);
+  }
+  p.lead { font-size: clamp(13px, 2vw, 18px); margin: 6px 0 14px; }
+  .btn-row { display: flex; flex-direction: column; gap: 10px; align-items: center; margin-top: 10px; }
+  .btn-row.h { flex-direction: row; flex-wrap: wrap; justify-content: center; }
+  button.cute, .cute-link {
+    appearance: none;
+    background: linear-gradient(180deg, #fff 0%, #ffe6c8 100%);
+    border: 3px solid var(--ink);
+    border-radius: 999px;
+    padding: 11px 26px;
+    font: inherit;
+    font-size: clamp(15px, 2.4vw, 21px);
+    font-weight: bold;
+    color: var(--ink);
+    cursor: pointer;
+    box-shadow: 0 4px 0 rgba(0,0,0,0.18);
+    text-decoration: none;
+    transition: transform 0.05s, box-shadow 0.05s;
+    min-width: 220px;
+    line-height: 1.2;
+  }
+  button.cute:hover, .cute-link:hover { background: linear-gradient(180deg, #fff 0%, #ffd6a8 100%); }
+  button.cute:active, .cute-link:active { transform: translateY(2px); box-shadow: 0 2px 0 rgba(0,0,0,0.18); }
+  button.cute:disabled { opacity: 0.45; cursor: not-allowed; }
+  button.cute.pri { background: linear-gradient(180deg, #ffd2dc 0%, #ff8eb0 100%); color: #5a1532; }
+  button.cute.pri:hover { background: linear-gradient(180deg, #ffc1cf 0%, #ff7da3 100%); }
+  button.cute.diff-easy   { background: linear-gradient(180deg, #f1ffd9 0%, #b9e25e 100%); }
+  button.cute.diff-normal { background: linear-gradient(180deg, #d8efff 0%, #6cb6e8 100%); }
+  button.cute.diff-hard   { background: linear-gradient(180deg, #ffe2c1 0%, #f5a050 100%); }
+  button.cute.diff-oni    { background: linear-gradient(180deg, #ffd0d6 0%, #d8455c 100%); color: #420; }
+  button.cute.small { padding: 7px 16px; font-size: clamp(12px, 1.8vw, 16px); min-width: 110px; }
+  .top-link {
+    position: absolute; top: 12px; left: 12px;
+    font-size: 13px; color: var(--ink);
+    background: rgba(255,255,255,0.85);
+    border: 2px solid var(--ink);
+    border-radius: 999px;
+    padding: 4px 12px;
+    text-decoration: none;
+  }
+  .mute-toggle {
+    position: absolute; top: 12px; right: 12px;
+    background: rgba(255,255,255,0.85);
+    border: 2px solid var(--ink);
+    border-radius: 50%;
+    width: 40px; height: 40px;
+    font-size: 18px; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .version {
+    position: absolute; bottom: 4px; right: 8px;
+    font-size: 11px; color: rgba(0,0,0,0.45);
+  }
+
+  /* Title screen */
+  #screen-title .title-art {
+    width: clamp(220px, 60vw, 360px);
+    height: clamp(140px, 38vw, 200px);
+    margin-bottom: 8px;
+  }
+
+  /* Difficulty */
+  .diff-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(180px, 220px));
+    gap: 12px; margin: 6px 0 12px;
+  }
+  .diff-cell { display: flex; flex-direction: column; gap: 2px; }
+  .diff-cell .hint { font-size: 12px; color: rgba(0,0,0,0.6); }
+
+  /* Hiscores */
+  .hi-tabs { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; margin-bottom: 10px; }
+  .hi-tab {
+    border: 2px solid var(--ink);
+    border-radius: 999px;
+    background: #fff;
+    padding: 5px 14px;
+    font: inherit; font-size: 14px; cursor: pointer;
+  }
+  .hi-tab.active { background: var(--pink); color: #fff; }
+  .hi-list { list-style: none; padding: 0; margin: 0 auto; max-width: 360px; }
+  .hi-list li {
+    display: grid;
+    grid-template-columns: 32px 1fr auto auto;
+    align-items: center;
+    padding: 6px 4px;
+    border-bottom: 1px dashed rgba(0,0,0,0.3);
+    font-size: 15px;
+    gap: 6px;
+  }
+  .hi-list li.empty { color: rgba(0,0,0,0.4); display: block; text-align: center; }
+  .hi-list .rank { font-weight: bold; color: var(--pink-d); }
+  .hi-list .pts  { font-weight: bold; }
+  .hi-list .meta { font-size: 11px; color: rgba(0,0,0,0.55); }
+
+  /* Howto */
+  .howto-body { text-align: left; max-width: 540px; line-height: 1.7; font-size: clamp(13px, 2vw, 16px); }
+  .howto-body h3 { color: var(--pink-d); margin: 14px 0 4px; font-size: 18px; }
+  .howto-body ul { margin: 4px 0; padding-left: 22px; }
+  .howto-body li { margin: 2px 0; }
+
+  /* In-game */
+  #screen-game { padding: 0; }
+  #canvas-wrap {
+    position: relative;
+    width: 100%; height: 100%;
+    max-width: 100vw; max-height: 100vh;
+    display: flex; align-items: center; justify-content: center;
+    background: transparent;
+  }
+  canvas {
+    display: block;
+    max-width: 100%; max-height: 100%;
+    touch-action: none;
+    background: transparent;
+  }
+  .hud {
+    position: absolute; left: 0; right: 0; top: 0;
+    padding: 6px 10px;
+    display: flex; align-items: center; gap: 10px;
+    flex-wrap: wrap;
+    pointer-events: none;
+    z-index: 5;
+  }
+  .hud > * { pointer-events: auto; }
+  .hud-pill {
+    background: rgba(255,255,255,0.92);
+    border: 2px solid var(--ink);
+    border-radius: 999px;
+    padding: 4px 12px;
+    font-size: clamp(12px, 1.8vw, 16px);
+    font-weight: bold;
+  }
+  .hud-pill.score { color: var(--pink-d); }
+  .hud-pill.hearts { letter-spacing: 0.1em; }
+  .hud-pill.btn { cursor: pointer; }
+  .seed-banner {
+    position: absolute; top: 50px; left: 50%; transform: translateX(-50%);
+    background: rgba(255,255,255,0.95);
+    border: 3px solid var(--ink);
+    border-radius: 16px;
+    padding: 8px 16px;
+    font-weight: bold;
+    font-size: clamp(13px, 2vw, 17px);
+    text-align: center;
+    z-index: 4;
+  }
+  .seed-bottom {
+    position: absolute; bottom: 16px; left: 0; right: 0;
+    display: flex; justify-content: center; gap: 10px;
+    z-index: 4;
+  }
+
+  /* Modal */
+  .modal-back {
+    position: absolute; inset: 0;
+    background: rgba(0,0,0,0.45);
+    display: none;
+    align-items: center; justify-content: center;
+    z-index: 100;
+    padding: 16px;
+  }
+  .modal-back.show { display: flex; }
+  .modal {
+    background: var(--paper);
+    border: 4px solid var(--ink);
+    border-radius: 22px;
+    padding: 22px 24px;
+    max-width: 420px; width: 100%;
+    text-align: center;
+    box-shadow: 0 8px 0 rgba(0,0,0,0.18);
+  }
+  .modal h3 { margin: 0 0 8px; color: var(--pink-d); font-size: 20px; }
+  .modal p { margin: 6px 0; line-height: 1.6; font-size: 15px; }
+
+  /* Ending overlay */
+  #ending-overlay {
+    position: absolute; inset: 0;
+    z-index: 6;
+    pointer-events: none;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: flex-end;
+    padding-bottom: 14px;
+  }
+  #ending-overlay.show { pointer-events: auto; }
+  .ending-text {
+    background: rgba(255,255,255,0.95);
+    border: 3px solid var(--ink);
+    border-radius: 16px;
+    padding: 8px 18px;
+    margin-bottom: 8px;
+    font-weight: bold;
+    font-size: clamp(15px, 2.6vw, 22px);
+    color: var(--pink-d);
+    opacity: 0;
+    transition: opacity 0.6s;
+  }
+  .ending-text.show { opacity: 1; }
+  .score-card {
+    background: var(--paper);
+    border: 4px solid var(--ink);
+    border-radius: 22px;
+    padding: 16px 22px;
+    text-align: center;
+    box-shadow: 0 6px 0 rgba(0,0,0,0.18);
+    transform: translateY(40px);
+    opacity: 0;
+    transition: transform 0.5s cubic-bezier(.18,1.4,.7,1.1), opacity 0.5s;
+    min-width: 280px;
+  }
+  .score-card.show { transform: translateY(0); opacity: 1; }
+  .score-card .stitle { font-size: 14px; color: rgba(0,0,0,0.6); }
+  .score-card .sval {
+    font-size: clamp(28px, 7vw, 48px);
+    font-weight: bold; color: var(--pink-d);
+    text-shadow: 2px 2px 0 #fff, 3px 3px 0 rgba(0,0,0,0.15);
+    line-height: 1.1;
+  }
+  .score-card .sub { font-size: 13px; color: rgba(0,0,0,0.7); margin-top: 4px; }
+  .hi-badge {
+    display: inline-block;
+    background: var(--yellow);
+    border: 2px solid var(--ink);
+    border-radius: 999px;
+    padding: 3px 12px;
+    font-size: 13px;
+    font-weight: bold;
+    margin: 6px 0;
+    animation: bounce 0.5s infinite alternate;
+  }
+  @keyframes bounce {
+    from { transform: translateY(0); }
+    to   { transform: translateY(-3px); }
+  }
+  .ending-buttons { margin-top: 10px; display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; }
+
+  /* Pause modal buttons */
+  .pause-btns { display: flex; flex-direction: column; gap: 8px; align-items: center; margin-top: 8px; }
+
+  /* Plot tap flash (canvas takes care of it really, but a CSS hint also) */
+
+  /* Portrait orientation hint */
+  @media (orientation: portrait) {
+    .portrait-hint { display: block; }
+  }
+  .portrait-hint {
+    display: none;
+    position: absolute; bottom: 6px; left: 6px;
+    font-size: 11px; color: rgba(0,0,0,0.55);
+    background: rgba(255,255,255,0.7);
+    padding: 2px 8px; border-radius: 8px;
+  }
+
+</style>
+</head>
+<body>
+<div id="app">
+
+  <!-- TITLE -->
+  <div class="screen active" id="screen-title">
+    <a class="top-link" href="../index.html">← K-games一覧へ</a>
+    <button class="mute-toggle" id="mute-title" aria-label="ミュート">🔊</button>
+    <canvas class="title-art" id="title-art" width="720" height="400"></canvas>
+    <h1 class="big">ゆうとの<span class="heart">♥</span>花だん</h1>
+    <p class="lead">おはなを そだてて ママに プレゼント！</p>
+    <div class="btn-row">
+      <button class="cute pri" id="btn-play">▶ あそぶ</button>
+      <button class="cute small" id="btn-howto">📖 そうさせつめい</button>
+      <button class="cute small" id="btn-hi">🏆 ハイスコア</button>
+    </div>
+    <div class="version">v1.0.0</div>
+    <div class="portrait-hint">よこむきが おすすめ</div>
+  </div>
+
+  <!-- DIFFICULTY -->
+  <div class="screen" id="screen-difficulty">
+    <a class="top-link" href="#" id="diff-back">← もどる</a>
+    <div class="panel">
+      <h2 class="med">むずかしさを えらぼう</h2>
+      <div class="diff-grid">
+        <button class="cute diff-easy" data-diff="easy">
+          <div class="diff-cell"><div>やさしい</div><div class="hint">4ます・ゆっくり</div></div>
+        </button>
+        <button class="cute diff-normal" data-diff="normal">
+          <div class="diff-cell"><div>ふつう</div><div class="hint">8ます・ふつう</div></div>
+        </button>
+        <button class="cute diff-hard" data-diff="hard">
+          <div class="diff-cell"><div>むつかしい</div><div class="hint">16ます・はやい</div></div>
+        </button>
+        <button class="cute diff-oni" data-diff="oni">
+          <div class="diff-cell"><div>おに</div><div class="hint">32ます・うごく☆</div></div>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- HOWTO -->
+  <div class="screen" id="screen-howto">
+    <a class="top-link" href="#" id="howto-back">← もどる</a>
+    <div class="panel" style="max-width: 600px;">
+      <h2 class="med">そうさ せつめい</h2>
+      <div class="howto-body">
+        <h3>① たねを まこう</h3>
+        <ul>
+          <li>はたけの まっしろい ますを タップ すると たねが おちます。</li>
+          <li>もういちど タップ すると たねを とりのぞけます。</li>
+          <li>ぜんぶ うめたら「▶ せいちょうスタート」を おしてね。</li>
+        </ul>
+        <h3>② おせわで そだてよう</h3>
+        <ul>
+          <li>それぞれの たねの したで <b>ピンクの ゲージ</b> が ながれていきます。</li>
+          <li>ますを タップ すると おせわ できます。</li>
+          <li><b>きいろの おび</b> で タップ すると <b>good (+20てん)</b>、まんなかの <b>あかい おび</b> で タップ すると <b>perfect (+50てん)</b>! さく おはなが ふえます。</li>
+          <li>ゲージが はじまで いってしまうと だめ (-10てん)。</li>
+          <li>おはなに よって 2かい〜4かい おせわ すると さきます。</li>
+        </ul>
+        <h3>③ おはなを つもう</h3>
+        <ul>
+          <li>さいた おはなには <b>みどりの ゲージ</b> が でます。</li>
+          <li>ゲージが きえる まえに タップ すれば つむことが できます。</li>
+          <li>とり おくれると かれて しまう ので きをつけて (-20てん・ハート -1)。</li>
+        </ul>
+        <h3>④ おはなたばを ママへ</h3>
+        <ul>
+          <li>ぜんぶの おはなが すんだら エンディング!</li>
+          <li>つんだ おはなで おはなたばを つくって ママに プレゼント。</li>
+          <li>ハイスコアは むずかしさ ごとに とっぷ5まで のこります。</li>
+        </ul>
+      </div>
+      <button class="cute" id="howto-back-btn" style="margin-top: 12px;">もどる</button>
+    </div>
+  </div>
+
+  <!-- HISCORES -->
+  <div class="screen" id="screen-hiscores">
+    <a class="top-link" href="#" id="hi-back">← もどる</a>
+    <div class="panel" style="min-width: 320px;">
+      <h2 class="med">🏆 ハイスコア</h2>
+      <div class="hi-tabs" id="hi-tabs"></div>
+      <ul class="hi-list" id="hi-list"></ul>
+      <button class="cute" id="hi-back-btn" style="margin-top: 10px;">もどる</button>
+    </div>
+  </div>
+
+  <!-- GAME -->
+  <div class="screen" id="screen-game">
+    <div id="canvas-wrap">
+      <canvas id="canvas" width="960" height="540"></canvas>
+      <div class="hud" id="hud-game" style="display:none;">
+        <div class="hud-pill score">スコア <span id="hud-score">0</span></div>
+        <div class="hud-pill hearts" id="hud-hearts">♥♥♥</div>
+        <div class="hud-pill" id="hud-progress">0 / 0</div>
+        <div class="hud-pill" style="flex:1; text-align:center;" id="hud-diff">ふつう</div>
+        <div class="hud-pill btn" id="hud-mute">🔊</div>
+        <div class="hud-pill btn" id="hud-pause">⏸</div>
+      </div>
+      <div class="seed-banner" id="seed-banner" style="display:none;">
+        まずは たねを まきましょう (<span id="seed-count">0</span>/<span id="seed-total">0</span>)
+        <div style="font-size: 11px; color: rgba(0,0,0,0.6); margin-top: 2px; font-weight: normal;">
+          1ばしょ いじょう うめたら ▶スタート OK
+        </div>
+      </div>
+      <div class="seed-bottom" id="seed-bottom" style="display:none;">
+        <button class="cute small" id="seed-back">もどる</button>
+        <button class="cute pri" id="seed-start" disabled>▶ せいちょうスタート</button>
+      </div>
+      <div class="seed-banner" id="practice-banner" style="display:none;">
+        ★ れんしゅう (<span id="practice-counter">0 / 3</span>)
+        <div style="font-size: 11px; color: rgba(0,0,0,0.6); margin-top: 2px; font-weight: normal;">
+          タイミング よく タップしよう
+        </div>
+      </div>
+      <div class="seed-bottom" id="practice-bottom" style="display:none;">
+        <button class="cute small" id="practice-skip">スキップして ほんばんへ</button>
+      </div>
+      <!-- Ending overlay -->
+      <div id="ending-overlay">
+        <div class="ending-text" id="ending-text">おうちに かえって…</div>
+        <div class="score-card" id="score-card" style="display:none;">
+          <div class="stitle">きょうの スコア</div>
+          <div class="sval" id="score-card-val">0</div>
+          <div id="score-card-flowers" class="sub"></div>
+          <div id="score-card-hi" style="display:none;"></div>
+          <div class="ending-buttons">
+            <button class="cute pri" id="end-again">もういちど</button>
+            <button class="cute small" id="end-diff">むずかしさをかえる</button>
+            <button class="cute small" id="end-title">タイトルへ</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL -->
+  <div class="modal-back" id="modal-back">
+    <div class="modal" id="modal-body">
+      <h3 id="modal-title"></h3>
+      <p id="modal-text"></p>
+      <div class="pause-btns" id="modal-btns"></div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+'use strict';
+
+// =====================================================
+// CONSTANTS
+// =====================================================
+const VERSION = '1.0.0';
+const CANVAS_W = 960;
+const CANVAS_H = 540;
+const STORAGE_KEY = 'kgames-yuto-garden';
+
+const DIFFICULTIES = {
+  easy:   { key:'easy',  label:'やさしい',  cols:2, rows:2, plots:4,  speed:[0.10,0.16], sweet:0.34, perfect:0.12, moves:false, color:'#7fb155', moveSpeed:0 },
+  normal: { key:'normal',label:'ふつう',    cols:4, rows:2, plots:8,  speed:[0.16,0.25], sweet:0.22, perfect:0.07, moves:false, color:'#5ab2db', moveSpeed:0 },
+  hard:   { key:'hard',  label:'むつかしい',cols:4, rows:4, plots:16, speed:[0.25,0.38], sweet:0.14, perfect:0.045,moves:false, color:'#e58a3b', moveSpeed:0 },
+  oni:    { key:'oni',   label:'おに',      cols:8, rows:4, plots:32, speed:[0.38,0.55], sweet:0.11, perfect:0.035,moves:true,  color:'#d8455c', moveSpeed:0.28 },
+};
+
+const FLOWERS = [
+  { id:'tampopo',  name:'タンポポ',     primary:'#f9c80e', secondary:'#fff5b8', dark:'#b78c00', cycles:2, baseScore:30 },
+  { id:'asagao',   name:'あさがお',     primary:'#7367f0', secondary:'#c0b9ff', dark:'#3f348f', cycles:2, baseScore:30 },
+  { id:'tulip',    name:'チューリップ', primary:'#ff5470', secondary:'#ffb3c1', dark:'#a8233f', cycles:3, baseScore:50 },
+  { id:'cosmos',   name:'コスモス',     primary:'#ffa3c5', secondary:'#ffd6e6', dark:'#b76089', cycles:3, baseScore:50 },
+  { id:'sunflower',name:'ひまわり',     primary:'#ff9f1c', secondary:'#fff1c4', dark:'#a8580a', cycles:4, baseScore:80 },
+  { id:'rose',     name:'バラ',         primary:'#d62246', secondary:'#ff8b8b', dark:'#7b1024', cycles:4, baseScore:80 },
+];
+
+const PICK_GAUGE_TIME = 4.5; // seconds for picking gauge to fill
+
+// =====================================================
+// STATE
+// =====================================================
+const State = {
+  screen: 'title',
+  difficulty: null,        // DIFFICULTIES key
+  diff: null,              // DIFFICULTIES[key]
+  plots: [],
+  score: 0,
+  hearts: 3,
+  pickedFlowers: [],       // {flower, count, qualities}
+  totalPlots: 0,
+  resolvedPlots: 0,
+  startTime: 0,
+  paused: false,
+  // saved
+  highScores: { easy: [], normal: [], hard: [], oni: [] },
+  muted: false,
+  tutorialShown: false,
+  // phase within 'game' screen: 'seeding' | 'playing' | 'practice'
+  gamePhase: null,
+  // practice mode state
+  practice: { round: 0, total: 3, results: [], feedbackT: 0, feedbackText: '', feedbackColor: '#000', cooldown: 0 },
+  _savedPlots: null,
+  // ending
+  endingType: null,        // 'happy' | 'gameover'
+  endingT: 0,
+  endingPhase: 0,
+  isNewHi: false,
+  hiTabActive: 'normal',
+};
+
+// =====================================================
+// DOM HELPERS
+// =====================================================
+const $  = (sel) => document.querySelector(sel);
+const $$ = (sel) => document.querySelectorAll(sel);
+let lastT = 0;
+
+// =====================================================
+// SAVE / LOAD
+// =====================================================
+function loadSave() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return;
+    const data = JSON.parse(raw);
+    if (data.highScores) State.highScores = Object.assign({easy:[],normal:[],hard:[],oni:[]}, data.highScores);
+    if (typeof data.muted === 'boolean') State.muted = data.muted;
+    if (typeof data.tutorialShown === 'boolean') State.tutorialShown = data.tutorialShown;
+  } catch (e) {}
+}
+function saveAll() {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({
+      highScores: State.highScores,
+      muted: State.muted,
+      tutorialShown: State.tutorialShown,
+    }));
+  } catch (e) {}
+}
+
+// =====================================================
+// AUDIO (Web Audio oscillators)
+// =====================================================
+const Audio = {
+  ctx: null,
+  ensure() {
+    if (!this.ctx) {
+      try { this.ctx = new (window.AudioContext || window.webkitAudioContext)(); }
+      catch (e) { return null; }
+    }
+    if (this.ctx.state === 'suspended') this.ctx.resume();
+    return this.ctx;
+  },
+};
+function tone(freq, dur, type='sine', vol=0.13, attack=0.01) {
+  if (State.muted) return;
+  const ac = Audio.ensure(); if (!ac) return;
+  const t0 = ac.currentTime;
+  const o = ac.createOscillator(), g = ac.createGain();
+  o.connect(g).connect(ac.destination);
+  o.type = type; o.frequency.value = freq;
+  g.gain.setValueAtTime(0, t0);
+  g.gain.linearRampToValueAtTime(vol, t0 + attack);
+  g.gain.exponentialRampToValueAtTime(0.001, t0 + dur);
+  o.start(t0); o.stop(t0 + dur + 0.02);
+}
+function sweep(f1, f2, dur, type='sine', vol=0.13) {
+  if (State.muted) return;
+  const ac = Audio.ensure(); if (!ac) return;
+  const t0 = ac.currentTime;
+  const o = ac.createOscillator(), g = ac.createGain();
+  o.connect(g).connect(ac.destination);
+  o.type = type;
+  o.frequency.setValueAtTime(f1, t0);
+  o.frequency.linearRampToValueAtTime(f2, t0 + dur);
+  g.gain.setValueAtTime(0, t0);
+  g.gain.linearRampToValueAtTime(vol, t0 + 0.01);
+  g.gain.exponentialRampToValueAtTime(0.001, t0 + dur);
+  o.start(t0); o.stop(t0 + dur + 0.02);
+}
+function chord(freqs, dur, type='sine', vol=0.07) {
+  if (State.muted) return;
+  freqs.forEach(f => tone(f, dur, type, vol));
+}
+function sfx(name) {
+  switch (name) {
+    case 'seed':    tone(220, 0.10, 'sine', 0.12); setTimeout(()=>tone(180, 0.08, 'sine', 0.08), 60); return;
+    case 'care':    sweep(700, 1100, 0.10, 'triangle', 0.10); return;
+    case 'good':    sweep(800, 1200, 0.12, 'sine', 0.16); setTimeout(()=>tone(1500, 0.06, 'sine', 0.10), 60); return;
+    case 'perfect': chord([1046, 1318, 1568], 0.30, 'sine', 0.10); setTimeout(()=>chord([1318, 1568, 1975], 0.30, 'sine', 0.08), 100); return;
+    case 'miss':    sweep(420, 180, 0.20, 'sawtooth', 0.10); return;
+    case 'bloom':   chord([523, 659, 784], 0.32, 'sine', 0.08); setTimeout(()=>chord([659, 784, 988], 0.30, 'sine', 0.08), 130); return;
+    case 'pick':    sweep(900, 1300, 0.06, 'triangle', 0.14); return;
+    case 'wither':  sweep(280, 100, 0.30, 'square', 0.08); return;
+    case 'fanfare': chord([523, 659, 784], 0.20, 'triangle', 0.08); setTimeout(()=>chord([659, 784, 988], 0.20, 'triangle', 0.08), 180); setTimeout(()=>chord([784, 988, 1175], 0.45, 'triangle', 0.10), 360); return;
+    case 'mama':    chord([523, 659, 784], 0.50, 'sine', 0.07); setTimeout(()=>chord([659, 880], 0.45, 'sine', 0.05), 250); return;
+    case 'hiscore':
+      for (let i = 0; i < 6; i++) {
+        setTimeout(() => tone(1400 + Math.random()*1200, 0.10, 'sine', 0.08), i * 80);
+      }
+      return;
+    case 'btn':     tone(900, 0.05, 'square', 0.05); return;
+    case 'sad':     sweep(380, 200, 0.50, 'triangle', 0.08); return;
+  }
+}
+
+// =====================================================
+// PLOT
+// =====================================================
+function makePlot(col, row) {
+  return {
+    col, row,
+    x: 0, y: 0, w: 0, h: 0,
+    flower: null,
+    state: 'empty',           // empty, seeded, growing, bloomed, done
+    doneType: null,           // 'picked' | 'withered' (when done)
+    cycleIdx: 0,
+    flowerCount: 1,
+    cycleQualities: [],
+    gaugePos: 0,
+    gaugeSpeed: 0,
+    sweetCenter: 0.5,
+    sweetVel: 0,
+    isPickGauge: false,
+    flashT: 0,
+    flashColor: null,
+    bloomAnimT: 0,
+    pickAnimT: 0,
+    bobOffset: Math.random() * Math.PI * 2,
+    sparkles: [],
+    fadeT: 0,                 // for done state fade
+  };
+}
+
+function plotSweetBounds(p) {
+  const half = State.diff.sweet / 2;
+  return [p.sweetCenter - half, p.sweetCenter + half];
+}
+function plotPerfectBounds(p) {
+  const half = State.diff.perfect / 2;
+  return [p.sweetCenter - half, p.sweetCenter + half];
+}
+
+function startNewGauge(p) {
+  p.gaugePos = 0;
+  p.isPickGauge = false;
+  const [smin, smax] = State.diff.speed;
+  p.gaugeSpeed = smin + Math.random() * (smax - smin);
+  // Sweet spot center: bias toward middle but within [0.3, 0.85]
+  p.sweetCenter = 0.35 + Math.random() * 0.50;
+  p.sweetVel = State.diff.moves ? (Math.random() < 0.5 ? -1 : 1) * State.diff.moveSpeed : 0;
+}
+
+function startPickGauge(p) {
+  p.isPickGauge = true;
+  p.gaugePos = 0;
+  p.gaugeSpeed = 1.0 / PICK_GAUGE_TIME;
+  // pick gauge has full bar usable
+  p.sweetCenter = -1;
+  p.sweetVel = 0;
+}
+
+function plotOnTap(p) {
+  if (p.state === 'growing') {
+    const pos = p.gaugePos;
+    const [ss, se] = plotSweetBounds(p);
+    const [ps, pe] = plotPerfectBounds(p);
+    let q;
+    if (pos >= ps && pos <= pe) q = 'perfect';
+    else if (pos >= ss && pos <= se) q = 'good';
+    else q = 'normal';
+    p.cycleQualities.push(q);
+    if (q === 'perfect') { addScore(50); p.flowerCount += 2; p.flashColor = '#ff5577'; sfx('perfect'); spawnSparkles(p, 8, '#ffd0e0'); }
+    else if (q === 'good') { addScore(20); p.flowerCount += 1; p.flashColor = '#ffd633'; sfx('good'); spawnSparkles(p, 4, '#fff5b8'); }
+    else { addScore(5); p.flashColor = '#ffffff'; sfx('care'); spawnSparkles(p, 2, '#cef'); }
+    p.flashT = 0.4;
+    p.cycleIdx++;
+    if (p.cycleIdx >= p.flower.cycles) {
+      // Bloom
+      p.state = 'bloomed';
+      p.bloomAnimT = 0;
+      sfx('bloom');
+      spawnSparkles(p, 12, p.flower.primary);
+      // Start pick gauge after a brief bloom delay handled in update via bloomAnimT
+    } else {
+      startNewGauge(p);
+    }
+  } else if (p.state === 'bloomed') {
+    if (p.bloomAnimT < 0.5) return; // need short bloom delay
+    // Pick
+    addScore(p.flower.baseScore * p.flowerCount);
+    State.pickedFlowers.push({ flower: p.flower, count: p.flowerCount, qualities: p.cycleQualities.slice() });
+    p.state = 'done';
+    p.doneType = 'picked';
+    p.flashColor = '#ffeb3b';
+    p.flashT = 0.5;
+    p.pickAnimT = 0;
+    spawnSparkles(p, 14, '#ffd633');
+    sfx('pick');
+    State.resolvedPlots++;
+    checkGameEnd();
+  }
+}
+
+function plotOnExpire(p) {
+  if (p.state === 'growing') {
+    addScore(-10);
+    p.cycleQualities.push('miss');
+    sfx('miss');
+    p.flashColor = '#444';
+    p.flashT = 0.4;
+    p.cycleIdx++;
+    if (p.cycleIdx >= p.flower.cycles) {
+      p.state = 'bloomed';
+      p.bloomAnimT = 0;
+      sfx('bloom');
+      spawnSparkles(p, 8, p.flower.primary);
+    } else {
+      startNewGauge(p);
+    }
+  } else if (p.state === 'bloomed') {
+    addScore(-20);
+    State.hearts--;
+    sfx('wither');
+    p.state = 'done';
+    p.doneType = 'withered';
+    p.flashColor = '#5a3a2a';
+    p.flashT = 0.5;
+    State.resolvedPlots++;
+    if (State.hearts <= 0) {
+      endGame('gameover');
+    } else {
+      checkGameEnd();
+    }
+  }
+}
+
+function spawnSparkles(p, count, color) {
+  const cx = p.x + p.w * 0.5;
+  const cy = p.y + p.h * 0.45;
+  for (let i = 0; i < count; i++) {
+    p.sparkles.push({
+      x: cx, y: cy,
+      vx: (Math.random() - 0.5) * 90,
+      vy: (Math.random() - 0.5) * 60 - 30,
+      life: 0.6 + Math.random() * 0.4,
+      maxLife: 1.0,
+      color,
+    });
+  }
+}
+
+function updatePlot(p, dt) {
+  // Animate
+  p.bobOffset += dt;
+  if (p.flashT > 0) p.flashT -= dt;
+  if (p.bloomAnimT >= 0 && p.state === 'bloomed') {
+    p.bloomAnimT += dt;
+    // After 0.5s bloom delay, start the pick gauge
+    if (p.bloomAnimT >= 0.5 && !p.isPickGauge) {
+      startPickGauge(p);
+    }
+  }
+  if (p.state === 'done') {
+    p.fadeT += dt;
+    if (p.doneType === 'picked') p.pickAnimT += dt;
+  }
+  // Sparkles
+  for (let i = p.sparkles.length - 1; i >= 0; i--) {
+    const s = p.sparkles[i];
+    s.life -= dt;
+    if (s.life <= 0) { p.sparkles.splice(i, 1); continue; }
+    s.x += s.vx * dt;
+    s.y += s.vy * dt;
+    s.vy += 60 * dt;
+  }
+  // Gauge advance
+  if (p.state === 'growing' || (p.state === 'bloomed' && p.isPickGauge)) {
+    p.gaugePos += p.gaugeSpeed * dt;
+    // Sweet spot motion (oni mode only, growing only)
+    if (State.diff.moves && p.state === 'growing') {
+      p.sweetCenter += p.sweetVel * dt;
+      const half = State.diff.sweet / 2;
+      if (p.sweetCenter - half < 0.10) { p.sweetCenter = 0.10 + half; p.sweetVel = Math.abs(p.sweetVel); }
+      if (p.sweetCenter + half > 0.95) { p.sweetCenter = 0.95 - half; p.sweetVel = -Math.abs(p.sweetVel); }
+    }
+    if (p.gaugePos >= 1.0) {
+      if (State.gamePhase === 'practice') {
+        practiceTick(p, 'miss');
+      } else {
+        plotOnExpire(p);
+      }
+    }
+  }
+}
+
+// =====================================================
+// SCORE / END
+// =====================================================
+function addScore(n) {
+  State.score = Math.max(0, State.score + n);
+  $('#hud-score').textContent = State.score;
+}
+function checkGameEnd() {
+  // resolved when all plots are 'done'
+  if (State.resolvedPlots >= State.totalPlots) {
+    // happy if at least one flower picked
+    endGame(State.pickedFlowers.length === 0 ? 'gameover' : 'happy');
+  }
+}
+function endGame(type) {
+  if (State.screen === 'ending') return;
+  State.endingType = type;
+  State.endingT = 0;
+  State.endingPhase = 0;
+  // Save high score
+  const entry = {
+    score: State.score,
+    flowers: State.pickedFlowers.length,
+    date: dateStr(),
+  };
+  const list = State.highScores[State.diff.key] || [];
+  list.push(entry);
+  list.sort((a, b) => b.score - a.score);
+  if (list.length > 5) list.length = 5;
+  State.highScores[State.diff.key] = list;
+  saveAll();
+  State.isNewHi = list[0] === entry && entry.score > 0;
+  goEnding();
+}
+function dateStr() {
+  const d = new Date();
+  const pad = n => String(n).padStart(2, '0');
+  return `${d.getFullYear()}/${pad(d.getMonth()+1)}/${pad(d.getDate())}`;
+}
+
+// =====================================================
+// LAYOUT
+// =====================================================
+function layoutPlots() {
+  const d = State.diff;
+  const fieldX = 30, fieldY = 110, fieldW = 900, fieldH = 380;
+  const spacing = 8;
+  const w = (fieldW - (d.cols - 1) * spacing) / d.cols;
+  const h = (fieldH - (d.rows - 1) * spacing) / d.rows;
+  for (const p of State.plots) {
+    p.x = fieldX + p.col * (w + spacing);
+    p.y = fieldY + p.row * (h + spacing);
+    p.w = w;
+    p.h = h;
+  }
+}
+
+function buildPlots() {
+  const d = State.diff;
+  State.plots = [];
+  for (let r = 0; r < d.rows; r++) {
+    for (let c = 0; c < d.cols; c++) {
+      State.plots.push(makePlot(c, r));
+    }
+  }
+  layoutPlots();
+  // totalPlots is set in goPlaying based on actual seeded count
+  State.totalPlots = 0;
+  State.resolvedPlots = 0;
+}
+
+// =====================================================
+// SCREEN MANAGEMENT
+// =====================================================
+function showScreen(name) {
+  State.screen = name;
+  $$('.screen').forEach(el => el.classList.remove('active'));
+  $('#screen-' + name).classList.add('active');
+  // Canvas may have been 0-sized while screen was hidden — re-measure now
+  if (name === 'game') {
+    requestAnimationFrame(() => resizeCanvas());
+  }
+}
+
+function goTitle() {
+  showScreen('title');
+  hideEndingOverlay();
+  hideHUD();
+  hideSeedingUI();
+}
+function goDifficulty() {
+  showScreen('difficulty');
+  hideEndingOverlay();
+}
+function goHowto()    { showScreen('howto'); }
+function goHiscores() { renderHiscores(); showScreen('hiscores'); }
+function goSeeding() {
+  // build empty plots
+  buildPlots();
+  State.score = 0;
+  State.hearts = 3;
+  State.pickedFlowers = [];
+  State.paused = false;
+  State.gamePhase = 'seeding';
+  showScreen('game');
+  hideEndingOverlay();
+  hideHUD();
+  showSeedingUI();
+  updateSeedingUI();
+  if (!State.tutorialShown) {
+    State.tutorialShown = true;
+    saveAll();
+    showModal('はじめての ひとへ',
+      'まずは はたけの ますを タップして たねを まこう。<br>たねを ぜんぶ うめたら「▶ せいちょうスタート」だよ！',
+      [{label:'わかった', primary:true, fn: hideModal}]);
+  }
+}
+function goPlaying() {
+  // Count seeded plots — these are the active ones
+  let seededCount = 0;
+  for (const p of State.plots) {
+    if (p.state === 'seeded') {
+      p.flower = FLOWERS[Math.floor(Math.random() * FLOWERS.length)];
+      p.state = 'growing';
+      p.cycleIdx = 0;
+      p.flowerCount = 1;
+      p.cycleQualities = [];
+      startNewGauge(p);
+      seededCount++;
+    }
+  }
+  if (seededCount === 0) return;
+  State.totalPlots = seededCount;
+  State.resolvedPlots = 0;
+  State.gamePhase = 'playing';
+  State.score = 0;
+  $('#hud-score').textContent = '0';
+  $('#hud-hearts').textContent = '♥'.repeat(State.hearts);
+  $('#hud-progress').textContent = `0 / ${State.totalPlots}`;
+  $('#hud-diff').textContent = State.diff.label;
+  hideSeedingUI();
+  showHUD();
+}
+function goEnding() {
+  State.screen = 'ending';
+  hideHUD();
+  showEndingOverlay();
+  // Sequence:
+  // phase 0 (0.0-1.5s): fade-in scene
+  // phase 1 (1.5s): show first text
+  // phase 2 (3.0s): yuto walks in
+  // phase 3 (5.5s): yuto extends bouquet
+  // phase 4 (6.5s): mama reaction + speech
+  // phase 5 (7.5s): score card slide-in + sound
+  // phase 6 (8.0s+): hi-score badge if applicable
+  if (State.endingType === 'happy') sfx('fanfare'); else sfx('sad');
+}
+
+function hideHUD() { $('#hud-game').style.display = 'none'; }
+function showHUD() { $('#hud-game').style.display = 'flex'; }
+function hideSeedingUI() { $('#seed-banner').style.display = 'none'; $('#seed-bottom').style.display = 'none'; }
+function showSeedingUI() { $('#seed-banner').style.display = 'block'; $('#seed-bottom').style.display = 'flex'; }
+
+function hideEndingOverlay() {
+  $('#ending-overlay').classList.remove('show');
+  $('#ending-text').classList.remove('show');
+  $('#score-card').style.display = 'none';
+  $('#score-card').classList.remove('show');
+}
+function showEndingOverlay() {
+  $('#ending-overlay').classList.add('show');
+  // Reveal text and card via timed CSS classes
+  setTimeout(() => {
+    $('#ending-text').textContent = State.endingType === 'happy' ? 'おうちに かえって…' : 'あれ… おはなが…';
+    $('#ending-text').classList.add('show');
+  }, 1200);
+  setTimeout(() => {
+    $('#ending-text').textContent = State.endingType === 'happy' ? 'ママに おはなを わたそう ♥' : 'ママは ちょっと しょんぼり…';
+  }, 3500);
+  setTimeout(() => {
+    $('#ending-text').textContent = State.endingType === 'happy' ? 'うふふ、ありがとう ゆうと ♥' : 'こんどは がんばろうね';
+    showScoreCard();
+  }, 6500);
+}
+function showScoreCard() {
+  $('#score-card-val').textContent = State.score;
+  const flowerCounts = {};
+  State.pickedFlowers.forEach(p => {
+    const k = p.flower.id;
+    flowerCounts[k] = (flowerCounts[k] || 0) + p.count;
+  });
+  const flowerSummary = State.pickedFlowers.length > 0
+    ? `おはなたば: ${State.pickedFlowers.length}ぽん (${Object.values(flowerCounts).reduce((a,b)=>a+b,0)}つの花)`
+    : 'おはなたばは できなかった…';
+  $('#score-card-flowers').textContent = flowerSummary;
+  if (State.isNewHi) {
+    $('#score-card-hi').innerHTML = `<div class="hi-badge">★ ハイスコア こうしん ★</div>`;
+    $('#score-card-hi').style.display = 'block';
+    setTimeout(() => sfx('hiscore'), 200);
+  } else {
+    $('#score-card-hi').style.display = 'none';
+  }
+  $('#score-card').style.display = 'block';
+  setTimeout(() => $('#score-card').classList.add('show'), 30);
+  if (State.endingType === 'happy') sfx('mama');
+}
+
+// =====================================================
+// MODAL
+// =====================================================
+function showModal(title, html, buttons) {
+  $('#modal-title').textContent = title;
+  $('#modal-text').innerHTML = html;
+  const bw = $('#modal-btns');
+  bw.innerHTML = '';
+  buttons.forEach(b => {
+    const btn = document.createElement('button');
+    btn.className = 'cute' + (b.primary ? ' pri' : ' small');
+    btn.textContent = b.label;
+    btn.addEventListener('click', () => { sfx('btn'); b.fn(); });
+    bw.appendChild(btn);
+  });
+  $('#modal-back').classList.add('show');
+}
+function hideModal() { $('#modal-back').classList.remove('show'); }
+
+// =====================================================
+// HISCORES UI
+// =====================================================
+function renderHiscores() {
+  const tabs = $('#hi-tabs');
+  tabs.innerHTML = '';
+  ['easy','normal','hard','oni'].forEach(k => {
+    const btn = document.createElement('button');
+    btn.className = 'hi-tab' + (k === State.hiTabActive ? ' active' : '');
+    btn.textContent = DIFFICULTIES[k].label;
+    btn.addEventListener('click', () => { State.hiTabActive = k; renderHiscores(); });
+    tabs.appendChild(btn);
+  });
+  const list = $('#hi-list');
+  list.innerHTML = '';
+  const entries = State.highScores[State.hiTabActive] || [];
+  if (entries.length === 0) {
+    const li = document.createElement('li');
+    li.className = 'empty';
+    li.textContent = '— まだ きろくが ありません —';
+    list.appendChild(li);
+    return;
+  }
+  entries.forEach((e, i) => {
+    const li = document.createElement('li');
+    li.innerHTML = `<span class="rank">${i+1}</span>
+                    <span>ゆうと</span>
+                    <span class="pts">${e.score}</span>
+                    <span class="meta">${e.flowers}ぽん・${e.date}</span>`;
+    list.appendChild(li);
+  });
+}
+
+// =====================================================
+// SEEDING UI
+// =====================================================
+function updateSeedingUI() {
+  const total = State.plots.length;
+  const seeded = State.plots.filter(p => p.state === 'seeded').length;
+  $('#seed-count').textContent = seeded;
+  $('#seed-total').textContent = total;
+  $('#seed-start').disabled = (seeded === 0);
+}
+
+// =====================================================
+// RENDER (Canvas)
+// =====================================================
+let canvas, ctx;
+let titleArtCtx = null;
+
+function resizeCanvas() {
+  // Internal size fixed, CSS scales
+  const wrap = $('#canvas-wrap');
+  let w = wrap.clientWidth;
+  let h = wrap.clientHeight;
+  // Fallback: if wrap is 0 (e.g. screen still hidden), use viewport
+  if (w < 10 || h < 10) {
+    w = window.innerWidth;
+    h = window.innerHeight;
+  }
+  const aspect = CANVAS_W / CANVAS_H;
+  let dispW = w, dispH = w / aspect;
+  if (dispH > h) { dispH = h; dispW = h * aspect; }
+  canvas.style.width  = dispW + 'px';
+  canvas.style.height = dispH + 'px';
+}
+
+function clearCanvas() {
+  ctx.clearRect(0, 0, CANVAS_W, CANVAS_H);
+}
+
+function drawSky() {
+  // Soft gradient
+  const g = ctx.createLinearGradient(0, 0, 0, CANVAS_H);
+  g.addColorStop(0, '#cfe9f7');
+  g.addColorStop(0.55, '#fae6c0');
+  g.addColorStop(1, '#c5e09b');
+  ctx.fillStyle = g;
+  ctx.fillRect(0, 0, CANVAS_W, CANVAS_H);
+  // Clouds
+  drawCloud(120, 60, 0.9);
+  drawCloud(420, 40, 0.6);
+  drawCloud(760, 80, 1.0);
+  // Sun
+  ctx.fillStyle = 'rgba(255,232,150,0.9)';
+  ctx.beginPath(); ctx.arc(840, 70, 36, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = 'rgba(255,255,200,0.4)';
+  ctx.beginPath(); ctx.arc(840, 70, 50, 0, Math.PI * 2); ctx.fill();
+}
+function drawCloud(x, y, scale) {
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.scale(scale, scale);
+  ctx.fillStyle = 'rgba(255,255,255,0.85)';
+  ctx.strokeStyle = 'rgba(255,255,255,1)';
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.arc(-30, 6, 22, 0, Math.PI * 2);
+  ctx.arc(  0, 0, 26, 0, Math.PI * 2);
+  ctx.arc( 28, 8, 20, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.restore();
+}
+function drawGrassBand(yTop) {
+  // wavy grass under field
+  ctx.fillStyle = '#9bcb6c';
+  ctx.fillRect(0, yTop, CANVAS_W, CANVAS_H - yTop);
+  ctx.fillStyle = '#7fb155';
+  ctx.beginPath();
+  ctx.moveTo(0, yTop + 6);
+  for (let x = 0; x <= CANVAS_W; x += 22) {
+    ctx.lineTo(x, yTop + 6 + Math.sin(x * 0.04) * 4);
+  }
+  ctx.lineTo(CANVAS_W, CANVAS_H);
+  ctx.lineTo(0, CANVAS_H);
+  ctx.closePath();
+  ctx.fill();
+}
+
+function drawPlot(p) {
+  // Soil rectangle
+  const ix = p.x, iy = p.y, iw = p.w, ih = p.h;
+  // Soil takes bottom portion
+  const soilTopFrac = 0.62;
+  const soilTopY = iy + ih * soilTopFrac;
+
+  // Above-soil: light pastel sky tint inside the plot (simulate plot frame interior)
+  ctx.fillStyle = '#fbf6e9';
+  roundRect(ix, iy, iw, ih, 8);
+  ctx.fill();
+
+  // Soil
+  ctx.fillStyle = '#a06b3f';
+  ctx.fillRect(ix + 3, soilTopY, iw - 6, ih - (soilTopFrac * ih) - 3);
+  // Soil texture (small darker dots)
+  ctx.fillStyle = 'rgba(0,0,0,0.10)';
+  const seed = (p.col * 31 + p.row * 17) % 8;
+  for (let i = 0; i < 6; i++) {
+    const dx = ((i * 41 + seed * 7) % (iw - 16)) + 8;
+    const dy = ((i * 13 + seed * 5) % Math.max(8, ih * (1 - soilTopFrac) - 8)) + 6;
+    ctx.fillRect(ix + dx, soilTopY + dy, 2, 2);
+  }
+  // Soil top line
+  ctx.fillStyle = '#6c4220';
+  ctx.fillRect(ix + 3, soilTopY, iw - 6, 3);
+
+  // Frame (wooden border)
+  ctx.strokeStyle = '#5a3a1c';
+  ctx.lineWidth = 3;
+  roundRect(ix, iy, iw, ih, 8);
+  ctx.stroke();
+
+  // Growth stage drawing
+  const stemBottomX = ix + iw * 0.5;
+  const stemBottomY = soilTopY + 1;
+  const ceilingY = iy + 6;
+  const availH = stemBottomY - ceilingY;
+  const bobY = Math.sin(p.bobOffset * 2.5) * 1.5;
+
+  if (p.state === 'seeded') {
+    // small seed bump
+    ctx.fillStyle = '#5a3a1c';
+    ctx.beginPath();
+    ctx.ellipse(stemBottomX, soilTopY + 4, 6, 3, 0, 0, Math.PI * 2);
+    ctx.fill();
+  } else if (p.state === 'growing' || p.state === 'bloomed' || p.state === 'done') {
+    // Determine growth t (0..1) from cycleIdx out of cycles
+    let t;
+    if (p.state === 'growing') {
+      // smooth between cycle indices, plus a bit of current gauge progress
+      t = (p.cycleIdx + Math.min(1, p.gaugePos)) / p.flower.cycles;
+    } else {
+      // bloomed or done -> fully grown
+      t = 1;
+    }
+    t = Math.max(0.05, Math.min(1, t));
+    // Stage thresholds (sprout at 0.1, stem at 0.3, bud at 0.7, bloom at 1.0)
+    const stemH = availH * (0.25 + t * 0.65);
+    const stemTopX = stemBottomX;
+    const stemTopY = stemBottomY - stemH + bobY;
+
+    // Stem
+    ctx.strokeStyle = '#3a8a3a';
+    ctx.lineWidth = Math.max(2, iw * 0.018);
+    ctx.lineCap = 'round';
+    ctx.beginPath();
+    ctx.moveTo(stemBottomX, stemBottomY);
+    ctx.quadraticCurveTo(stemBottomX + Math.sin(p.bobOffset * 1.8) * 2, stemBottomY - stemH * 0.5, stemTopX, stemTopY);
+    ctx.stroke();
+    // Leaves (after stage 0.25)
+    if (t > 0.25) {
+      const leafY = stemBottomY - stemH * 0.55;
+      drawLeaf(stemBottomX - 1, leafY, -1, Math.min(1, (t - 0.25) * 2));
+      if (t > 0.45) drawLeaf(stemBottomX + 1, leafY - stemH * 0.15, 1, Math.min(1, (t - 0.45) * 2));
+    }
+    // Bud / bloom
+    let headSize = Math.min(iw * 0.32, ih * 0.30);
+    if (p.state === 'bloomed' || p.state === 'done') {
+      // pop animation
+      const ba = p.state === 'bloomed' ? Math.min(1, p.bloomAnimT / 0.5) : 1;
+      const scale = ba < 1 ? (0.4 + ba * 0.7) : 1;
+      drawFlowerHead(p.flower, stemTopX, stemTopY, headSize * scale, p.flowerCount, p.bobOffset);
+      // Halo for picked bouquet flair
+      if (p.state === 'done' && p.doneType === 'picked') {
+        const fa = Math.max(0, 1 - p.pickAnimT * 1.5);
+        if (fa > 0) {
+          ctx.globalAlpha = fa;
+          ctx.fillStyle = '#fff7c0';
+          ctx.beginPath();
+          ctx.arc(stemTopX, stemTopY, headSize * (1 + p.pickAnimT * 1.5), 0, Math.PI * 2);
+          ctx.fill();
+          ctx.globalAlpha = 1;
+        }
+      }
+    } else if (t > 0.7) {
+      // bud (closed)
+      const budT = (t - 0.7) / 0.3;
+      const bsz = headSize * (0.3 + budT * 0.5);
+      ctx.fillStyle = p.flower.dark;
+      ctx.beginPath();
+      ctx.ellipse(stemTopX, stemTopY, bsz * 0.5, bsz * 0.7, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = p.flower.primary;
+      ctx.beginPath();
+      ctx.ellipse(stemTopX, stemTopY - bsz * 0.1, bsz * 0.4, bsz * 0.55, 0, 0, Math.PI * 2);
+      ctx.fill();
+    } else if (t > 0.1) {
+      // sprout (just leaves, no stem yet visible — already drawn above)
+    }
+  }
+
+  // Withered overlay
+  if (p.state === 'done' && p.doneType === 'withered') {
+    ctx.globalAlpha = 0.55;
+    ctx.fillStyle = '#3d2a18';
+    roundRect(ix, iy, iw, ih, 8);
+    ctx.fill();
+    ctx.globalAlpha = 1;
+    // X mark
+    ctx.strokeStyle = '#7a3030';
+    ctx.lineWidth = 4;
+    const cx = ix + iw / 2, cy = iy + ih / 2;
+    const sz = Math.min(iw, ih) * 0.18;
+    ctx.beginPath();
+    ctx.moveTo(cx - sz, cy - sz); ctx.lineTo(cx + sz, cy + sz);
+    ctx.moveTo(cx + sz, cy - sz); ctx.lineTo(cx - sz, cy + sz);
+    ctx.stroke();
+  }
+
+  // Picked overlay (subtle dim)
+  if (p.state === 'done' && p.doneType === 'picked') {
+    ctx.globalAlpha = 0.18;
+    ctx.fillStyle = '#fff';
+    roundRect(ix, iy, iw, ih, 8);
+    ctx.fill();
+    ctx.globalAlpha = 1;
+  }
+
+  // Gauge
+  if (p.state === 'growing' || (p.state === 'bloomed' && p.isPickGauge)) {
+    drawGauge(p);
+  }
+
+  // Flash overlay
+  if (p.flashT > 0 && p.flashColor) {
+    ctx.globalAlpha = (p.flashT / 0.4) * 0.35;
+    ctx.fillStyle = p.flashColor;
+    roundRect(ix, iy, iw, ih, 8);
+    ctx.fill();
+    ctx.globalAlpha = 1;
+  }
+
+  // Sparkles
+  for (const s of p.sparkles) {
+    const a = Math.min(1, s.life * 2);
+    ctx.globalAlpha = a;
+    ctx.fillStyle = s.color;
+    ctx.beginPath();
+    ctx.arc(s.x, s.y, 2 + s.life * 2, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.globalAlpha = 1;
+  }
+}
+
+function drawLeaf(baseX, baseY, dir, growT) {
+  ctx.save();
+  ctx.translate(baseX, baseY);
+  ctx.scale(dir, 1);
+  ctx.fillStyle = '#67b56a';
+  ctx.strokeStyle = '#3a8a3a';
+  ctx.lineWidth = 1.5;
+  const sz = 8 * growT;
+  ctx.beginPath();
+  ctx.moveTo(0, 0);
+  ctx.bezierCurveTo(sz * 0.5, -sz * 1.4, sz * 1.6, -sz * 0.5, sz * 1.6, sz * 0.2);
+  ctx.bezierCurveTo(sz * 1.0, -sz * 0.1, sz * 0.5, sz * 0.3, 0, 0);
+  ctx.fill();
+  ctx.stroke();
+  ctx.restore();
+}
+
+function drawFlowerHead(flower, cx, cy, size, count, t) {
+  // count: how many flowers to draw clustered
+  // For count > 1, arrange small bunch
+  if (count <= 1) {
+    drawSingleFlowerHead(flower, cx, cy, size, t);
+    return;
+  }
+  // Multiple: draw smaller heads clustered
+  const small = size * (0.7 - Math.min(0.30, count * 0.04));
+  const positions = [];
+  positions.push([0, 0]);
+  for (let i = 1; i < count; i++) {
+    const angle = (i - 1) * (Math.PI * 2 / Math.max(1, count - 1)) - Math.PI / 2;
+    const r = size * 0.55;
+    positions.push([Math.cos(angle) * r, Math.sin(angle) * r * 0.7]);
+  }
+  // Draw rear-most first (sort by y desc reversed? draw large center on top)
+  positions.sort((a, b) => a[1] - b[1]); // top to bottom (so bottom drawn last = on top)
+  positions.forEach(([dx, dy], i) => {
+    drawSingleFlowerHead(flower, cx + dx, cy + dy, dx === 0 && dy === 0 ? size : small, t + i * 0.5);
+  });
+}
+
+function drawSingleFlowerHead(flower, cx, cy, size, t) {
+  switch (flower.id) {
+    case 'tampopo': drawDandelion(cx, cy, size, t, flower); break;
+    case 'asagao':  drawMorning(cx, cy, size, t, flower); break;
+    case 'tulip':   drawTulip(cx, cy, size, t, flower); break;
+    case 'cosmos':  drawCosmos(cx, cy, size, t, flower); break;
+    case 'sunflower':drawSunflower(cx, cy, size, t, flower); break;
+    case 'rose':    drawRose(cx, cy, size, t, flower); break;
+  }
+}
+
+function drawDandelion(cx, cy, size, t, f) {
+  // Yellow rays around a center
+  const r = size * 0.5;
+  const rays = 14;
+  ctx.strokeStyle = f.primary;
+  ctx.lineWidth = Math.max(1.5, size * 0.05);
+  ctx.lineCap = 'round';
+  for (let i = 0; i < rays; i++) {
+    const a = (i / rays) * Math.PI * 2 + t * 0.2;
+    const len = r * (0.85 + Math.sin(t * 2 + i) * 0.05);
+    ctx.beginPath();
+    ctx.moveTo(cx, cy);
+    ctx.lineTo(cx + Math.cos(a) * len, cy + Math.sin(a) * len);
+    ctx.stroke();
+  }
+  ctx.fillStyle = f.dark;
+  ctx.beginPath(); ctx.arc(cx, cy, r * 0.30, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = f.secondary;
+  ctx.beginPath(); ctx.arc(cx - r*0.08, cy - r*0.08, r * 0.10, 0, Math.PI * 2); ctx.fill();
+}
+function drawMorning(cx, cy, size, t, f) {
+  // Trumpet shape
+  const r = size * 0.5;
+  ctx.fillStyle = f.primary;
+  ctx.strokeStyle = f.dark;
+  ctx.lineWidth = Math.max(1, size * 0.03);
+  ctx.beginPath();
+  ctx.ellipse(cx, cy, r * 1.0, r * 0.9, 0, 0, Math.PI * 2);
+  ctx.fill(); ctx.stroke();
+  // Star pattern (5 points)
+  ctx.fillStyle = f.secondary;
+  ctx.beginPath();
+  for (let i = 0; i < 5; i++) {
+    const a = i * Math.PI * 2 / 5 - Math.PI / 2;
+    const a2 = a + Math.PI / 5;
+    ctx.lineTo(cx + Math.cos(a) * r * 0.85, cy + Math.sin(a) * r * 0.85);
+    ctx.lineTo(cx + Math.cos(a2) * r * 0.35, cy + Math.sin(a2) * r * 0.35);
+  }
+  ctx.closePath(); ctx.fill();
+  // Center
+  ctx.fillStyle = '#fff5b8';
+  ctx.beginPath(); ctx.arc(cx, cy, r * 0.18, 0, Math.PI * 2); ctx.fill();
+}
+function drawTulip(cx, cy, size, t, f) {
+  // Upside-down cup with 3 petal lobes
+  const r = size * 0.5;
+  ctx.fillStyle = f.primary;
+  ctx.strokeStyle = f.dark;
+  ctx.lineWidth = Math.max(1, size * 0.03);
+  ctx.beginPath();
+  ctx.moveTo(cx - r * 0.7, cy + r * 0.1);
+  ctx.bezierCurveTo(cx - r * 0.9, cy - r * 0.7, cx - r * 0.3, cy - r * 0.95, cx, cy - r * 0.7);
+  ctx.bezierCurveTo(cx + r * 0.3, cy - r * 0.95, cx + r * 0.9, cy - r * 0.7, cx + r * 0.7, cy + r * 0.1);
+  ctx.bezierCurveTo(cx + r * 0.5, cy + r * 0.4, cx - r * 0.5, cy + r * 0.4, cx - r * 0.7, cy + r * 0.1);
+  ctx.closePath();
+  ctx.fill(); ctx.stroke();
+  // mid petal line
+  ctx.strokeStyle = f.dark;
+  ctx.lineWidth = Math.max(1, size * 0.03);
+  ctx.beginPath();
+  ctx.moveTo(cx, cy - r * 0.7);
+  ctx.lineTo(cx, cy + r * 0.3);
+  ctx.stroke();
+}
+function drawCosmos(cx, cy, size, t, f) {
+  const r = size * 0.5;
+  // 8 round petals
+  ctx.fillStyle = f.primary;
+  ctx.strokeStyle = f.dark;
+  ctx.lineWidth = Math.max(1, size * 0.025);
+  for (let i = 0; i < 8; i++) {
+    const a = i * Math.PI * 2 / 8 + t * 0.1;
+    const px = cx + Math.cos(a) * r * 0.55;
+    const py = cy + Math.sin(a) * r * 0.55;
+    ctx.beginPath();
+    ctx.ellipse(px, py, r * 0.32, r * 0.18, a, 0, Math.PI * 2);
+    ctx.fill(); ctx.stroke();
+  }
+  ctx.fillStyle = f.dark;
+  ctx.beginPath(); ctx.arc(cx, cy, r * 0.22, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = '#ffd84d';
+  ctx.beginPath(); ctx.arc(cx, cy, r * 0.14, 0, Math.PI * 2); ctx.fill();
+}
+function drawSunflower(cx, cy, size, t, f) {
+  const r = size * 0.5;
+  // Many petals
+  ctx.fillStyle = f.primary;
+  ctx.strokeStyle = f.dark;
+  ctx.lineWidth = Math.max(1, size * 0.025);
+  for (let i = 0; i < 14; i++) {
+    const a = i * Math.PI * 2 / 14;
+    const px = cx + Math.cos(a) * r * 0.55;
+    const py = cy + Math.sin(a) * r * 0.55;
+    ctx.beginPath();
+    ctx.ellipse(px, py, r * 0.40, r * 0.15, a, 0, Math.PI * 2);
+    ctx.fill(); ctx.stroke();
+  }
+  ctx.fillStyle = '#5a3a1c';
+  ctx.beginPath(); ctx.arc(cx, cy, r * 0.36, 0, Math.PI * 2); ctx.fill();
+  // Speckle
+  ctx.fillStyle = '#3d2410';
+  for (let i = 0; i < 6; i++) {
+    const a = i * Math.PI / 3 + t;
+    ctx.beginPath();
+    ctx.arc(cx + Math.cos(a) * r * 0.16, cy + Math.sin(a) * r * 0.16, r * 0.04, 0, Math.PI * 2);
+    ctx.fill();
+  }
+}
+function drawRose(cx, cy, size, t, f) {
+  const r = size * 0.5;
+  // Concentric blobs
+  ctx.strokeStyle = f.dark;
+  ctx.lineWidth = Math.max(1, size * 0.03);
+  ctx.fillStyle = f.primary;
+  ctx.beginPath(); ctx.arc(cx, cy, r * 0.95, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+  ctx.fillStyle = f.secondary;
+  ctx.beginPath(); ctx.arc(cx - r*0.1, cy - r*0.1, r * 0.55, 0, Math.PI * 2); ctx.fill();
+  ctx.strokeStyle = f.dark;
+  ctx.beginPath(); ctx.arc(cx - r*0.1, cy - r*0.1, r * 0.55, 0, Math.PI * 2); ctx.stroke();
+  ctx.fillStyle = f.primary;
+  ctx.beginPath(); ctx.arc(cx + r*0.05, cy + r*0.05, r * 0.30, 0, Math.PI * 2); ctx.fill();
+  ctx.beginPath(); ctx.arc(cx + r*0.05, cy + r*0.05, r * 0.30, 0, Math.PI * 2); ctx.stroke();
+  ctx.fillStyle = '#fff7c0';
+  ctx.beginPath(); ctx.arc(cx + r*0.18, cy + r*0.18, r * 0.10, 0, Math.PI * 2); ctx.fill();
+}
+
+function drawGauge(p) {
+  const gx = p.x + 4;
+  const gy = p.y + p.h - 12;
+  const gw = p.w - 8;
+  const gh = 8;
+  // background
+  ctx.fillStyle = 'rgba(255,255,255,0.85)';
+  roundRect(gx, gy, gw, gh, 4); ctx.fill();
+  ctx.strokeStyle = '#3d2a18';
+  ctx.lineWidth = 1.5;
+  roundRect(gx, gy, gw, gh, 4); ctx.stroke();
+  if (p.isPickGauge) {
+    // Pick gauge: green fill that drains away
+    ctx.fillStyle = '#7fc24a';
+    const fillW = gw * (1 - p.gaugePos);
+    if (fillW > 1) {
+      ctx.fillRect(gx + (gw - fillW), gy, fillW, gh);
+    }
+  } else {
+    // Sweet zones
+    const [ss, se] = plotSweetBounds(p);
+    const [ps, pe] = plotPerfectBounds(p);
+    ctx.fillStyle = 'rgba(255,216,77,0.85)'; // yellow
+    ctx.fillRect(gx + gw * Math.max(0, ss), gy, gw * (Math.min(1, se) - Math.max(0, ss)), gh);
+    ctx.fillStyle = 'rgba(255,90,116,0.95)'; // red
+    ctx.fillRect(gx + gw * Math.max(0, ps), gy, gw * (Math.min(1, pe) - Math.max(0, ps)), gh);
+    // Fill (pink)
+    ctx.fillStyle = 'rgba(255,142,176,0.55)';
+    const fillW = gw * Math.min(1, p.gaugePos);
+    ctx.fillRect(gx, gy, fillW, gh);
+    // Cursor
+    const cx = gx + gw * Math.min(1, p.gaugePos);
+    ctx.strokeStyle = '#3d2a18';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(cx, gy - 2); ctx.lineTo(cx, gy + gh + 2);
+    ctx.stroke();
+  }
+}
+
+function roundRect(x, y, w, h, r) {
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.lineTo(x + w - r, y);
+  ctx.arcTo(x + w, y, x + w, y + r, r);
+  ctx.lineTo(x + w, y + h - r);
+  ctx.arcTo(x + w, y + h, x + w - r, y + h, r);
+  ctx.lineTo(x + r, y + h);
+  ctx.arcTo(x, y + h, x, y + h - r, r);
+  ctx.lineTo(x, y + r);
+  ctx.arcTo(x, y, x + r, y, r);
+  ctx.closePath();
+}
+
+// =====================================================
+// CHARACTERS (Yuto, Mama)
+// =====================================================
+function drawYuto(cx, cy, scale, t, opts) {
+  // cx, cy = bottom center of character
+  // opts: { walking, holding (bouquet), arms ('down'|'extend'|'up') }
+  const s = scale;
+  const skin = '#ffd9bb';
+  const skinD = '#c89a72';
+  const hair = '#5a3a1c';
+  const shirt = '#f6c84c';
+  const pants = '#8a5a30';
+  const hat = '#e3c870';
+  // Walking: legs offset
+  const lp = opts.walking ? Math.sin(t * 6) : 0;
+
+  ctx.save();
+  ctx.translate(cx, cy);
+  ctx.scale(s, s);
+
+  // Legs
+  ctx.fillStyle = pants;
+  ctx.fillRect(-7, -22, 6, 22 + lp * 2);
+  ctx.fillRect( 1, -22, 6, 22 - lp * 2);
+  // Shoes
+  ctx.fillStyle = '#3d2a18';
+  ctx.fillRect(-9, -2 + lp * 2, 8, 4);
+  ctx.fillRect( 1, -2 - lp * 2, 8, 4);
+
+  // Body (suspender shorts top + shirt)
+  ctx.fillStyle = shirt;
+  ctx.beginPath();
+  ctx.moveTo(-12, -22);
+  ctx.lineTo(12, -22);
+  ctx.lineTo(11, -42);
+  ctx.lineTo(-11, -42);
+  ctx.closePath(); ctx.fill();
+  ctx.strokeStyle = '#7a5520'; ctx.lineWidth = 1.5; ctx.stroke();
+  // Suspenders
+  ctx.fillStyle = pants;
+  ctx.fillRect(-10, -42, 4, 22);
+  ctx.fillRect( 6, -42, 4, 22);
+  // Shorts top
+  ctx.fillStyle = pants;
+  ctx.fillRect(-12, -24, 24, 5);
+
+  // Arms
+  ctx.fillStyle = skin;
+  let armL = -8, armR = 8;
+  if (opts.arms === 'extend') {
+    // both arms forward, holding bouquet
+    ctx.fillRect(-14, -38, 5, 18); // left
+    ctx.fillRect(  9, -38, 5, 18); // right
+    // hands
+    ctx.fillStyle = skin;
+    ctx.beginPath(); ctx.arc(-12, -22, 3, 0, Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.arc( 12, -22, 3, 0, Math.PI*2); ctx.fill();
+  } else if (opts.holding) {
+    // holding to chest
+    ctx.fillRect(-12, -38, 4, 12);
+    ctx.fillRect(  8, -38, 4, 12);
+  } else {
+    ctx.fillRect(-15, -40, 4, 18);
+    ctx.fillRect( 11, -40, 4, 18);
+  }
+
+  // Head
+  ctx.fillStyle = skin;
+  ctx.strokeStyle = skinD; ctx.lineWidth = 1.5;
+  ctx.beginPath(); ctx.arc(0, -52, 11, 0, Math.PI*2); ctx.fill(); ctx.stroke();
+  // Hair (front bangs)
+  ctx.fillStyle = hair;
+  ctx.beginPath();
+  ctx.moveTo(-11, -56);
+  ctx.bezierCurveTo(-12, -64, 12, -65, 11, -55);
+  ctx.lineTo(8, -50); ctx.lineTo(4, -54); ctx.lineTo(-1, -50); ctx.lineTo(-5, -54); ctx.lineTo(-9, -50);
+  ctx.closePath(); ctx.fill();
+  // Hat (straw)
+  ctx.fillStyle = hat;
+  ctx.strokeStyle = '#9a7f30'; ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  ctx.ellipse(0, -62, 16, 4, 0, 0, Math.PI*2);
+  ctx.fill(); ctx.stroke();
+  ctx.beginPath();
+  ctx.ellipse(0, -65, 10, 5, 0, 0, Math.PI*2);
+  ctx.fill(); ctx.stroke();
+  // Hat band
+  ctx.strokeStyle = '#cc6677'; ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  ctx.moveTo(-10, -62); ctx.bezierCurveTo(-3, -61, 3, -61, 10, -62);
+  ctx.stroke();
+
+  // Eyes
+  ctx.fillStyle = '#3d2a18';
+  ctx.beginPath(); ctx.arc(-3, -52, 1.5, 0, Math.PI*2); ctx.fill();
+  ctx.beginPath(); ctx.arc( 3, -52, 1.5, 0, Math.PI*2); ctx.fill();
+  // Cheeks
+  ctx.fillStyle = '#ff9eb0';
+  ctx.beginPath(); ctx.arc(-6, -49, 1.6, 0, Math.PI*2); ctx.fill();
+  ctx.beginPath(); ctx.arc( 6, -49, 1.6, 0, Math.PI*2); ctx.fill();
+  // Mouth (smile)
+  ctx.strokeStyle = '#3d2a18'; ctx.lineWidth = 1.2;
+  ctx.beginPath(); ctx.arc(0, -47, 2, 0, Math.PI); ctx.stroke();
+
+  ctx.restore();
+}
+
+function drawMama(cx, cy, scale, t, mood) {
+  const s = scale;
+  const skin = '#ffd9bb';
+  const skinD = '#c89a72';
+  const hair = '#5a3a1c';
+  const dress = '#dab4d6';
+  const apron = '#fffaf0';
+  ctx.save();
+  ctx.translate(cx, cy);
+  ctx.scale(s, s);
+
+  // Body / dress
+  ctx.fillStyle = dress;
+  ctx.beginPath();
+  ctx.moveTo(-22, 0);
+  ctx.bezierCurveTo(-22, -50, -16, -56, 0, -56);
+  ctx.bezierCurveTo(16, -56, 22, -50, 22, 0);
+  ctx.lineTo(18, 4);
+  ctx.lineTo(-18, 4);
+  ctx.closePath();
+  ctx.fill();
+  ctx.strokeStyle = '#9d77a0'; ctx.lineWidth = 1.5; ctx.stroke();
+  // Apron
+  ctx.fillStyle = apron;
+  ctx.beginPath();
+  ctx.moveTo(-12, -38);
+  ctx.lineTo(12, -38);
+  ctx.lineTo(15, 4);
+  ctx.lineTo(-15, 4);
+  ctx.closePath();
+  ctx.fill();
+  ctx.strokeStyle = '#a99e89'; ctx.lineWidth = 1.5; ctx.stroke();
+  // Apron strap
+  ctx.fillStyle = apron;
+  ctx.fillRect(-2, -56, 4, 18);
+
+  // Arms
+  ctx.fillStyle = skin;
+  // Both hands together (welcoming)
+  if (mood === 'happy') {
+    ctx.fillRect(-22, -36, 5, 16);
+    ctx.fillRect( 17, -36, 5, 16);
+  } else {
+    ctx.fillRect(-24, -38, 5, 22);
+    ctx.fillRect( 19, -38, 5, 22);
+  }
+
+  // Head
+  ctx.fillStyle = skin;
+  ctx.strokeStyle = skinD; ctx.lineWidth = 1.5;
+  ctx.beginPath(); ctx.arc(0, -68, 13, 0, Math.PI*2); ctx.fill(); ctx.stroke();
+
+  // Hair (long behind shoulders)
+  ctx.fillStyle = hair;
+  ctx.beginPath();
+  ctx.moveTo(-13, -68);
+  ctx.bezierCurveTo(-19, -82, 19, -82, 13, -68);
+  ctx.bezierCurveTo(20, -55, 22, -38, 18, -28);
+  ctx.lineTo(14, -36);
+  ctx.lineTo(8, -64);
+  ctx.lineTo(-8, -64);
+  ctx.lineTo(-14, -36);
+  ctx.lineTo(-18, -28);
+  ctx.bezierCurveTo(-22, -38, -20, -55, -13, -68);
+  ctx.closePath();
+  ctx.fill();
+  // Front bangs
+  ctx.fillStyle = hair;
+  ctx.beginPath();
+  ctx.moveTo(-12, -73);
+  ctx.bezierCurveTo(-12, -82, 12, -82, 12, -73);
+  ctx.lineTo(7, -68); ctx.lineTo(2, -71); ctx.lineTo(-2, -68); ctx.lineTo(-7, -71);
+  ctx.closePath(); ctx.fill();
+
+  // Eyes
+  if (mood === 'happy') {
+    // eyes-closed smile (^^)
+    ctx.strokeStyle = '#3d2a18'; ctx.lineWidth = 1.5;
+    ctx.beginPath(); ctx.arc(-4, -68, 2, Math.PI, 0); ctx.stroke();
+    ctx.beginPath(); ctx.arc( 4, -68, 2, Math.PI, 0); ctx.stroke();
+  } else if (mood === 'sad') {
+    ctx.fillStyle = '#3d2a18';
+    ctx.beginPath(); ctx.arc(-4, -68, 1.5, 0, Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.arc( 4, -68, 1.5, 0, Math.PI*2); ctx.fill();
+  } else {
+    ctx.fillStyle = '#3d2a18';
+    ctx.beginPath(); ctx.arc(-4, -68, 1.5, 0, Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.arc( 4, -68, 1.5, 0, Math.PI*2); ctx.fill();
+  }
+  // Cheeks (extra pink when happy)
+  ctx.fillStyle = mood === 'happy' ? '#ff7090' : '#ffaab8';
+  ctx.beginPath(); ctx.arc(-7, -64, mood==='happy' ? 2.5 : 1.8, 0, Math.PI*2); ctx.fill();
+  ctx.beginPath(); ctx.arc( 7, -64, mood==='happy' ? 2.5 : 1.8, 0, Math.PI*2); ctx.fill();
+  // Mouth
+  ctx.strokeStyle = '#3d2a18'; ctx.lineWidth = 1.3;
+  ctx.beginPath();
+  if (mood === 'happy') {
+    ctx.arc(0, -62, 3, 0, Math.PI);
+  } else if (mood === 'sad') {
+    ctx.arc(0, -58, 2, Math.PI, 0);
+  } else {
+    ctx.moveTo(-2, -62); ctx.lineTo(2, -62);
+  }
+  ctx.stroke();
+
+  // Floating hearts when happy
+  if (mood === 'happy') {
+    for (let i = 0; i < 3; i++) {
+      const ht = (t * 1.5 + i * 0.7) % 2;
+      const ax = -16 + i * 16;
+      const ay = -90 - ht * 24;
+      const op = 1 - ht / 2;
+      ctx.globalAlpha = op;
+      drawHeart(ax, ay, 5 + i, '#ff5577');
+      ctx.globalAlpha = 1;
+    }
+  }
+  ctx.restore();
+}
+
+function drawHeart(cx, cy, size, color) {
+  ctx.fillStyle = color;
+  ctx.beginPath();
+  ctx.moveTo(cx, cy + size * 0.6);
+  ctx.bezierCurveTo(cx - size * 1.2, cy - size * 0.3, cx - size * 0.3, cy - size * 1.2, cx, cy - size * 0.4);
+  ctx.bezierCurveTo(cx + size * 0.3, cy - size * 1.2, cx + size * 1.2, cy - size * 0.3, cx, cy + size * 0.6);
+  ctx.fill();
+  ctx.strokeStyle = '#3d2a18'; ctx.lineWidth = 1; ctx.stroke();
+}
+
+function drawBouquet(cx, cy, picked, scale, t) {
+  // picked: array of {flower, count}
+  // Draw stems and wrapping paper, then flower heads
+  if (picked.length === 0) return;
+  ctx.save();
+  ctx.translate(cx, cy);
+  ctx.scale(scale, scale);
+  // Wrapping paper (a cone shape)
+  ctx.fillStyle = '#fff8e0';
+  ctx.strokeStyle = '#a0825a';
+  ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  ctx.moveTo(-22, 24);
+  ctx.lineTo(22, 24);
+  ctx.lineTo(34, -8);
+  ctx.lineTo(-34, -8);
+  ctx.closePath();
+  ctx.fill(); ctx.stroke();
+  // Ribbon
+  ctx.fillStyle = '#ff8eb0';
+  ctx.beginPath();
+  ctx.ellipse(0, 24, 18, 5, 0, 0, Math.PI*2);
+  ctx.fill();
+  ctx.strokeStyle = '#a85070'; ctx.stroke();
+  // Stems (just hint of green)
+  ctx.strokeStyle = '#3a8a3a';
+  ctx.lineWidth = 2;
+  for (let i = 0; i < Math.min(picked.length, 8); i++) {
+    const xo = -16 + i * 4;
+    ctx.beginPath();
+    ctx.moveTo(xo, 14);
+    ctx.lineTo(xo - 4 + i * 0.5, -16);
+    ctx.stroke();
+  }
+  // Flower heads (place in a fan above the wrapping)
+  const total = picked.length;
+  const span = Math.min(70, 25 + total * 4);
+  picked.forEach((entry, i) => {
+    const tt = total > 1 ? i / (total - 1) : 0.5;
+    const fx = (tt - 0.5) * span;
+    const fy = -28 - Math.abs(tt - 0.5) * 12;
+    // Larger flower for rare ones
+    const baseSize = entry.flower.cycles >= 4 ? 22 : entry.flower.cycles >= 3 ? 18 : 14;
+    const sz = baseSize + Math.min(8, entry.count * 1.5);
+    drawSingleFlowerHead(entry.flower, fx, fy, sz, t * 0.5 + i);
+  });
+  ctx.restore();
+}
+
+// =====================================================
+// RENDER LOOPS
+// =====================================================
+function renderTitleArt() {
+  const c = $('#title-art');
+  if (!c) return;
+  const tx = c.getContext('2d');
+  // Save the global ctx and substitute
+  const oldCtx = ctx;
+  ctx = tx;
+  const W = c.width, H = c.height;
+  ctx.clearRect(0, 0, W, H);
+  // Background
+  const g = ctx.createLinearGradient(0, 0, 0, H);
+  g.addColorStop(0, '#cfe9f7');
+  g.addColorStop(1, '#fbe7c0');
+  ctx.fillStyle = g;
+  ctx.fillRect(0, 0, W, H);
+  // Cloud
+  drawCloud(120, 60, 0.8);
+  drawCloud(560, 50, 0.9);
+  // Grass
+  ctx.fillStyle = '#9bcb6c';
+  ctx.fillRect(0, H - 80, W, 80);
+  ctx.fillStyle = '#7fb155';
+  ctx.beginPath();
+  ctx.moveTo(0, H - 76);
+  for (let x = 0; x <= W; x += 30) ctx.lineTo(x, H - 76 + Math.sin(x * 0.04) * 4);
+  ctx.lineTo(W, H); ctx.lineTo(0, H); ctx.closePath(); ctx.fill();
+  // Sample flowers
+  const ttl = (performance.now() / 1000);
+  for (let i = 0; i < 6; i++) {
+    const fx = 80 + i * 100;
+    const f = FLOWERS[i];
+    // stem
+    ctx.strokeStyle = '#3a8a3a';
+    ctx.lineWidth = 4; ctx.lineCap = 'round';
+    ctx.beginPath();
+    ctx.moveTo(fx, H - 70);
+    ctx.lineTo(fx + Math.sin(ttl + i) * 3, H - 130);
+    ctx.stroke();
+    drawSingleFlowerHead(f, fx + Math.sin(ttl + i) * 3, H - 132, 28, ttl + i);
+  }
+  // Yuto + Mama hand-in-hand-ish at center
+  drawYuto(W * 0.42, H - 80, 1.2, ttl, { walking: false, holding: true, arms: 'down' });
+  drawMama(W * 0.62, H - 80, 1.0, ttl, 'happy');
+  // restore
+  ctx = oldCtx;
+}
+
+function renderCanvas() {
+  if (State.screen !== 'game' && State.screen !== 'ending') return;
+  clearCanvas();
+  drawSky();
+  drawGrassBand(CANVAS_H - 60);
+
+  if (State.screen === 'game' || State.screen === 'ending') {
+    // Plots
+    if (State.screen === 'game') {
+      for (const p of State.plots) drawPlot(p);
+      // Practice feedback text overlay
+      if (State.gamePhase === 'practice' && State.practice.feedbackT > 0) {
+        const a = Math.min(1, State.practice.feedbackT);
+        const lift = (1 - State.practice.feedbackT / 1.4) * 12;
+        ctx.save();
+        ctx.globalAlpha = a;
+        ctx.fillStyle = State.practice.feedbackColor;
+        ctx.font = 'bold 48px "Comic Sans MS", "Hiragino Maru Gothic ProN", sans-serif';
+        ctx.textAlign = 'center';
+        ctx.strokeStyle = '#fff';
+        ctx.lineWidth = 8;
+        ctx.lineJoin = 'round';
+        ctx.strokeText(State.practice.feedbackText, CANVAS_W / 2, 96 - lift);
+        ctx.fillText(State.practice.feedbackText, CANVAS_W / 2, 96 - lift);
+        ctx.restore();
+      }
+    }
+
+    // Ending CG
+    if (State.screen === 'ending') {
+      drawEndingScene();
+    }
+  }
+}
+
+function isSeedingPhase() {
+  return State.screen === 'game' && State.gamePhase === 'seeding';
+}
+
+function drawEndingScene() {
+  const t = State.endingT;
+
+  // Sunset-ish overlay that fades in
+  const fade = Math.min(1, t / 1.0);
+  ctx.fillStyle = `rgba(255, 188, 140, ${fade * 0.45})`;
+  ctx.fillRect(0, 0, CANVAS_W, CANVAS_H);
+
+  // Floor / room hint (warm gradient bottom)
+  const g = ctx.createLinearGradient(0, CANVAS_H - 200, 0, CANVAS_H);
+  g.addColorStop(0, 'rgba(255,219,170,0)');
+  g.addColorStop(1, `rgba(180, 110, 60, ${fade * 0.5})`);
+  ctx.fillStyle = g;
+  ctx.fillRect(0, CANVAS_H - 200, CANVAS_W, 200);
+
+  // Mama on right (always present, walks in slightly from above? — keep static)
+  const mamaX = CANVAS_W * 0.75;
+  const mamaY = CANVAS_H - 70;
+  const happyMood = (State.endingType === 'happy' && t > 6.0) ? 'happy' : (State.endingType === 'gameover' && t > 6.0 ? 'sad' : 'idle');
+  drawMama(mamaX, mamaY, 1.4, t, happyMood);
+
+  // Yuto walks in from off-screen left
+  const walkStart = 2.0;
+  const walkEnd = 5.0;
+  const walkProgress = Math.max(0, Math.min(1, (t - walkStart) / (walkEnd - walkStart)));
+  const startX = -100;
+  const endX = CANVAS_W * 0.50;
+  const yutoX = startX + (endX - startX) * easeOutCubic(walkProgress);
+  const yutoY = CANVAS_H - 70;
+  const hasFlowers = State.pickedFlowers.length > 0;
+  const armsState = (t > 5.5 && hasFlowers) ? 'extend' : 'down';
+  const walking = walkProgress > 0 && walkProgress < 1;
+  drawYuto(yutoX, yutoY, 1.4, t, { walking, holding: hasFlowers, arms: armsState });
+
+  // Bouquet drawn near yuto
+  if (hasFlowers) {
+    let bx, by;
+    if (armsState === 'extend') {
+      bx = yutoX + 26; by = yutoY - 50;
+    } else {
+      bx = yutoX; by = yutoY - 50;
+    }
+    drawBouquet(bx, by, State.pickedFlowers, 1.3, t);
+  }
+
+  // Sparkles for happy ending after 6.5s
+  if (State.endingType === 'happy' && t > 6.5) {
+    const seed = (t * 5);
+    for (let i = 0; i < 6; i++) {
+      const sx = mamaX + Math.cos(seed + i * 0.7) * 60;
+      const sy = mamaY - 110 + Math.sin(seed * 0.7 + i) * 40;
+      drawHeart(sx, sy, 6, '#ff6688');
+    }
+  }
+}
+
+function easeOutCubic(t) { return 1 - Math.pow(1 - t, 3); }
+
+// =====================================================
+// GAME LOOP
+// =====================================================
+function loop(t) {
+  const now = t / 1000;
+  let dt = lastT === 0 ? 0 : (now - lastT);
+  lastT = now;
+  if (dt > 0.1) dt = 0.1;
+
+  // Title art always animated
+  renderTitleArt();
+
+  if (State.screen === 'game' && !State.paused) {
+    if (!isSeedingPhase()) {
+      for (const p of State.plots) updatePlot(p, dt);
+    } else {
+      // Seeding-only animations (sparkles, bobOffset)
+      for (const p of State.plots) {
+        p.bobOffset += dt;
+        if (p.flashT > 0) p.flashT -= dt;
+        for (let i = p.sparkles.length - 1; i >= 0; i--) {
+          const s = p.sparkles[i];
+          s.life -= dt;
+          if (s.life <= 0) { p.sparkles.splice(i, 1); continue; }
+          s.x += s.vx * dt; s.y += s.vy * dt; s.vy += 60 * dt;
+        }
+      }
+    }
+    // Practice mode timers
+    if (State.gamePhase === 'practice') {
+      if (State.practice.feedbackT > 0) State.practice.feedbackT -= dt;
+      if (State.practice.cooldown > 0) {
+        State.practice.cooldown -= dt;
+        if (State.practice.cooldown <= 0 && State.practice.round < State.practice.total) {
+          State.practice.cooldown = 0;
+          const pp = State.plots[0];
+          if (pp) startNewGauge(pp);
+        }
+      }
+    }
+  }
+  if (State.screen === 'ending') {
+    State.endingT += dt;
+  }
+
+  renderCanvas();
+  requestAnimationFrame(loop);
+}
+
+// =====================================================
+// INPUT
+// =====================================================
+function getCanvasPos(ev) {
+  const rect = canvas.getBoundingClientRect();
+  const cx = ev.clientX - rect.left;
+  const cy = ev.clientY - rect.top;
+  const x = cx * (CANVAS_W / rect.width);
+  const y = cy * (CANVAS_H / rect.height);
+  return { x, y };
+}
+
+function onCanvasTap(x, y) {
+  if (State.screen !== 'game' || State.paused) return;
+  // Find plot under (x, y)
+  for (const p of State.plots) {
+    if (x >= p.x && x <= p.x + p.w && y >= p.y && y <= p.y + p.h) {
+      handlePlotTap(p);
+      return;
+    }
+  }
+}
+
+function handlePlotTap(p) {
+  if (isSeedingPhase()) {
+    // toggle seed
+    if (p.state === 'empty') {
+      p.state = 'seeded';
+      sfx('seed');
+      spawnSparkles(p, 4, '#fff5b8');
+      updateSeedingUI();
+    } else if (p.state === 'seeded') {
+      p.state = 'empty';
+      sfx('btn');
+      updateSeedingUI();
+    }
+  } else if (State.gamePhase === 'practice') {
+    practiceTap(p);
+  } else {
+    plotOnTap(p);
+    // update HUD
+    if (State.screen === 'game') {
+      $('#hud-progress').textContent = `${State.resolvedPlots} / ${State.totalPlots}`;
+      $('#hud-hearts').textContent = '♥'.repeat(Math.max(0, State.hearts)) + '♡'.repeat(Math.max(0, 3 - State.hearts));
+    }
+  }
+}
+
+// =====================================================
+// PAUSE
+// =====================================================
+function showStartTutorial() {
+  const html = `
+    <div style="text-align:left; font-size:14px; line-height:1.75; padding: 4px 2px;">
+      <div style="margin-bottom: 6px;"><b>① ピンクの ゲージ</b>が ながれます</div>
+      <div style="margin-bottom: 4px;">ますを タップして おせわ してね</div>
+      <div style="display:flex; align-items:center; gap:6px; margin: 8px 0;">
+        <span style="display:inline-block; background:#ffd84d; border:2px solid #3d2a18; border-radius:4px; padding:1px 8px; font-weight:bold;">きいろ</span>
+        <span>で タップ → <b>good</b> (+20てん・花が ふえる)</span>
+      </div>
+      <div style="display:flex; align-items:center; gap:6px; margin: 8px 0;">
+        <span style="display:inline-block; background:#ff5a74; color:#fff; border:2px solid #3d2a18; border-radius:4px; padding:1px 8px; font-weight:bold;">あか</span>
+        <span>で タップ → <b style="color:#e83655;">perfect</b>! (+50てん・花が もっと ふえる ☆)</span>
+      </div>
+      <div style="margin: 6px 0;">それいがいで タップ → ふつう (+5てん)</div>
+      <div style="margin: 6px 0;">ゲージが はじまで いくと <b>ミス</b> (-10てん)</div>
+      <hr style="border:none; border-top:1px dashed rgba(0,0,0,0.3); margin:10px 0;">
+      <div style="margin-bottom: 4px;"><b>② おはなが さいたら…</b></div>
+      <div>みどりの ゲージが でるので、きえる まえに タップで <b>つもう</b>!</div>
+      <div style="margin-top: 4px; color:#a44; font-size:13px;">とり おくれると かれて しまう (-20てん・ハート -1)</div>
+    </div>`;
+  showModal('やりかた', html, [
+    { label: '▶ ほんばん いくよ！', primary: true, fn: () => { hideModal(); sfx('fanfare'); goPlaying(); } },
+    { label: '★ れんしゅう してから', fn: () => { hideModal(); goPractice(); } },
+    { label: 'まだ じゅんび ちゅう', fn: () => { hideModal(); } },
+  ]);
+}
+
+// =====================================================
+// PRACTICE MODE
+// =====================================================
+function goPractice() {
+  // Save the seeded plots so we can restore them after practice
+  State._savedPlots = State.plots;
+  State.gamePhase = 'practice';
+  State.practice = { round: 0, total: 3, results: [], feedbackT: 0, feedbackText: '', feedbackColor: '#000', cooldown: 0 };
+
+  // Build a single big practice plot at center
+  const pw = 320, ph = 240;
+  const p = makePlot(0, 0);
+  p.x = (CANVAS_W - pw) / 2;
+  p.y = (CANVAS_H - ph) / 2 - 10;
+  p.w = pw;
+  p.h = ph;
+  p.flower = FLOWERS[0]; // tampopo, never blooms in practice
+  p.state = 'growing';
+  startNewGauge(p);
+  State.plots = [p];
+
+  hideSeedingUI();
+  hideHUD();
+  $('#practice-banner').style.display = 'block';
+  $('#practice-bottom').style.display = 'flex';
+  updatePracticeUI();
+}
+
+function updatePracticeUI() {
+  $('#practice-counter').textContent = `${State.practice.round} / ${State.practice.total}`;
+}
+
+function hidePracticeUI() {
+  $('#practice-banner').style.display = 'none';
+  $('#practice-bottom').style.display = 'none';
+}
+
+function practiceTap(p) {
+  if (State.practice.cooldown > 0) return;
+  if (p.state !== 'growing') return;
+  const pos = p.gaugePos;
+  const [ss, se] = plotSweetBounds(p);
+  const [ps, pe] = plotPerfectBounds(p);
+  let q;
+  if (pos >= ps && pos <= pe) q = 'perfect';
+  else if (pos >= ss && pos <= se) q = 'good';
+  else q = 'normal';
+  practiceTick(p, q);
+}
+
+function practiceTick(p, quality) {
+  State.practice.round++;
+  State.practice.results.push(quality);
+
+  switch (quality) {
+    case 'perfect':
+      sfx('perfect');
+      p.flashColor = '#ff5577'; spawnSparkles(p, 16, '#ffd0e0');
+      State.practice.feedbackText = 'perfect ☆'; State.practice.feedbackColor = '#e83655';
+      break;
+    case 'good':
+      sfx('good');
+      p.flashColor = '#ffd633'; spawnSparkles(p, 8, '#fff5b8');
+      State.practice.feedbackText = 'good !';     State.practice.feedbackColor = '#c4951f';
+      break;
+    case 'normal':
+      sfx('care');
+      p.flashColor = '#ffffff'; spawnSparkles(p, 4, '#cef');
+      State.practice.feedbackText = 'おせわ +5';   State.practice.feedbackColor = '#5a7';
+      break;
+    case 'miss':
+      sfx('miss');
+      p.flashColor = '#444';
+      State.practice.feedbackText = 'ミス…';       State.practice.feedbackColor = '#a44';
+      break;
+  }
+  p.flashT = 0.5;
+  State.practice.feedbackT = 1.4;
+  // Pause gauge during cooldown
+  p.gaugeSpeed = 0;
+  p.gaugePos = 0;
+  State.practice.cooldown = 0.9;
+  updatePracticeUI();
+
+  if (State.practice.round >= State.practice.total) {
+    setTimeout(() => {
+      if (State.gamePhase === 'practice') showPracticeDone();
+    }, 1200);
+  }
+}
+
+function showPracticeDone() {
+  const r = State.practice.results;
+  const pCount = r.filter(q => q === 'perfect').length;
+  const gCount = r.filter(q => q === 'good').length;
+  const nCount = r.filter(q => q === 'normal').length;
+  const mCount = r.filter(q => q === 'miss').length;
+  let comment;
+  if (pCount >= 2) comment = `perfect ${pCount}かい！もう プロだね ☆`;
+  else if (pCount === 1) comment = 'perfect でた！じょうずだね';
+  else if (gCount >= 2) comment = 'good たくさん！こつ つかんだね';
+  else if (gCount + nCount >= 2) comment = 'いいかんじ！';
+  else comment = 'もうちょっと れんしゅう する？';
+
+  const html = `
+    <div style="font-size:17px; margin: 6px 0 10px;">${comment}</div>
+    <div style="font-size:13px; color: rgba(0,0,0,0.7); line-height:1.6;">
+      perfect: <b>${pCount}</b> ／ good: <b>${gCount}</b><br>
+      ふつう: <b>${nCount}</b> ／ ミス: <b>${mCount}</b>
+    </div>`;
+
+  showModal('れんしゅう おわり', html, [
+    { label: '▶ ほんばん スタート', primary: true, fn: () => { hideModal(); endPracticeAndPlay(); } },
+    { label: 'もう 1かい れんしゅう', fn: () => { hideModal(); restartPractice(); } },
+    { label: 'たねまきへ もどる', fn: () => { hideModal(); endPracticeAndBackToSeeding(); } },
+  ]);
+}
+
+function restartPractice() {
+  State.practice.round = 0;
+  State.practice.results = [];
+  State.practice.feedbackT = 0;
+  State.practice.cooldown = 0;
+  const p = State.plots[0];
+  startNewGauge(p);
+  updatePracticeUI();
+}
+
+function endPracticeAndPlay() {
+  State.plots = State._savedPlots;
+  State._savedPlots = null;
+  hidePracticeUI();
+  sfx('fanfare');
+  goPlaying();
+}
+
+function endPracticeAndBackToSeeding() {
+  State.plots = State._savedPlots;
+  State._savedPlots = null;
+  State.gamePhase = 'seeding';
+  hidePracticeUI();
+  showSeedingUI();
+  updateSeedingUI();
+}
+
+function showPauseMenu() {
+  if (State.paused || State.screen !== 'game' || isSeedingPhase()) return;
+  State.paused = true;
+  showModal('ポーズ', '',
+    [
+      { label: 'つづける', primary: true, fn: () => { State.paused = false; hideModal(); } },
+      { label: 'いまの けっかで おわり', fn: () => {
+        State.paused = false; hideModal();
+        // Force end with whatever state
+        if (State.pickedFlowers.length > 0) endGame('happy');
+        else endGame('gameover');
+      } },
+      { label: 'タイトルへ', fn: () => { State.paused = false; hideModal(); goTitle(); } },
+    ]);
+}
+
+// =====================================================
+// INIT
+// =====================================================
+function init() {
+  loadSave();
+  canvas = $('#canvas');
+  ctx = canvas.getContext('2d');
+  resizeCanvas();
+  window.addEventListener('resize', resizeCanvas);
+
+  // Title screen actions
+  $('#btn-play').addEventListener('click', () => { sfx('btn'); goDifficulty(); });
+  $('#btn-howto').addEventListener('click', () => { sfx('btn'); goHowto(); });
+  $('#btn-hi').addEventListener('click', () => { sfx('btn'); goHiscores(); });
+  $('#mute-title').addEventListener('click', toggleMute);
+  const muteSym = State.muted ? '🔇' : '🔊';
+  $('#mute-title').textContent = muteSym;
+  $('#hud-mute').textContent = muteSym;
+
+  $('#diff-back').addEventListener('click', e => { e.preventDefault(); sfx('btn'); goTitle(); });
+  $$('button[data-diff]').forEach(b => {
+    b.addEventListener('click', () => {
+      sfx('btn');
+      State.difficulty = b.dataset.diff;
+      State.diff = DIFFICULTIES[State.difficulty];
+      goSeeding();
+    });
+  });
+
+  $('#howto-back').addEventListener('click', e => { e.preventDefault(); sfx('btn'); goTitle(); });
+  $('#howto-back-btn').addEventListener('click', () => { sfx('btn'); goTitle(); });
+
+  $('#hi-back').addEventListener('click', e => { e.preventDefault(); sfx('btn'); goTitle(); });
+  $('#hi-back-btn').addEventListener('click', () => { sfx('btn'); goTitle(); });
+
+  $('#seed-back').addEventListener('click', () => { sfx('btn'); goDifficulty(); });
+  $('#seed-start').addEventListener('click', () => { sfx('btn'); showStartTutorial(); });
+  $('#practice-skip').addEventListener('click', () => { sfx('btn'); endPracticeAndPlay(); });
+
+  $('#hud-pause').addEventListener('click', () => { sfx('btn'); showPauseMenu(); });
+  $('#hud-mute').addEventListener('click', toggleMute);
+
+  $('#end-again').addEventListener('click', () => { sfx('btn'); goSeeding(); });
+  $('#end-diff').addEventListener('click', () => { sfx('btn'); goDifficulty(); });
+  $('#end-title').addEventListener('click', () => { sfx('btn'); goTitle(); });
+
+  // Canvas input
+  canvas.addEventListener('click', e => {
+    const { x, y } = getCanvasPos(e);
+    onCanvasTap(x, y);
+  });
+  canvas.addEventListener('touchstart', e => {
+    if (e.touches.length === 0) return;
+    e.preventDefault();
+    const { x, y } = getCanvasPos(e.touches[0]);
+    onCanvasTap(x, y);
+  }, { passive: false });
+
+  // Keyboard
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape') {
+      if (State.screen === 'game') showPauseMenu();
+      else if (State.screen === 'difficulty' || State.screen === 'hiscores' || State.screen === 'howto') goTitle();
+    }
+  });
+
+  // start loop
+  requestAnimationFrame(loop);
+}
+
+function toggleMute() {
+  State.muted = !State.muted;
+  saveAll();
+  const sym = State.muted ? '🔇' : '🔊';
+  $('#mute-title').textContent = sym;
+  $('#hud-mute').textContent = sym;
+  if (!State.muted) sfx('btn');
+}
+
+document.addEventListener('DOMContentLoaded', init);
+</script>
+</body>
+</html>
