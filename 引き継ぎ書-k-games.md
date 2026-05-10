@@ -1,6 +1,6 @@
 # 引き継ぎ書 — K-games (サイト全体)
 
-最終更新: 2026-05-06(メジェドを救え! v1.5.1 — 縦方向ステージ2種追加+操作説明テーブル準拠)
+最終更新: 2026-05-11(ゆうとの花だん v1.0.0 公開 — 育成タイミング型の絵本風カジュアル新作)
 
 ---
 
@@ -88,6 +88,10 @@ k-games/
 │  ├─ medjed_F_child.svg       ← 子供
 │  └─ qr.png                   ← Lemmings 用QR
 │
+├─ yuto-garden/                ← ゆうとの花だん(育成タイミング)
+│  ├─ index.html               ← ゲーム本体(単一HTML、Canvas 2D の procedural 描画のみ)
+│  └─ qr.png                   ← yuto-garden 用QR
+│
 ├─ 引き継ぎ書-k-games.md       ← このファイル(サイト全体)
 ├─ 引き継ぎ書-DTT-mini.md      ← DTT-mini 詳細
 ├─ 引き継ぎ書-popins.md        ← ポピンズ 詳細
@@ -96,7 +100,8 @@ k-games/
 ├─ 引き継ぎ書-cafe-merge.md    ← カフェマージ 詳細
 ├─ 引き継ぎ書-shirokuro.md     ← しろくろ 詳細
 ├─ 引き継ぎ書-saikoro-wars.md  ← サイコロ大戦争 詳細
-└─ 引き継ぎ書-Lemmings.md      ← メジェドを救え! 詳細
+├─ 引き継ぎ書-Lemmings.md      ← メジェドを救え! 詳細
+└─ 引き継ぎ書-yuto-garden.md   ← ゆうとの花だん 詳細
 ```
 
 ⚠ `Lemmings/` だけ先頭大文字で他ディレクトリ(全て小文字)と不揃い。新作開発時にユーザー作成済みのフォルダをそのまま流用したため。改名する場合は `git mv` + QR再焼成 + 各引き継ぎ書のパス修正が必要。
@@ -117,6 +122,7 @@ k-games/
 6. しろくろ
 7. サイコロ大戦争
 8. メジェドを救え!
+9. ゆうとの花だん
 
 並べ替えたいときはユーザーに確認してから。
 
@@ -345,6 +351,7 @@ URL を変えたときだけ焼き直し。現状すべて k-games URL で焼成
 | しろくろ | `shirokuro/` | `引き継ぎ書-shirokuro.md` | https://windom21-cpu.github.io/k-games/shirokuro/ |
 | サイコロ大戦争 | `saikoro-wars/` | `引き継ぎ書-saikoro-wars.md` | https://windom21-cpu.github.io/k-games/saikoro-wars/ |
 | メジェドを救え! | `Lemmings/` | `引き継ぎ書-Lemmings.md` | https://windom21-cpu.github.io/k-games/Lemmings/ |
+| ゆうとの花だん | `yuto-garden/` | `引き継ぎ書-yuto-garden.md` | https://windom21-cpu.github.io/k-games/yuto-garden/ |
 
 ---
 
@@ -372,3 +379,4 @@ URL を変えたときだけ焼き直し。現状すべて k-games URL で焼成
 - 2026-05-06 (メジェドを救え! v1.4.0): 縦方向の新ステージ **Stage 9「神々の階段」** 追加。スポーン上(col 1, row 1) → ゴール下(col 28, row 13)のジグザグ降下マップ。5段の足場で各落差3タイル安全圏、底の棘を ARROW_R で右に折り返して回避。隠しを Stage 10 にスライド(解放条件は不変)。result-modal の「次へ」ボタンを `isStageUnlocked(nextIdx)` 判定に簡素化。
 - 2026-05-06 (メジェドを救え! v1.5.0): 縦方向の難ステージ **Stage 10「時の試練」** 追加。子供(F ×1.4)と神官(D ×0.7)のみ出現、制限時間 90 秒の時間圧。plat 2 上の棘群を BLOCK + BRIDGE で持ち上げて越え、plat 4 上の棘群を ARROW_R で左→右に転換して回避する2段構成。隠しを Stage 11 にスライド(解放条件は不変)。
 - 2026-05-06 (メジェドを救え! v1.5.1): 操作説明画面の3つのテーブル(メジェドの仲間/アイテム一覧/評価)を **HTML4風スタイル レシピ §3.2 に厳密準拠**。`.help-page table { border-collapse: collapse }` を撤去し、HTML 属性 `border="1" cellpadding="8" align="center" width="90%"` のブラウザ デフォルト描画(セル分離+3D風枠線)に戻す。
+- 2026-05-11 (新作追加): **ゆうとの花だん** v1.0.0 公開。ちびっこのゆうとが畑に種を植えて花を育て、ママに花束をプレゼントする絵本風育成ゲーム。タイミングタップ式お世話 + 花の摘み取り。難易度4段階(やさしい4 / ふつう8 / むつかしい16 / おに32マス、指数関数増加)、6種の花(タンポポ/あさがお/チューリップ/コスモス/ひまわり/バラ)、ゲージのスイートスポット2段階評価(黄=good / 赤=perfect で花が増殖)、おにモードのみスポットがランダム移動。**種は0.5秒長押しで配置・タップで撤去**、1ますからスタート可。準備画面で「練習モード」(3ラウンド)を選択可能。エンディング: ゆうとが歩いてきてママに花束を渡す Canvas 2D 演出 + ハートぽよん。摘んだ花は花束として動的合成。難易度別ハイスコア TOP5 を localStorage 保存。すべて Canvas 2D の procedural 描画(画像アセット 0)。

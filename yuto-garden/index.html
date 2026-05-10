@@ -388,9 +388,9 @@
       <div class="howto-body">
         <h3>① たねを まこう</h3>
         <ul>
-          <li>はたけの まっしろい ますを タップ すると たねが おちます。</li>
-          <li>もういちど タップ すると たねを とりのぞけます。</li>
-          <li>ぜんぶ うめたら「▶ せいちょうスタート」を おしてね。</li>
+          <li>はたけの まっしろい ますを <b>ながおし</b>(0.5びょう)すると たねが おちます。</li>
+          <li>うめた たねを <b>タップ</b> すると とりのぞけます。</li>
+          <li>1ばしょ いじょう うめたら「▶ せいちょうスタート」を おしてね。</li>
         </ul>
         <h3>② おせわで そだてよう</h3>
         <ul>
@@ -441,9 +441,9 @@
         <div class="hud-pill btn" id="hud-pause">⏸</div>
       </div>
       <div class="seed-banner" id="seed-banner" style="display:none;">
-        まずは たねを まきましょう (<span id="seed-count">0</span>/<span id="seed-total">0</span>)
+        ますを <b>ながおし</b> して たねを まこう (<span id="seed-count">0</span>/<span id="seed-total">0</span>)
         <div style="font-size: 11px; color: rgba(0,0,0,0.6); margin-top: 2px; font-weight: normal;">
-          1ばしょ いじょう うめたら ▶スタート OK
+          タップで とり のぞく ／ 1ばしょ いじょうで ▶スタート OK
         </div>
       </div>
       <div class="seed-bottom" id="seed-bottom" style="display:none;">
@@ -516,6 +516,7 @@ const FLOWERS = [
 ];
 
 const PICK_GAUGE_TIME = 4.5; // seconds for picking gauge to fill
+const LONG_PRESS_SEC = 0.5;  // hold time required to plant a seed
 
 // =====================================================
 // STATE
@@ -555,6 +556,7 @@ const State = {
 const $  = (sel) => document.querySelector(sel);
 const $$ = (sel) => document.querySelectorAll(sel);
 let lastT = 0;
+let pressState = null;  // { plotIdx, startTime, x, y } during seeding long-press
 
 // =====================================================
 // SAVE / LOAD
@@ -948,7 +950,7 @@ function goSeeding() {
     State.tutorialShown = true;
     saveAll();
     showModal('はじめての ひとへ',
-      'まずは はたけの ますを タップして たねを まこう。<br>たねを ぜんぶ うめたら「▶ せいちょうスタート」だよ！',
+      'まずは はたけの ますを <b>ながおし</b>(0.5びょう くらい)して たねを まこう。<br>うめた たねは タップで とりのぞける よ。<br>1ばしょ いじょう うめたら「▶ せいちょうスタート」!',
       [{label:'わかった', primary:true, fn: hideModal}]);
   }
 }
@@ -1922,6 +1924,15 @@ function renderCanvas() {
     // Plots
     if (State.screen === 'game') {
       for (const p of State.plots) drawPlot(p);
+      // Long-press progress ring (during seeding)
+      if (pressState && State.gamePhase === 'seeding') {
+        const p = State.plots[pressState.plotIdx];
+        if (p && p.state === 'empty') {
+          const elapsed = (performance.now() - pressState.startTime) / 1000;
+          const t = Math.min(1, elapsed / LONG_PRESS_SEC);
+          drawPressProgress(p, t);
+        }
+      }
       // Practice feedback text overlay
       if (State.gamePhase === 'practice' && State.practice.feedbackT > 0) {
         const a = Math.min(1, State.practice.feedbackT);
@@ -2009,6 +2020,32 @@ function drawEndingScene() {
 
 function easeOutCubic(t) { return 1 - Math.pow(1 - t, 3); }
 
+function drawPressProgress(p, t) {
+  const cx = p.x + p.w / 2;
+  const cy = p.y + p.h / 2;
+  const r = Math.min(p.w, p.h) * 0.18;
+  ctx.save();
+  // Faint background ring
+  ctx.strokeStyle = 'rgba(0,0,0,0.18)';
+  ctx.lineWidth = 4;
+  ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); ctx.stroke();
+  // Progress arc (clockwise from top)
+  ctx.strokeStyle = '#ff8eb0';
+  ctx.lineWidth = 5;
+  ctx.lineCap = 'round';
+  ctx.beginPath();
+  ctx.arc(cx, cy, r, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * t);
+  ctx.stroke();
+  // Growing seed dot at center
+  ctx.fillStyle = '#5a3a1c';
+  const sw = 3 + 4 * t;
+  const sh = 2 + 2.5 * t;
+  ctx.beginPath();
+  ctx.ellipse(cx, cy, sw, sh, 0, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.restore();
+}
+
 // =====================================================
 // GAME LOOP
 // =====================================================
@@ -2035,6 +2072,22 @@ function loop(t) {
           if (s.life <= 0) { p.sparkles.splice(i, 1); continue; }
           s.x += s.vx * dt; s.y += s.vy * dt; s.vy += 60 * dt;
         }
+      }
+    }
+    // Long-press progress (seeding only) — auto-plant when threshold reached
+    if (pressState && State.gamePhase === 'seeding') {
+      const p = State.plots[pressState.plotIdx];
+      if (p && p.state === 'empty') {
+        const elapsed = (performance.now() - pressState.startTime) / 1000;
+        if (elapsed >= LONG_PRESS_SEC) {
+          p.state = 'seeded';
+          sfx('seed');
+          spawnSparkles(p, 6, '#fff5b8');
+          updateSeedingUI();
+          pressState = null;
+        }
+      } else {
+        pressState = null;
       }
     }
     // Practice mode timers
@@ -2070,35 +2123,59 @@ function getCanvasPos(ev) {
   return { x, y };
 }
 
-function onCanvasTap(x, y) {
-  if (State.screen !== 'game' || State.paused) return;
-  // Find plot under (x, y)
-  for (const p of State.plots) {
-    if (x >= p.x && x <= p.x + p.w && y >= p.y && y <= p.y + p.h) {
-      handlePlotTap(p);
-      return;
-    }
-  }
+function inRect(x, y, p) {
+  return x >= p.x && x <= p.x + p.w && y >= p.y && y <= p.y + p.h;
 }
 
-function handlePlotTap(p) {
+function findPlotAt(x, y) {
+  for (let i = 0; i < State.plots.length; i++) {
+    if (inRect(x, y, State.plots[i])) return i;
+  }
+  return -1;
+}
+
+function onPointerDown(x, y) {
+  if (State.screen !== 'game') return;
   if (isSeedingPhase()) {
-    // toggle seed
-    if (p.state === 'empty') {
-      p.state = 'seeded';
-      sfx('seed');
-      spawnSparkles(p, 4, '#fff5b8');
-      updateSeedingUI();
-    } else if (p.state === 'seeded') {
+    const idx = findPlotAt(x, y);
+    if (idx < 0) return;
+    const p = State.plots[idx];
+    if (p.state === 'seeded') {
+      // Quick tap removes a planted seed
       p.state = 'empty';
       sfx('btn');
       updateSeedingUI();
+    } else if (p.state === 'empty') {
+      // Begin long-press to plant
+      pressState = { plotIdx: idx, startTime: performance.now(), x, y };
     }
-  } else if (State.gamePhase === 'practice') {
+    return;
+  }
+  if (State.paused) return;
+  if (State.gamePhase === 'practice' || State.gamePhase === 'playing') {
+    const idx = findPlotAt(x, y);
+    if (idx < 0) return;
+    handlePlotTap(State.plots[idx]);
+  }
+}
+
+function onPointerMove(x, y) {
+  if (!pressState) return;
+  const p = State.plots[pressState.plotIdx];
+  if (!p || !inRect(x, y, p) || p.state !== 'empty') {
+    pressState = null;
+  }
+}
+
+function onPointerUp() {
+  pressState = null;
+}
+
+function handlePlotTap(p) {
+  if (State.gamePhase === 'practice') {
     practiceTap(p);
-  } else {
+  } else if (State.gamePhase === 'playing') {
     plotOnTap(p);
-    // update HUD
     if (State.screen === 'game') {
       $('#hud-progress').textContent = `${State.resolvedPlots} / ${State.totalPlots}`;
       $('#hud-hearts').textContent = '♥'.repeat(Math.max(0, State.hearts)) + '♡'.repeat(Math.max(0, 3 - State.hearts));
@@ -2343,17 +2420,21 @@ function init() {
   $('#end-diff').addEventListener('click', () => { sfx('btn'); goDifficulty(); });
   $('#end-title').addEventListener('click', () => { sfx('btn'); goTitle(); });
 
-  // Canvas input
-  canvas.addEventListener('click', e => {
-    const { x, y } = getCanvasPos(e);
-    onCanvasTap(x, y);
-  });
-  canvas.addEventListener('touchstart', e => {
-    if (e.touches.length === 0) return;
+  // Canvas input — Pointer Events handle mouse + touch + pen uniformly
+  canvas.addEventListener('pointerdown', e => {
     e.preventDefault();
-    const { x, y } = getCanvasPos(e.touches[0]);
-    onCanvasTap(x, y);
-  }, { passive: false });
+    try { canvas.setPointerCapture(e.pointerId); } catch (err) {}
+    const { x, y } = getCanvasPos(e);
+    onPointerDown(x, y);
+  });
+  canvas.addEventListener('pointermove', e => {
+    if (!pressState) return;
+    const { x, y } = getCanvasPos(e);
+    onPointerMove(x, y);
+  });
+  canvas.addEventListener('pointerup', () => onPointerUp());
+  canvas.addEventListener('pointercancel', () => { pressState = null; });
+  canvas.addEventListener('pointerleave', () => { /* don't clear: capture keeps events */ });
 
   // Keyboard
   document.addEventListener('keydown', e => {
