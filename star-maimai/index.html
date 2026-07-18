@@ -207,6 +207,11 @@
   .hof-card { border: 2px solid #d4a017; border-radius: 10px; background: #fffdf2; padding: 8px 10px; margin: 8px 0; }
   .hof-card .hof-name { font-weight: bold; font-size: 16px; }
   .hof-card .hof-sub { font-size: 12.5px; color: #7a6a30; }
+  .hof-card.selectable { cursor: pointer; }
+  .hof-card.selected { border-color: var(--accent); background: #fff4e2; box-shadow: 0 0 0 2px var(--accent); }
+  .hof-card.wild { border-color: #5a8a4a; background: #f4fbee; }
+  .parent-badge { display: inline-block; background: var(--accent); color: #fff; border-radius: 6px; padding: 0 8px; font-size: 12px; font-weight: bold; margin-right: 4px; }
+  .gen-badge { display: inline-block; background: #4a7ac0; color: #fff; border-radius: 6px; padding: 0 6px; font-size: 11.5px; font-weight: bold; }
 
   footer { text-align: center; margin-top: 24px; font-size: 12.5px; color: #7a9a6a; }
   footer a { color: #4a7ac0; }
@@ -239,10 +244,36 @@
     </div>
   </section>
 
+  <!-- ========== 迎え方選択(野生 or 配合) ========== -->
+  <section id="scr-welcome" class="screen">
+    <div class="panel">
+      <h2>あたらしいマイマイを迎える</h2>
+      <p style="font-size:13.5px;">つぎのシーズンをともに戦うマイマイを、どうやって迎えよう?</p>
+      <div class="btn-col" style="max-width:360px;margin:14px auto;">
+        <button class="primary big" id="btn-welcome-breed">💕 配合する<br><small>殿堂のマイマイから子どもをつくる</small></button>
+        <button class="big" id="btn-welcome-wild">🌿 野生の子をむかえる<br><small>サイコロ10個のみで誕生</small></button>
+      </div>
+      <p class="center muted" style="font-size:12.5px;">配合すると、両親の能力とかくれた素質が子どもに受けつがれる。<br>ただし、なにが生まれるかはサイコロしだい…!</p>
+    </div>
+  </section>
+
+  <!-- ========== 配合(親選び) ========== -->
+  <section id="scr-breed" class="screen">
+    <h1 class="game-title" style="font-size:22px;">💕 配合 — 親をえらぶ</h1>
+    <p class="center muted" style="font-size:13px;">殿堂から <b>2頭</b> えらぼう(1頭+「野生のマイマイ」でもOK)</p>
+    <div class="center" id="breed-status" style="min-height:24px;font-weight:bold;"></div>
+    <div id="breed-list"></div>
+    <div class="btn-row">
+      <button class="primary big" id="btn-breed-go" disabled>この2頭で配合!</button>
+      <button id="btn-breed-back">← もどる</button>
+    </div>
+  </section>
+
   <!-- ========== サイコロ(新しいマイマイ) ========== -->
   <section id="scr-dice" class="screen">
     <div class="panel">
       <h2>あたらしいマイマイの誕生</h2>
+      <p class="center" id="dice-breed-line" style="display:none;font-size:13.5px;background:#fff4e2;border:2px solid var(--accent);border-radius:8px;padding:6px;"></p>
       <p style="font-size:13.5px;">サイコロを <b>10個</b> ふって、生まれてくるマイマイの能力が決まる。<br>
       <span class="muted">青3個=ぬめり / 緑3個=体力 / 橙2個=根性 / 紫2個=カラ。合計が大きいほど成長も早い。</span></p>
       <div class="dice-legend">
@@ -361,7 +392,7 @@
       <h2 id="retire-title">引退式</h2>
       <canvas id="retire-canvas" width="480" height="200" style="width:100%;max-width:480px;display:block;margin:0 auto;border-radius:10px;"></canvas>
       <div id="retire-summary"></div>
-      <p class="center muted">引退したマイマイは殿堂に永久保存され、<br>将来のバージョンで繁殖に使えるようになる予定。</p>
+      <p class="center muted">引退したマイマイは殿堂に永久保存され、<br>いつでも<b>配合</b>して子どもをつくれる。</p>
       <div class="btn-row">
         <button class="primary big" id="btn-retire-next">あたらしいマイマイを迎える</button>
         <button id="btn-retire-hall">🏆 殿堂を見る</button>
@@ -423,7 +454,10 @@
         <h3>レース</h3>
         <p>年間12レース。グレードは <span class="tag g3">G3</span> → <span class="tag g2">G2</span> → <span class="tag g1">G1</span> → <span class="tag mc">マイマイカップ</span> の順に強い相手と大きな賞金が待っている。きょりは 50cm / 100cm / 150cm の3種類。</p>
         <h3>引退と殿堂</h3>
-        <p>12月後半のターンが終わると自動的に引退。とちゅうで引退させることもできる。引退したマイマイは<b>殿堂</b>に永久保存され、将来のバージョンで<b>繁殖(はんしょく)</b>に使える予定。</p>
+        <p>12月後半のターンが終わると自動的に引退。とちゅうで引退させることもできる。引退したマイマイは<b>殿堂</b>に永久保存され、いつでも<b>配合</b>の親に使える。</p>
+        <h3>配合(世代交代)</h3>
+        <p>殿堂に1頭でもいれば、つぎのマイマイを<b>配合</b>でつくれる。殿堂から2頭(または1頭+野生)をえらぶと、両親の能力の一部と、目に見えない<b>調教効果・成長の早さ</b>が子どもに受けつがれる。<br>
+        基本は「強い親からは強い子」。でもサイコロと変異しだいで、<b>弱い親からとんでもない大物</b>が生まれることもある。何世代もかけて最強の血統をつくろう。</p>
       </div>
       <div class="btn-row"><button id="btn-help-close">とじる</button></div>
     </div>
@@ -445,16 +479,16 @@
 <script>
 'use strict';
 /* =====================================================
-   スターマイマイ v1.0.0
+   スターマイマイ v1.1.0
    カタツムリ育成レースシミュレーション
    - 24ターン(半月単位) × 1年 → 引退
    - セーブ3スロット / バージョン付きセーブ+マイグレーション
    - 隠しステータス: 調教効果(ステ別適性) + 成長係数
-   - v1.1 で繁殖・世代交代を追加予定(殿堂に個体を永久保存)
+   - v1.1: 配合・世代交代(殿堂の2頭 or 1頭+野生から子をつくる)
    ===================================================== */
 
-const GAME_VERSION = '1.0.0';
-const SAVE_VERSION = 1;
+const GAME_VERSION = '1.1.0';
+const SAVE_VERSION = 2;
 const LS_PREFIX = 'starMaimai.slot';
 const LS_MUTE = 'starMaimai.mute';
 
@@ -498,6 +532,17 @@ const TUNE = {
   fatPenaltyStart: 55, fatPenaltyPer: 0.004, // つかれによる速度低下
   noiseAmp: 0.10, noisePeriod: 0.8,    // ペースのゆらぎ
   laneCount: 8,
+  // 配合(v1.1): 子 = サイコロ由来 + 両親の遺伝
+  breed: {
+    statInheritRate: 0.15,   // 初期ステ加算 = 両親平均ステ × これ × 変異
+    statMutSd: 0.35,         // 遺伝加算の変異(gauss(1, sd))
+    statMutMin: 0.20, statMutMax: 1.9,  // 変異のクランプ(上振れ広め=大物の余地)
+    aptMutSd: 0.18,          // 調教効果: 両親平均を中心に gauss
+    aptRegress: 0.25,        // 調教効果は少しだけ平均(1.0)へ戻る(インフレ防止)
+    gfParentW: 0.45,         // 成長係数: 親平均の混合比(残りはサイコロ由来)
+    gfMutSd: 0.03, gfMin: 0.85, gfMax: 1.32,
+    wildStatMin: 25, wildStatMax: 70,   // 野生親の能力レンジ
+  },
 };
 
 /* ---------- レース定義 ---------- */
@@ -558,13 +603,19 @@ function rankOf(v) {
    ===================================================== */
 // 各スロット: { version, money, year, hall:[], current: snail|null, updatedAt }
 // snail: { name, dice:[10], stats:{num,sta,gut,shl}, hidden:{gf, apt:{num,sta,gut,shl}},
-//          fatigue, cond, turn, prize, wins, starts, results:[], titles:[], mcWon }
+//          fatigue, cond, turn, prize, wins, starts, results:[], titles:[], mcWon,
+//          gen, parents:[名,名]|null }   ← v2 で追加(gen=世代, 野生スタートは1)
 // hall entry: snail のスナップショット + { retiredYear, canBreed:true }
-//   ※ canBreed は v1.1 の繁殖システム用。引退個体は永久に繁殖可能とする方針。
+//   ※ canBreed:true の個体は永久に配合の親に使える方針。
 
 const MIGRATIONS = {
-  // 例: 0: (d) => { d.version = 1; d.newField = ...; return d; }
-  // SAVE_VERSION を上げたら、旧version→新version の変換関数をここに足す。
+  // 旧version → 新version の変換関数。SAVE_VERSION を上げたらここに足す。
+  1: (d) => {
+    d.version = 2;
+    if (d.current) { if (d.current.gen == null) d.current.gen = 1; if (d.current.parents == null) d.current.parents = null; }
+    for (const h of (d.hall || [])) { if (h.gen == null) h.gen = 1; if (h.parents == null) h.parents = null; }
+    return d;
+  },
 };
 
 function migrateSave(data) {
@@ -607,6 +658,9 @@ const G = {
   slot: -1,          // 現在のスロット番号 0-2
   save: null,        // スロットのセーブデータ(参照)
   pendingDice: null, // サイコロ画面の一時データ
+  pendingBreed: null,// 配合中の両親 { p1, p2 }(サイコロ画面へ引き継ぐ)
+  breedSel: [],      // 配合画面の選択: 'w'(野生) or 殿堂 index
+  wildParent: null,  // 配合画面の野生親(画面に入るたび引き直し)
   race: null,        // レース進行中データ
   logs: [],          // 表示用ログ(セーブしない)
 };
@@ -625,26 +679,50 @@ function rollDiceSet() {
   return dice;
 }
 
-function makeSnailFromDice(dice, name) {
+// breed = { p1, p2 } (殿堂エントリ or 野生親) を渡すと遺伝が乗る。null なら従来どおり野生誕生。
+// 直近の遺伝ボーナスは lastBreedBonus に入る(サイコロ画面の表示用。セーブしない)。
+let lastBreedBonus = null;
+function makeSnailFromDice(dice, name, breed) {
   const sum3a = dice[0] + dice[1] + dice[2];          // ぬめり
   const sum3b = dice[3] + dice[4] + dice[5];          // 体力
   const sum2a = dice[6] + dice[7];                    // 根性
   const sum2b = dice[8] + dice[9];                    // カラ
   const total = dice.reduce((a, b) => a + b, 0);
+  const stats = {
+    num: Math.round(sum3a * TUNE.initNumMul),
+    sta: Math.round(sum3b * TUNE.initStaMul),
+    gut: Math.round(sum2a * TUNE.initGutMul),
+    shl: Math.round(sum2b * TUNE.initShlMul),
+  };
+  let gf = TUNE.gfBase + (total - 10) * TUNE.gfPerPip;
   const apt = {};
-  for (const k of ['num', 'sta', 'gut', 'shl']) {
-    apt[k] = clamp(gauss(TUNE.aptMean, TUNE.aptSd), TUNE.aptMin, TUNE.aptMax);
+  lastBreedBonus = null;
+  if (breed) {
+    // ---- 遺伝: 初期ステ加算 + apt/gf の継承(変異幅広め=弱親から大物の余地) ----
+    const B = TUNE.breed;
+    lastBreedBonus = {};
+    for (const k of ['num', 'sta', 'gut', 'shl']) {
+      const pAvg = (breed.p1.stats[k] + breed.p2.stats[k]) / 2;
+      const mut = clamp(gauss(1.0, B.statMutSd), B.statMutMin, B.statMutMax);
+      const bonus = Math.max(0, Math.round(pAvg * B.statInheritRate * mut));
+      lastBreedBonus[k] = bonus;
+      stats[k] = clamp(stats[k] + bonus, 0, TUNE.statMax);
+      const aptMid = (breed.p1.hidden.apt[k] + breed.p2.hidden.apt[k]) / 2;
+      const aptCenter = aptMid + (TUNE.aptMean - aptMid) * B.aptRegress;   // 平均への回帰
+      apt[k] = clamp(gauss(aptCenter, B.aptMutSd), TUNE.aptMin, TUNE.aptMax);
+    }
+    const gfMid = (breed.p1.hidden.gf + breed.p2.hidden.gf) / 2;
+    gf = clamp(gf * (1 - B.gfParentW) + gfMid * B.gfParentW + gauss(0, B.gfMutSd), B.gfMin, B.gfMax);
+  } else {
+    for (const k of ['num', 'sta', 'gut', 'shl']) {
+      apt[k] = clamp(gauss(TUNE.aptMean, TUNE.aptSd), TUNE.aptMin, TUNE.aptMax);
+    }
   }
   return {
     name: name,
     dice: dice.slice(),
-    stats: {
-      num: Math.round(sum3a * TUNE.initNumMul),
-      sta: Math.round(sum3b * TUNE.initStaMul),
-      gut: Math.round(sum2a * TUNE.initGutMul),
-      shl: Math.round(sum2b * TUNE.initShlMul),
-    },
-    hidden: { gf: TUNE.gfBase + (total - 10) * TUNE.gfPerPip, apt: apt },
+    stats: stats,
+    hidden: { gf: gf, apt: apt },
     fatigue: 0,
     cond: 2,
     turn: 0,
@@ -654,7 +732,25 @@ function makeSnailFromDice(dice, name) {
     results: [],   // { raceId, name, grade, place, field, ground }
     titles: [],    // 勝った重賞名
     mcWon: false,
-    bodyHue: ri(0, 359),   // 見た目のバリエーション
+    bodyHue: breed ? (rnd() < 0.5 ? breed.p1.bodyHue : breed.p2.bodyHue) + ri(-25, 25) : ri(0, 359),
+    gen: breed ? Math.max(breed.p1.gen || 1, breed.p2.gen || 1) + 1 : 1,
+    parents: breed ? [breed.p1.name, breed.p2.name] : null,
+  };
+}
+
+// 配合相手にできる「野生のマイマイ」を1頭でっちあげる
+function makeWildParent() {
+  const B = TUNE.breed;
+  const st = () => ri(B.wildStatMin, B.wildStatMax);
+  const apt = {};
+  for (const k of ['num', 'sta', 'gut', 'shl']) {
+    apt[k] = clamp(gauss(TUNE.aptMean, TUNE.aptSd), TUNE.aptMin, TUNE.aptMax);
+  }
+  return {
+    wild: true, name: '野生のマイマイ',
+    stats: { num: st(), sta: st(), gut: st(), shl: st() },
+    hidden: { gf: clamp(gauss(1.02, 0.08), 0.90, 1.25), apt: apt },
+    gen: 0, bodyHue: ri(0, 359),
   };
 }
 
@@ -974,9 +1070,11 @@ function retireSnail(early) {
     titles: c.titles.slice(), mcWon: c.mcWon,
     results: c.results.slice(),
     bodyHue: c.bodyHue,
+    gen: c.gen || 1,
+    parents: c.parents || null,
     retiredYear: S().year,
     retiredEarly: !!early,
-    canBreed: true,   // 引退したら一生繁殖に使える(v1.1で実装)
+    canBreed: true,   // 引退したら一生配合に使える
   };
   S().hall.push(entry);
   S().current = null;
@@ -1211,8 +1309,88 @@ function enterSlot(i) {
     showScreen('scr-main');
     renderMain();
   } else {
-    startDiceScreen();
+    startWelcome();
   }
+}
+
+/* =====================================================
+   迎え方選択・配合(v1.1)
+   ===================================================== */
+// 殿堂に親候補がいれば「野生 or 配合」の選択へ、いなければ従来どおりサイコロへ
+function startWelcome() {
+  G.pendingBreed = null;
+  const breedable = S().hall.filter(h => h.canBreed);
+  if (breedable.length === 0) { startDiceScreen(); return; }
+  showScreen('scr-welcome');
+}
+
+function startBreedScreen() {
+  G.breedSel = [];   // 選択中の親: 'w'(野生) or 殿堂 index
+  G.wildParent = makeWildParent();   // この画面に入るたびに引き直し
+  renderBreedList();
+  showScreen('scr-breed');
+}
+
+function breedParentOf(sel) {
+  return sel === 'w' ? G.wildParent : S().hall[sel];
+}
+
+function renderBreedList() {
+  const list = $('breed-list');
+  const hall = S().hall;
+  const cards = [];
+  cards.push({ sel: 'w', h: G.wildParent, wild: true });
+  hall.map((h, i) => ({ h, i })).reverse().forEach(({ h, i }) => {
+    if (h.canBreed) cards.push({ sel: i, h: h, wild: false });
+  });
+  list.innerHTML = '';
+  for (const cd of cards) {
+    const h = cd.h;
+    const st = h.stats;
+    const selIdx = G.breedSel.indexOf(cd.sel);
+    const div = document.createElement('div');
+    div.className = 'hof-card selectable' + (cd.wild ? ' wild' : '') + (selIdx >= 0 ? ' selected' : '');
+    const badge = selIdx >= 0 ? `<span class="parent-badge">親${selIdx + 1}</span>` : '';
+    if (cd.wild) {
+      div.innerHTML = `<div class="hof-name">${badge}🌿 野生のマイマイ</div>
+        <div class="hof-sub">どこからかやってきた。能力はひかえめだが、素質は未知数。</div>
+        <div class="hof-sub">ぬめり${st.num} 体力${st.sta} 根性${st.gut} カラ${st.shl}</div>`;
+    } else {
+      div.innerHTML = `<div class="hof-name">${badge}${h.mcWon ? '👑 ' : ''}${esc(h.name)} <span class="gen-badge">第${h.gen || 1}世代</span> <small class="muted">(${h.retiredYear}年目 引退)</small></div>
+        <div class="hof-sub">${h.starts}戦${h.wins}勝 / 賞金${fmtG(h.prize)}${h.titles.length ? ' / ' + h.titles.map(esc).join('・') : ''}</div>
+        <div class="hof-sub">ぬめり${st.num}(${rankOf(st.num)}) 体力${st.sta}(${rankOf(st.sta)}) 根性${st.gut}(${rankOf(st.gut)}) カラ${st.shl}(${rankOf(st.shl)})</div>`;
+    }
+    div.onclick = () => { SFX.tap(); toggleBreedSel(cd.sel); };
+    list.appendChild(div);
+  }
+  // ステータス行とボタン
+  const n = G.breedSel.length;
+  if (n === 2) {
+    const [a, b] = G.breedSel.map(breedParentOf);
+    $('breed-status').innerHTML = `💕 <b>${esc(a.name)}</b> × <b>${esc(b.name)}</b>`;
+  } else {
+    $('breed-status').textContent = n === 1 ? `あと1頭えらんでね(${esc(breedParentOf(G.breedSel[0]).name)})` : '親にする2頭をタップしてえらぼう';
+  }
+  $('btn-breed-go').disabled = n !== 2;
+}
+
+function toggleBreedSel(sel) {
+  const idx = G.breedSel.indexOf(sel);
+  if (idx >= 0) G.breedSel.splice(idx, 1);
+  else {
+    if (G.breedSel.length >= 2) G.breedSel.shift();   // 3頭目タップ → 古い方を外す
+    G.breedSel.push(sel);
+  }
+  renderBreedList();
+}
+
+function confirmBreed() {
+  if (G.breedSel.length !== 2) return;
+  const p1 = breedParentOf(G.breedSel[0]);
+  const p2 = breedParentOf(G.breedSel[1]);
+  G.pendingBreed = { p1: p1, p2: p2 };
+  SFX.good();
+  startDiceScreen();
 }
 
 /* =====================================================
@@ -1223,6 +1401,13 @@ const DICE_PIPS = ['','⚀','⚁','⚂','⚃','⚄','⚅'];
 
 function startDiceScreen() {
   G.pendingDice = null;
+  const bl = $('dice-breed-line');
+  if (G.pendingBreed) {
+    bl.style.display = '';
+    bl.innerHTML = `💕 <b>${esc(G.pendingBreed.p1.name)}</b> × <b>${esc(G.pendingBreed.p2.name)}</b> の子ども<br><small>両親の能力と、かくれた素質が受けつがれる…!</small>`;
+  } else {
+    bl.style.display = 'none';
+  }
   $('dice-area').innerHTML = '';
   $('dice-total-line').textContent = '';
   $('dice-result-box').style.display = 'none';
@@ -1266,7 +1451,7 @@ function rollDiceAnimated() {
 
 function finishDiceRoll(dice) {
   const total = dice.reduce((a, b) => a + b, 0);
-  const snail = makeSnailFromDice(dice, '');
+  const snail = makeSnailFromDice(dice, '', G.pendingBreed || null);
   G.pendingDice = snail;
   let totalCmt;
   if (total >= 48) totalCmt = 'すごい目だ!!';
@@ -1275,11 +1460,15 @@ function finishDiceRoll(dice) {
   else totalCmt = 'ひかえめな目…でも育て方しだい!';
   $('dice-total-line').textContent = `合計 ${total} — ${totalCmt}`;
   const st = snail.stats;
+  const bb = lastBreedBonus;
+  const bonusRow = bb ? `
+      <tr><th colspan="4" style="background:#fff4e2;">💕 両親ゆずりのちから</th></tr>
+      <tr><td>+${bb.num}</td><td>+${bb.sta}</td><td>+${bb.gut}</td><td>+${bb.shl}</td></tr>` : '';
   $('dice-stats-preview').innerHTML = `
     <table class="list" style="margin:8px 0;">
       <tr><th>ぬめり</th><th>体力</th><th>根性</th><th>カラ</th></tr>
       <tr><td><b>${st.num}</b> (${rankOf(st.num)})</td><td><b>${st.sta}</b> (${rankOf(st.sta)})</td>
-          <td><b>${st.gut}</b> (${rankOf(st.gut)})</td><td><b>${st.shl}</b> (${rankOf(st.shl)})</td></tr>
+          <td><b>${st.gut}</b> (${rankOf(st.gut)})</td><td><b>${st.shl}</b> (${rankOf(st.shl)})</td></tr>${bonusRow}
     </table>`;
   $('coach-comment').textContent = coachComment(snail);
   $('name-input').value = randomSnailName();
@@ -1299,10 +1488,16 @@ function confirmName() {
   const name = $('name-input').value.trim() || 'マイマイ号';
   G.pendingDice.name = name.slice(0, 8);
   S().current = G.pendingDice;
+  const born = G.pendingDice;
   G.pendingDice = null;
+  G.pendingBreed = null;
   persist();
   G.logs = [];
-  log(`${esc(name)} がやってきた! ${S().year}年目のシーズンが始まる。`, 'log-gold');
+  if (born.parents) {
+    log(`${esc(born.parents[0])} × ${esc(born.parents[1])} のあいだに ${esc(name)} が生まれた!(第${born.gen}世代)`, 'log-gold');
+  } else {
+    log(`${esc(name)} がやってきた! ${S().year}年目のシーズンが始まる。`, 'log-gold');
+  }
   log('12月後半の「マイマイカップ」制覇を目指そう!');
   SFX.fanfare();
   showScreen('scr-main');
@@ -1320,7 +1515,7 @@ function renderMain() {
   $('date-badge').textContent = `${S().year}年目 ${turnLabel(c.turn)}`;
   $('money-badge').textContent = `💰 ${fmtG(S().money)}`;
   $('snail-name-label').textContent = c.name + ' ';
-  $('snail-year-label').textContent = `(${S().year}年目)`;
+  $('snail-year-label').textContent = `(${S().year}年目${(c.gen || 1) >= 2 ? '・第' + c.gen + '世代' : ''})`;
   for (const [k, id] of [['num','num'],['sta','sta'],['gut','gut'],['shl','shl']]) {
     const v = c.stats[k];
     $(`bar-${id}`).style.width = (v / TUNE.statMax * 100) + '%';
@@ -1681,10 +1876,11 @@ function renderHall() {
   list.innerHTML = hall.slice().reverse().map(h => {
     const st = h.stats;
     return `<div class="hof-card">
-      <div class="hof-name">${h.mcWon ? '👑 ' : ''}${esc(h.name)} <small class="muted">(${h.retiredYear}年目 引退)</small></div>
+      <div class="hof-name">${h.mcWon ? '👑 ' : ''}${esc(h.name)} <span class="gen-badge">第${h.gen || 1}世代</span> <small class="muted">(${h.retiredYear}年目 引退)</small></div>
+      ${h.parents ? `<div class="hof-sub">両親: ${esc(h.parents[0])} × ${esc(h.parents[1])}</div>` : ''}
       <div class="hof-sub">${h.starts}戦${h.wins}勝 / 賞金${fmtG(h.prize)}${h.titles.length ? ' / ' + h.titles.map(esc).join('・') : ''}</div>
       <div class="hof-sub">ぬめり${st.num} 体力${st.sta} 根性${st.gut} カラ${st.shl}</div>
-      <div class="hof-sub" style="color:#4a7ac0;">🌱 繁殖可能(v1.1 で世代交代に対応予定)</div>
+      <div class="hof-sub" style="color:#4a7ac0;">🌱 配合の親に使える</div>
     </div>`;
   }).join('');
 }
@@ -1725,7 +1921,11 @@ function wireEvents() {
     SFX.tap();
     askConfirm('引退の確認', `${esc(C().name)} を引退させますか?<br>引退すると今シーズンは終了し、殿堂入りします。<br><b>この操作はとりけせません。</b>`, () => retireSnail(true));
   };
-  $('btn-retire-next').onclick = () => { SFX.tap(); startDiceScreen(); };
+  $('btn-retire-next').onclick = () => { SFX.tap(); startWelcome(); };
+  $('btn-welcome-wild').onclick = () => { SFX.tap(); G.pendingBreed = null; startDiceScreen(); };
+  $('btn-welcome-breed').onclick = () => { SFX.tap(); startBreedScreen(); };
+  $('btn-breed-go').onclick = () => { SFX.tap(); confirmBreed(); };
+  $('btn-breed-back').onclick = () => { SFX.tap(); showScreen('scr-welcome'); };
   $('btn-to-slots').onclick = (e) => { e.preventDefault(); SFX.tap(); persist(); renderSlots(); showScreen('scr-slots'); };
   $('btn-mute').onclick = () => { SFX.init(); SFX.setMute(!SFX.muted); if (!SFX.muted) SFX.tap(); };
   $('btn-confirm-yes').onclick = () => {
