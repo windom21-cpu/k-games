@@ -396,6 +396,7 @@
       <div class="btn-row">
         <button class="primary big" id="btn-retire-next">あたらしいマイマイを迎える</button>
         <button id="btn-retire-hall">🏆 殿堂を見る</button>
+        <button id="btn-retire-title">タイトルへもどる</button>
       </div>
     </div>
   </section>
@@ -487,7 +488,7 @@
    - v1.1: 配合・世代交代(殿堂の2頭 or 1頭+野生から子をつくる)
    ===================================================== */
 
-const GAME_VERSION = '1.1.0';
+const GAME_VERSION = '1.1.1';
 const SAVE_VERSION = 2;
 const LS_PREFIX = 'starMaimai.slot';
 const LS_MUTE = 'starMaimai.mute';
@@ -1922,6 +1923,7 @@ function wireEvents() {
     askConfirm('引退の確認', `${esc(C().name)} を引退させますか?<br>引退すると今シーズンは終了し、殿堂入りします。<br><b>この操作はとりけせません。</b>`, () => retireSnail(true));
   };
   $('btn-retire-next').onclick = () => { SFX.tap(); startWelcome(); };
+  $('btn-retire-title').onclick = () => { SFX.tap(); persist(); showScreen('scr-title'); startTitleAnim(); };
   $('btn-welcome-wild').onclick = () => { SFX.tap(); G.pendingBreed = null; startDiceScreen(); };
   $('btn-welcome-breed').onclick = () => { SFX.tap(); startBreedScreen(); };
   $('btn-breed-go').onclick = () => { SFX.tap(); confirmBreed(); };
