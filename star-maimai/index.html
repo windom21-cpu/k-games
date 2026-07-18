@@ -1,0 +1,1756 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>スターマイマイ — K-games</title>
+<meta name="description" content="カタツムリを育てて1年間のレースを戦う育成シミュレーション。サイコロ10個で生まれた1頭を調教し、雨の日のレースで大金星を狙え。目指すは年末の頂点・マイマイカップ制覇!">
+<link rel="canonical" href="https://windom21-cpu.github.io/k-games/star-maimai/">
+<meta property="og:type" content="website">
+<meta property="og:title" content="スターマイマイ | K-games">
+<meta property="og:description" content="カタツムリ育成レースシミュレーション。調教・エサやり・レース出走で1年を駆け抜け、マイマイカップ制覇を目指せ。">
+<meta property="og:url" content="https://windom21-cpu.github.io/k-games/star-maimai/">
+<meta property="og:site_name" content="K-games">
+<meta name="twitter:card" content="summary">
+<meta property="og:image" content="https://windom21-cpu.github.io/k-games/icon-512.png">
+<meta property="og:image:width" content="512">
+<meta property="og:image:height" content="512">
+<link rel="icon" type="image/svg+xml" href="/k-games/favicon.svg">
+<link rel="icon" type="image/png" sizes="32x32" href="/k-games/favicon-32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="/k-games/favicon-16.png">
+<link rel="apple-touch-icon" href="/k-games/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-title" content="K-games">
+<style>
+  :root {
+    --bg: #eaf6e2;
+    --panel: #ffffff;
+    --frame: #5a8a4a;
+    --frame-dark: #3c6330;
+    --ink: #333;
+    --accent: #e08830;
+    --accent2: #4a7ac0;
+    --gold: #d4a017;
+    --danger: #c0504a;
+  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { margin: 0; padding: 0; min-height: 100%; }
+  body {
+    background: var(--bg);
+    color: var(--ink);
+    font-family: "MS UI Gothic", "ＭＳ ＵＩ Ｇｏｼック", "MSUIGothic", "Hiragino Kaku Gothic ProN", "Noto Sans JP", sans-serif;
+    font-size: 15px;
+    line-height: 1.5;
+    overscroll-behavior: none;
+  }
+  #app { max-width: 720px; margin: 0 auto; padding: 8px 8px 40px; }
+
+  /* ---- screens ---- */
+  .screen { display: none; }
+  .screen.active { display: block; animation: fadein .25s ease; }
+  @keyframes fadein { from { opacity: 0; transform: translateY(4px);} to { opacity: 1; transform: none;} }
+
+  h1.game-title {
+    text-align: center; margin: 12px 0 4px; font-size: 30px; letter-spacing: 2px;
+    color: var(--frame-dark);
+    text-shadow: 1px 2px 0 #c9e4b8;
+  }
+  .subtitle { text-align: center; color: #6a8a5a; margin: 0 0 10px; font-size: 13px; }
+
+  .panel {
+    background: var(--panel);
+    border: 2px solid var(--frame);
+    border-radius: 10px;
+    padding: 12px;
+    margin: 10px 0;
+    box-shadow: 0 2px 0 rgba(90,138,74,.25);
+  }
+  .panel h2 { margin: 0 0 8px; font-size: 17px; color: var(--frame-dark); border-bottom: 2px dotted #b8d8a0; padding-bottom: 4px; }
+  .panel h3 { margin: 8px 0 4px; font-size: 15px; color: var(--frame-dark); }
+
+  button {
+    font-family: inherit; font-size: 15px;
+    border: 2px solid var(--frame-dark);
+    border-radius: 8px;
+    background: linear-gradient(#fdfdf6, #dff0cd);
+    color: var(--ink);
+    padding: 8px 14px;
+    cursor: pointer;
+    box-shadow: 0 2px 0 var(--frame-dark);
+    user-select: none; -webkit-user-select: none;
+    touch-action: manipulation;
+  }
+  button:active { transform: translateY(2px); box-shadow: none; }
+  button:disabled { opacity: .45; cursor: default; box-shadow: 0 2px 0 var(--frame-dark); transform: none; }
+  button.primary { background: linear-gradient(#ffe9c8, #f5c069); border-color: #a06010; box-shadow: 0 2px 0 #a06010; font-weight: bold; }
+  button.danger { background: linear-gradient(#ffe0dd, #eda8a2); border-color: #8a2f2a; box-shadow: 0 2px 0 #8a2f2a; }
+  button.small { font-size: 13px; padding: 4px 10px; }
+  button.big { font-size: 17px; padding: 12px 20px; }
+  .btn-row { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; margin: 8px 0; }
+  .btn-col { display: flex; flex-direction: column; gap: 8px; align-items: stretch; margin: 8px 0; }
+  .btn-col button { width: 100%; }
+
+  .center { text-align: center; }
+  .muted { color: #888; font-size: 13px; }
+  .gold { color: var(--gold); font-weight: bold; }
+  .warn { color: var(--danger); }
+
+  /* ---- title ---- */
+  #title-canvas { display: block; margin: 0 auto; width: 100%; max-width: 480px; height: auto; border-radius: 10px; }
+
+  /* ---- slots ---- */
+  .slot-card { display: flex; align-items: center; gap: 10px; border: 2px solid var(--frame); border-radius: 10px; padding: 10px; margin: 8px 0; background: #fff; }
+  .slot-card .slot-main { flex: 1; min-width: 0; }
+  .slot-card .slot-title { font-weight: bold; font-size: 16px; }
+  .slot-card .slot-sub { font-size: 12.5px; color: #777; }
+
+  /* ---- dice ---- */
+  #dice-area { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; margin: 14px 0; min-height: 96px; }
+  .die {
+    width: 44px; height: 44px; border-radius: 8px;
+    background: #fff; border: 2px solid #555;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 26px; font-weight: bold;
+    box-shadow: 0 2px 0 #999;
+  }
+  .die.rolling { animation: diceroll .45s ease infinite; }
+  @keyframes diceroll { 0%{transform:rotate(0) translateY(0);} 25%{transform:rotate(8deg) translateY(-6px);} 50%{transform:rotate(-6deg);} 75%{transform:rotate(4deg) translateY(-3px);} 100%{transform:rotate(0);} }
+  .die.g-num { border-color: #2e7dbb; color: #2e7dbb; }
+  .die.g-sta { border-color: #3e9a4d; color: #3e9a4d; }
+  .die.g-gut { border-color: #d2691e; color: #d2691e; }
+  .die.g-shl { border-color: #9a5cb0; color: #9a5cb0; }
+  .dice-legend { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; font-size: 12.5px; margin-bottom: 6px; }
+  .dice-legend span { display: inline-flex; align-items: center; gap: 4px; }
+  .dice-legend i { width: 12px; height: 12px; border-radius: 3px; display: inline-block; border: 2px solid; }
+
+  input[type="text"] {
+    font-family: inherit; font-size: 17px; padding: 8px 10px;
+    border: 2px solid var(--frame); border-radius: 8px; width: 100%; max-width: 280px;
+  }
+
+  /* ---- main / stable ---- */
+  #topbar { display: flex; align-items: center; justify-content: space-between; gap: 6px; flex-wrap: wrap; margin-bottom: 6px; }
+  #topbar .date-badge { background: var(--frame-dark); color: #fff; border-radius: 8px; padding: 4px 12px; font-weight: bold; }
+  #topbar .money-badge { background: #fff8e0; border: 2px solid var(--gold); border-radius: 8px; padding: 3px 10px; font-weight: bold; color: #8a6a00; }
+
+  .stable-flex { display: flex; gap: 10px; flex-wrap: wrap; }
+  #snail-portrait { width: 200px; height: 150px; background: linear-gradient(#dff2ff 0 55%, #cfe9b8 55% 100%); border: 2px solid var(--frame); border-radius: 10px; flex: 0 0 auto; }
+  .stats-box { flex: 1; min-width: 240px; }
+  .stat-row { display: flex; align-items: center; gap: 6px; margin: 3px 0; }
+  .stat-row .stat-name { width: 58px; font-weight: bold; font-size: 13.5px; }
+  .stat-row .stat-rank { width: 26px; text-align: center; font-weight: bold; font-size: 14px; }
+  .bar-outer { flex: 1; height: 14px; background: #eee; border: 1px solid #aaa; border-radius: 7px; overflow: hidden; }
+  .bar-inner { height: 100%; border-radius: 6px; transition: width .4s ease; }
+  .bar-num { background: linear-gradient(#7ec3f0, #3a8fd0); }
+  .bar-sta { background: linear-gradient(#8fd88f, #3e9a4d); }
+  .bar-gut { background: linear-gradient(#f5b880, #d2691e); }
+  .bar-shl { background: linear-gradient(#d0a8e8, #9a5cb0); }
+  .bar-fat { background: linear-gradient(#f09090, #c0504a); }
+  .cond-label { font-weight: bold; }
+
+  .feed-box { display: flex; gap: 6px; flex-wrap: wrap; margin: 6px 0; }
+  .feed-box label {
+    flex: 1; min-width: 130px; border: 2px solid #b8d8a0; border-radius: 8px; padding: 6px 8px;
+    font-size: 13px; cursor: pointer; background: #fbfff5; display: flex; gap: 6px; align-items: flex-start;
+  }
+  .feed-box label.checked { border-color: var(--accent); background: #fff4e2; }
+  .feed-box input { margin-top: 3px; }
+
+  #action-buttons { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 8px; }
+  #action-buttons button { padding: 10px 6px; }
+  #race-action-btn { grid-column: 1 / -1; }
+
+  #log-box {
+    background: #f6fbf0; border: 2px solid #b8d8a0; border-radius: 8px;
+    height: 130px; overflow-y: auto; padding: 6px 10px; font-size: 13px;
+  }
+  #log-box p { margin: 2px 0; }
+  #log-box p.log-good { color: #2e7d32; }
+  #log-box p.log-bad { color: var(--danger); }
+  #log-box p.log-gold { color: #8a6a00; font-weight: bold; }
+
+  /* ---- tables ---- */
+  table.list { border-collapse: collapse; width: 100%; font-size: 13.5px; }
+  table.list th, table.list td { border: 1px solid #a8c890; padding: 4px 6px; text-align: center; }
+  table.list th { background: #e4f2d4; }
+  table.list tr.me { background: #fff4d6; font-weight: bold; }
+  table.list tr.done { color: #999; }
+
+  /* ---- race ---- */
+  #race-canvas-wrap { position: relative; }
+  #race-canvas { display: block; width: 100%; height: auto; border: 2px solid var(--frame-dark); border-radius: 10px; background: #cfe9b8; }
+  #race-overlay-controls { display: flex; gap: 8px; justify-content: center; margin-top: 8px; }
+  .race-banner { text-align: center; font-size: 17px; font-weight: bold; color: var(--frame-dark); margin: 4px 0; }
+
+  /* ---- modal ---- */
+  .modal-back {
+    display: none; position: fixed; inset: 0; background: rgba(0,0,0,.45); z-index: 50;
+    align-items: flex-start; justify-content: center; overflow-y: auto; padding: 20px 8px;
+  }
+  .modal-back.active { display: flex; }
+  .modal {
+    background: #fff; border: 3px solid var(--frame-dark); border-radius: 12px;
+    max-width: 560px; width: 100%; padding: 14px; margin: auto 0;
+  }
+  .modal h2 { margin: 0 0 8px; font-size: 18px; color: var(--frame-dark); }
+
+  /* ---- misc ---- */
+  .tag { display: inline-block; border-radius: 6px; padding: 1px 8px; font-size: 12px; font-weight: bold; color: #fff; }
+  .tag.g3 { background: #4a9a4a; }
+  .tag.g2 { background: #3a70c0; }
+  .tag.g1 { background: #c04a4a; }
+  .tag.mc { background: linear-gradient(45deg,#d4a017,#f0c860); color: #6a4a00; }
+  .ground-tag { display: inline-block; border-radius: 6px; padding: 1px 8px; font-size: 12px; font-weight: bold; }
+  .ground-dry { background: #f5e0b8; color: #8a5a10; }
+  .ground-mid { background: #d8ecc8; color: #3c6330; }
+  .ground-wet { background: #c8dcf5; color: #2a4a8a; }
+
+  .hof-card { border: 2px solid #d4a017; border-radius: 10px; background: #fffdf2; padding: 8px 10px; margin: 8px 0; }
+  .hof-card .hof-name { font-weight: bold; font-size: 16px; }
+  .hof-card .hof-sub { font-size: 12.5px; color: #7a6a30; }
+
+  footer { text-align: center; margin-top: 24px; font-size: 12.5px; color: #7a9a6a; }
+  footer a { color: #4a7ac0; }
+</style>
+</head>
+<body>
+<div id="app">
+
+  <!-- ========== タイトル ========== -->
+  <section id="scr-title" class="screen">
+    <h1 class="game-title">★ スターマイマイ ★</h1>
+    <p class="subtitle">〜 めざせ マイマイカップ制覇 〜</p>
+    <canvas id="title-canvas" width="480" height="220"></canvas>
+    <div class="btn-col" style="max-width:300px;margin:14px auto;">
+      <button class="primary big" id="btn-title-start">はじめる</button>
+      <button id="btn-title-help">あそびかた</button>
+    </div>
+    <footer>
+      <a href="../">← K-games 一覧へもどる</a><br>
+      <span id="title-ver"></span>
+    </footer>
+  </section>
+
+  <!-- ========== セーブスロット ========== -->
+  <section id="scr-slots" class="screen">
+    <h1 class="game-title" style="font-size:22px;">セーブデータをえらぶ</h1>
+    <div id="slot-list"></div>
+    <div class="btn-row">
+      <button id="btn-slots-back">← タイトルへ</button>
+    </div>
+  </section>
+
+  <!-- ========== サイコロ(新しいマイマイ) ========== -->
+  <section id="scr-dice" class="screen">
+    <div class="panel">
+      <h2>あたらしいマイマイの誕生</h2>
+      <p style="font-size:13.5px;">サイコロを <b>10個</b> ふって、生まれてくるマイマイの能力が決まる。<br>
+      <span class="muted">青3個=ぬめり / 緑3個=体力 / 橙2個=根性 / 紫2個=カラ。合計が大きいほど成長も早い。</span></p>
+      <div class="dice-legend">
+        <span><i style="border-color:#2e7dbb;"></i>ぬめり</span>
+        <span><i style="border-color:#3e9a4d;"></i>体力</span>
+        <span><i style="border-color:#d2691e;"></i>根性</span>
+        <span><i style="border-color:#9a5cb0;"></i>カラ</span>
+      </div>
+      <div id="dice-area"></div>
+      <div class="center" id="dice-total-line" style="min-height:24px;font-weight:bold;"></div>
+      <div class="btn-row">
+        <button class="primary big" id="btn-roll-dice">サイコロをふる!</button>
+      </div>
+      <div id="dice-result-box" style="display:none;">
+        <div id="dice-stats-preview"></div>
+        <p id="coach-comment" class="center" style="font-size:14px;background:#f2f8ea;border-radius:8px;padding:8px;"></p>
+        <h3 class="center">名まえをつけよう</h3>
+        <div class="center">
+          <input type="text" id="name-input" maxlength="8" placeholder="マイマイの名まえ">
+        </div>
+        <div class="btn-row">
+          <button class="small" id="btn-random-name">おまかせ名まえ</button>
+        </div>
+        <div class="btn-row">
+          <button class="primary big" id="btn-name-ok">この子に決めた!</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ========== メイン(厩舎) ========== -->
+  <section id="scr-main" class="screen">
+    <div id="topbar">
+      <span class="date-badge" id="date-badge">1月 前半</span>
+      <span class="money-badge" id="money-badge">💰 0G</span>
+      <button class="small" id="btn-mute">🔊</button>
+    </div>
+
+    <div class="panel">
+      <div class="stable-flex">
+        <canvas id="snail-portrait" width="400" height="300"></canvas>
+        <div class="stats-box">
+          <div style="font-size:17px;font-weight:bold;"><span id="snail-name-label">マイマイ号</span> <span class="muted" id="snail-year-label"></span></div>
+          <div class="stat-row"><span class="stat-name">ぬめり</span><span class="stat-rank" id="rank-num">E</span><div class="bar-outer"><div class="bar-inner bar-num" id="bar-num"></div></div><span id="val-num" style="width:30px;text-align:right;font-size:12.5px;"></span></div>
+          <div class="stat-row"><span class="stat-name">体力</span><span class="stat-rank" id="rank-sta">E</span><div class="bar-outer"><div class="bar-inner bar-sta" id="bar-sta"></div></div><span id="val-sta" style="width:30px;text-align:right;font-size:12.5px;"></span></div>
+          <div class="stat-row"><span class="stat-name">根性</span><span class="stat-rank" id="rank-gut">E</span><div class="bar-outer"><div class="bar-inner bar-gut" id="bar-gut"></div></div><span id="val-gut" style="width:30px;text-align:right;font-size:12.5px;"></span></div>
+          <div class="stat-row"><span class="stat-name">カラ</span><span class="stat-rank" id="rank-shl">E</span><div class="bar-outer"><div class="bar-inner bar-shl" id="bar-shl"></div></div><span id="val-shl" style="width:30px;text-align:right;font-size:12.5px;"></span></div>
+          <div class="stat-row"><span class="stat-name">つかれ</span><span class="stat-rank"></span><div class="bar-outer"><div class="bar-inner bar-fat" id="bar-fat"></div></div><span id="val-fat" style="width:30px;text-align:right;font-size:12.5px;"></span></div>
+          <div style="margin-top:4px;font-size:13.5px;">調子: <span class="cond-label" id="cond-label">ふつう</span>
+            <span style="margin-left:10px;">獲得賞金: <b id="prize-label">0G</b></span>
+            <span style="margin-left:10px;" id="record-label">0戦0勝</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h2>今月のごはん &amp; 行動</h2>
+      <div class="feed-box" id="feed-box">
+        <label id="feed-l-0"><input type="radio" name="feed" value="0" checked><span><b>ふつうのエサ</b><br><small>無料。かわりばえしない。</small></span></label>
+        <label id="feed-l-1"><input type="radio" name="feed" value="1"><span><b>カルシウムのエサ</b><br><small>200G。カラ +2</small></span></label>
+        <label id="feed-l-2"><input type="radio" name="feed" value="2"><span><b>特選カルシウム</b><br><small>500G。カラ +4 / 体力 +1</small></span></label>
+      </div>
+      <div id="action-buttons">
+        <button id="btn-train-num">ぬめり調教<br><small>ガラス板すべり</small></button>
+        <button id="btn-train-sta">体力調教<br><small>ながい散歩</small></button>
+        <button id="btn-train-gut">根性調教<br><small>タカとにらめっこ</small></button>
+        <button id="btn-rest">休養<br><small>つかれをとる</small></button>
+        <button class="primary" id="race-action-btn" style="display:none;">🏁 レースに出走する</button>
+      </div>
+      <div class="btn-row" style="justify-content:space-between;">
+        <button class="small" id="btn-calendar">📅 レースカレンダー</button>
+        <button class="small" id="btn-hall">🏆 殿堂</button>
+        <button class="small" id="btn-help2">❓ あそびかた</button>
+        <button class="small danger" id="btn-retire">引退させる…</button>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h2>きゅう舎日誌</h2>
+      <div id="log-box"></div>
+    </div>
+    <footer><a href="#" id="btn-to-slots">セーブスロットへもどる</a></footer>
+  </section>
+
+  <!-- ========== レース実況 ========== -->
+  <section id="scr-race" class="screen">
+    <div class="race-banner" id="race-banner">レース</div>
+    <div class="center" style="margin-bottom:4px;" id="race-ground-line"></div>
+    <div id="race-canvas-wrap">
+      <canvas id="race-canvas" width="960" height="560"></canvas>
+    </div>
+    <div id="race-overlay-controls">
+      <button id="btn-race-speed">▶ ばい速 ×1</button>
+      <button id="btn-race-skip">⏩ 結果へスキップ</button>
+    </div>
+    <p class="center muted" style="font-size:12px;">スマホは横向きにすると見やすいよ</p>
+  </section>
+
+  <!-- ========== レース結果 ========== -->
+  <section id="scr-result" class="screen">
+    <div class="panel">
+      <h2 id="result-title">レース結果</h2>
+      <div class="center" id="result-headline" style="font-size:20px;font-weight:bold;margin:6px 0;"></div>
+      <div id="result-table-wrap"></div>
+      <p class="center" id="result-prize-line"></p>
+      <div class="btn-row">
+        <button class="primary big" id="btn-result-ok">きゅう舎へもどる</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ========== 引退式 ========== -->
+  <section id="scr-retire" class="screen">
+    <div class="panel">
+      <h2 id="retire-title">引退式</h2>
+      <canvas id="retire-canvas" width="480" height="200" style="width:100%;max-width:480px;display:block;margin:0 auto;border-radius:10px;"></canvas>
+      <div id="retire-summary"></div>
+      <p class="center muted">引退したマイマイは殿堂に永久保存され、<br>将来のバージョンで繁殖に使えるようになる予定。</p>
+      <div class="btn-row">
+        <button class="primary big" id="btn-retire-next">あたらしいマイマイを迎える</button>
+        <button id="btn-retire-hall">🏆 殿堂を見る</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ========== 殿堂 ========== -->
+  <section id="scr-hall" class="screen">
+    <h1 class="game-title" style="font-size:22px;">🏆 マイマイ殿堂</h1>
+    <div id="hall-list"></div>
+    <div class="btn-row">
+      <button id="btn-hall-back">← もどる</button>
+    </div>
+  </section>
+
+  <!-- ========== モーダル: カレンダー ========== -->
+  <div class="modal-back" id="modal-calendar">
+    <div class="modal">
+      <h2>📅 レースカレンダー</h2>
+      <div id="calendar-table-wrap" style="overflow-x:auto;"></div>
+      <p class="muted" style="font-size:12px;">出走条件: G2=1勝 or 賞金1500G以上 / G1=G2以上で3着内 or 賞金6000G以上 / マイマイカップ=G1で3着内 or 賞金15000G以上</p>
+      <div class="btn-row"><button id="btn-calendar-close">とじる</button></div>
+    </div>
+  </div>
+
+  <!-- ========== モーダル: 出走確認 ========== -->
+  <div class="modal-back" id="modal-entry">
+    <div class="modal">
+      <h2 id="entry-title">出走登録</h2>
+      <div id="entry-info"></div>
+      <div id="entry-rivals" style="max-height:220px;overflow-y:auto;margin:8px 0;"></div>
+      <div class="btn-row">
+        <button class="primary" id="btn-entry-go">出走する!</button>
+        <button id="btn-entry-cancel">やめておく</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========== モーダル: あそびかた ========== -->
+  <div class="modal-back" id="modal-help">
+    <div class="modal">
+      <h2>❓ あそびかた</h2>
+      <div style="font-size:13.5px;max-height:60vh;overflow-y:auto;" id="help-body">
+        <h3>ゲームの目的</h3>
+        <p>カタツムリ(マイマイ)を1年間(24ターン=半月きざみ)育てて、レースで賞金をかせぎ、年末の最高峰レース<b>「マイマイカップ」</b>の制覇をめざす。</p>
+        <h3>マイマイの能力</h3>
+        <p>
+          <b>ぬめり</b> … はやさ。基本の走力。<br>
+          <b>体力</b> … スタミナ。長いきょりのレースでバテにくくなる。<br>
+          <b>根性</b> … ゴール前のふんばりと、バテたあとのねばり。<br>
+          <b>カラ</b> … カラのじょうぶさ。<b>晴れの日のカラカラ地面</b>に強くなる。カラは調教では伸びず、<b>カルシウムのエサ</b>で伸びる。
+        </p>
+        <p>マイマイはもともと雨の日がだいすき。<b>ぬれぬれの地面では全員が本気を出せる</b>が、カラカラにかわいた地面ではカラのじょうぶな子ほど有利。</p>
+        <h3>かくれ能力「調教効果」</h3>
+        <p>マイマイには目に見えない<b>「調教効果」</b>がある。サイコロの目が悪くても、調教でグングン伸びる大器晩成タイプがいる。コーチのコメントや調教の伸びぐあいから見きわめよう。</p>
+        <h3>毎ターンやること</h3>
+        <p>エサ(ふつう/カルシウム/特選)をえらんで、<b>調教・休養・レース出走</b>のどれかを行う。調教するとつかれがたまり、つかれたまま無理をすると調教に失敗したりレースで力を出せない。</p>
+        <h3>レース</h3>
+        <p>年間12レース。グレードは <span class="tag g3">G3</span> → <span class="tag g2">G2</span> → <span class="tag g1">G1</span> → <span class="tag mc">マイマイカップ</span> の順に強い相手と大きな賞金が待っている。きょりは 50cm / 100cm / 150cm の3種類。</p>
+        <h3>引退と殿堂</h3>
+        <p>12月後半のターンが終わると自動的に引退。とちゅうで引退させることもできる。引退したマイマイは<b>殿堂</b>に永久保存され、将来のバージョンで<b>繁殖(はんしょく)</b>に使える予定。</p>
+      </div>
+      <div class="btn-row"><button id="btn-help-close">とじる</button></div>
+    </div>
+  </div>
+
+  <!-- ========== モーダル: 汎用確認 ========== -->
+  <div class="modal-back" id="modal-confirm">
+    <div class="modal">
+      <h2 id="confirm-title">確認</h2>
+      <p id="confirm-text"></p>
+      <div class="btn-row">
+        <button class="danger" id="btn-confirm-yes">はい</button>
+        <button id="btn-confirm-no">いいえ</button>
+      </div>
+    </div>
+  </div>
+
+</div>
+<script>
+'use strict';
+/* =====================================================
+   スターマイマイ v1.0.0
+   カタツムリ育成レースシミュレーション
+   - 24ターン(半月単位) × 1年 → 引退
+   - セーブ3スロット / バージョン付きセーブ+マイグレーション
+   - 隠しステータス: 調教効果(ステ別適性) + 成長係数
+   - v1.1 で繁殖・世代交代を追加予定(殿堂に個体を永久保存)
+   ===================================================== */
+
+const GAME_VERSION = '1.0.0';
+const SAVE_VERSION = 1;
+const LS_PREFIX = 'starMaimai.slot';
+const LS_MUTE = 'starMaimai.mute';
+
+/* ---------- 調整パラメータ(バランス調整はここを触る) ---------- */
+const TUNE = {
+  statMax: 120,
+  startMoney: 1500,
+  // 初期ステータス: サイコロの目 → 値
+  initNumMul: 3.0,   // 3個の合計(3-18) × 3 = 9〜54
+  initStaMul: 3.0,
+  initGutMul: 3.5,   // 2個の合計(2-12) × 3.5 = 7〜42
+  initShlMul: 3.5,
+  // 成長係数: サイコロ合計(10-60)から
+  gfBase: 0.90, gfPerPip: 0.007,        // 0.90〜1.25
+  // 隠し調教効果(ステ別): gauss(1.0, 0.25) を 0.6〜1.7 にクランプ
+  aptMean: 1.0, aptSd: 0.25, aptMin: 0.6, aptMax: 1.7,
+  // 調教
+  trainBaseMin: 8, trainBaseMax: 13,
+  trainFatigue: 17,
+  restRecover: 50,
+  raceFatigue: 22,
+  failFatigue: 80,   // これ以上で調教失敗の可能性
+  failChance: 0.35,
+  // エサ
+  feeds: [
+    { name: 'ふつうのエサ', cost: 0, shl: 0, sta: 0 },
+    { name: 'カルシウムのエサ', cost: 200, shl: 2, sta: 0 },
+    { name: '特選カルシウム', cost: 500, shl: 4, sta: 1 },
+  ],
+  // レース物理
+  baseV: 2.1, vPerNum: 0.030,          // cm/s
+  stBase: 55, stPerSta: 2.1,           // スタミナ量
+  drainPerSec: 6.5,                    // 基本消費/秒
+  dryDrainMul: 1.3,                    // カラカラ時の消費増(カラで軽減)
+  wetSpeedMul: 1.09,                   // ぬれぬれ時の全体ブースト
+  drySpeedMin: 0.76,                   // カラ0のときのカラカラ速度倍率(→カラ120で1.0)
+  spurtZone: 0.24,                     // 残り24%でスパート
+  spurtPerGut: 0.0020,
+  bateBase: 0.52, batePerGut: 0.0013,  // バテ時の速度倍率
+  condMods: [0.90, 0.95, 1.0, 1.045, 1.09],  // 絶不調〜絶好調
+  fatPenaltyStart: 55, fatPenaltyPer: 0.004, // つかれによる速度低下
+  noiseAmp: 0.10, noisePeriod: 0.8,    // ペースのゆらぎ
+  laneCount: 8,
+};
+
+/* ---------- レース定義 ---------- */
+// turn: 0〜23 (1月前半=0)。dist: cm。wetBias: 雨の出やすさ(-1〜1)。
+const GRADES = { G3: {label:'G3', cls:'g3', fee:100, prize:[2000,800,400]},
+                 G2: {label:'G2', cls:'g2', fee:300, prize:[5000,2000,1000]},
+                 G1: {label:'G1', cls:'g1', fee:500, prize:[12000,5000,2500]},
+                 MC: {label:'マイマイカップ', cls:'mc', fee:1000, prize:[30000,12000,6000]} };
+const RACES = [
+  { id:'r01', turn: 2,  name:'新芽ステークス',     grade:'G3', dist: 50,  wetBias: 0.0 },
+  { id:'r02', turn: 4,  name:'はるさめ特別',       grade:'G3', dist: 100, wetBias: 0.4 },
+  { id:'r03', turn: 6,  name:'さくらカップ',       grade:'G2', dist: 100, wetBias: 0.0 },
+  { id:'r04', turn: 8,  name:'若葉ステークス',     grade:'G3', dist: 150, wetBias: 0.1 },
+  { id:'r05', turn: 10, name:'あじさい賞',         grade:'G2', dist: 100, wetBias: 0.7 },
+  { id:'r06', turn: 11, name:'梅雨グランプリ',     grade:'G1', dist: 150, wetBias: 0.9 },
+  { id:'r07', turn: 13, name:'真夏スプリント',     grade:'G2', dist: 50,  wetBias: -0.8 },
+  { id:'r08', turn: 15, name:'流星特別',           grade:'G3', dist: 100, wetBias: -0.3 },
+  { id:'r09', turn: 17, name:'お月見カップ',       grade:'G2', dist: 150, wetBias: -0.2 },
+  { id:'r10', turn: 19, name:'紅葉ステークス',     grade:'G1', dist: 100, wetBias: 0.0 },
+  { id:'r11', turn: 21, name:'しぐれ記念',         grade:'G2', dist: 50,  wetBias: 0.5 },
+  { id:'r12', turn: 23, name:'マイマイカップ',     grade:'MC', dist: 150, wetBias: 0.2 },
+];
+// NPC の強さ(グレード別の中心値)
+const GRADE_NPC = { G3: 30, G2: 48, G1: 62, MC: 76 };
+
+const MONTH_NAMES = ['1月','2月','3月','4月','5月','6月','7月','8月','9月','10月','11月','12月'];
+const COND_LABELS = ['ぜつ不調 ↓↓','不調 ↓','ふつう →','好調 ↑','ぜっ好調 ↑↑'];
+const COND_COLORS = ['#c0504a','#d2691e','#666','#3e9a4d','#e08830'];
+
+const NPC_NAMES = ['デンデンマル','ツムジロウ','ラセンオー','ヌメリヒメ','カラツヨシ','アメアガリ','ウズマキング','マイマイダー','シェルブライト','ノロマックス','ツノダシくん','オツユチャン','カタツムラー','ヤドカリモドキ','グルグルポン','シットリーヌ','バンガードカラ','ハイスピードロ','ツバメガエシ','モーレツツムリ','アジサイオトメ','テルテルボーズ','ドロンコロン','カルシウムキッド'];
+
+/* ---------- ユーティリティ ---------- */
+const $ = (id) => document.getElementById(id);
+const rnd = Math.random;
+const ri = (a, b) => a + Math.floor(rnd() * (b - a + 1)); // 整数 a..b
+const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+function gauss(mean, sd) {
+  let u = 0, v = 0;
+  while (u === 0) u = rnd();
+  while (v === 0) v = rnd();
+  return mean + sd * Math.sqrt(-2.0 * Math.log(u)) * Math.cos(2.0 * Math.PI * v);
+}
+function fmtG(n) { return n.toLocaleString('ja-JP') + 'G'; }
+function esc(s) { return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function turnLabel(t) { return MONTH_NAMES[Math.floor(t / 2)] + (t % 2 === 0 ? ' 前半' : ' 後半'); }
+function rankOf(v) {
+  if (v >= 110) return 'S';
+  if (v >= 95) return 'A';
+  if (v >= 78) return 'B';
+  if (v >= 60) return 'C';
+  if (v >= 40) return 'D';
+  if (v >= 22) return 'E';
+  return 'F';
+}
+
+/* =====================================================
+   セーブシステム (3スロット / バージョン+マイグレーション)
+   ===================================================== */
+// 各スロット: { version, money, year, hall:[], current: snail|null, updatedAt }
+// snail: { name, dice:[10], stats:{num,sta,gut,shl}, hidden:{gf, apt:{num,sta,gut,shl}},
+//          fatigue, cond, turn, prize, wins, starts, results:[], titles:[], mcWon }
+// hall entry: snail のスナップショット + { retiredYear, canBreed:true }
+//   ※ canBreed は v1.1 の繁殖システム用。引退個体は永久に繁殖可能とする方針。
+
+const MIGRATIONS = {
+  // 例: 0: (d) => { d.version = 1; d.newField = ...; return d; }
+  // SAVE_VERSION を上げたら、旧version→新version の変換関数をここに足す。
+};
+
+function migrateSave(data) {
+  let guard = 0;
+  while (data.version < SAVE_VERSION && guard++ < 20) {
+    const fn = MIGRATIONS[data.version];
+    if (!fn) { data.version = SAVE_VERSION; break; }
+    data = fn(data);
+  }
+  return data;
+}
+
+function loadSlot(i) {
+  try {
+    const raw = localStorage.getItem(LS_PREFIX + i);
+    if (!raw) return null;
+    let data = JSON.parse(raw);
+    if (typeof data.version !== 'number') return null;
+    if (data.version < SAVE_VERSION) {
+      data = migrateSave(data);
+      saveSlotData(i, data);
+    }
+    return data;
+  } catch (e) { return null; }
+}
+
+function saveSlotData(i, data) {
+  data.updatedAt = Date.now();
+  try { localStorage.setItem(LS_PREFIX + i, JSON.stringify(data)); } catch (e) { /* 容量超過等は黙殺 */ }
+}
+
+function newSaveData() {
+  return { version: SAVE_VERSION, money: TUNE.startMoney, year: 1, hall: [], current: null, updatedAt: Date.now() };
+}
+
+function deleteSlot(i) { localStorage.removeItem(LS_PREFIX + i); }
+
+/* ---------- 実行時状態 ---------- */
+const G = {
+  slot: -1,          // 現在のスロット番号 0-2
+  save: null,        // スロットのセーブデータ(参照)
+  pendingDice: null, // サイコロ画面の一時データ
+  race: null,        // レース進行中データ
+  logs: [],          // 表示用ログ(セーブしない)
+};
+function S() { return G.save; }
+function C() { return G.save ? G.save.current : null; }
+function persist() { if (G.slot >= 0 && G.save) saveSlotData(G.slot, G.save); }
+
+/* =====================================================
+   ゲームロジック
+   ===================================================== */
+
+/* ---------- マイマイ生成 ---------- */
+function rollDiceSet() {
+  const dice = [];
+  for (let i = 0; i < 10; i++) dice.push(ri(1, 6));
+  return dice;
+}
+
+function makeSnailFromDice(dice, name) {
+  const sum3a = dice[0] + dice[1] + dice[2];          // ぬめり
+  const sum3b = dice[3] + dice[4] + dice[5];          // 体力
+  const sum2a = dice[6] + dice[7];                    // 根性
+  const sum2b = dice[8] + dice[9];                    // カラ
+  const total = dice.reduce((a, b) => a + b, 0);
+  const apt = {};
+  for (const k of ['num', 'sta', 'gut', 'shl']) {
+    apt[k] = clamp(gauss(TUNE.aptMean, TUNE.aptSd), TUNE.aptMin, TUNE.aptMax);
+  }
+  return {
+    name: name,
+    dice: dice.slice(),
+    stats: {
+      num: Math.round(sum3a * TUNE.initNumMul),
+      sta: Math.round(sum3b * TUNE.initStaMul),
+      gut: Math.round(sum2a * TUNE.initGutMul),
+      shl: Math.round(sum2b * TUNE.initShlMul),
+    },
+    hidden: { gf: TUNE.gfBase + (total - 10) * TUNE.gfPerPip, apt: apt },
+    fatigue: 0,
+    cond: 2,
+    turn: 0,
+    prize: 0,
+    wins: 0,
+    starts: 0,
+    results: [],   // { raceId, name, grade, place, field, ground }
+    titles: [],    // 勝った重賞名
+    mcWon: false,
+    bodyHue: ri(0, 359),   // 見た目のバリエーション
+  };
+}
+
+// 隠し能力のヒント(コーチのコメント)— 数値は見せない
+function coachComment(snail) {
+  const a = snail.hidden.apt;
+  const avg = (a.num + a.sta + a.gut) / 3 * snail.hidden.gf;
+  const best = Math.max(a.num, a.sta, a.gut);
+  const bestName = best === a.num ? 'ぬめり' : (best === a.sta ? '体力' : '根性');
+  if (avg >= 1.30) return 'コーチ「……この子、とんでもない大物かもしれんぞ。目の輝きがちがう」';
+  if (avg >= 1.15) return `コーチ「いい素質を感じる。特に${bestName}の伸びしろに期待だ」`;
+  if (avg >= 0.95) return `コーチ「素直そうな子だ。じっくり育てていこう。${bestName}が伸びるかもな」`;
+  if (avg >= 0.80) return 'コーチ「うーん、マイペースな子だな。焦らず育てよう」';
+  return 'コーチ「……のんびり屋さんだ。だが、カルシウムと愛情でどうにかなるさ」';
+}
+
+/* ---------- ログ ---------- */
+function log(msg, cls) {
+  G.logs.push({ msg: msg, cls: cls || '' });
+  if (G.logs.length > 60) G.logs.shift();
+  renderLog();
+}
+function renderLog() {
+  const box = $('log-box');
+  if (!box) return;
+  box.innerHTML = G.logs.map(l => `<p class="${l.cls}">${l.msg}</p>`).join('');
+  box.scrollTop = box.scrollHeight;
+}
+
+/* ---------- エサ ---------- */
+function applyFeed() {
+  const sel = document.querySelector('input[name="feed"]:checked');
+  let idx = sel ? parseInt(sel.value, 10) : 0;
+  let feed = TUNE.feeds[idx];
+  if (feed.cost > S().money) {
+    log(`お金が足りず「${feed.name}」を買えなかった…(ふつうのエサに変更)`, 'log-bad');
+    idx = 0; feed = TUNE.feeds[0];
+  }
+  S().money -= feed.cost;
+  const c = C();
+  if (feed.shl > 0) {
+    const before = c.stats.shl;
+    c.stats.shl = clamp(c.stats.shl + feed.shl, 0, TUNE.statMax);
+    if (feed.sta) c.stats.sta = clamp(c.stats.sta + feed.sta, 0, TUNE.statMax);
+    const gained = c.stats.shl - before;
+    if (gained > 0) log(`${feed.name}をあげた。カラがじょうぶになった気がする(カラ +${gained})`, 'log-good');
+    else log(`${feed.name}をあげた。カラはもう十分じょうぶだ。`);
+  }
+  return feed;
+}
+
+/* ---------- 調教・休養 ---------- */
+const TRAIN_DEFS = {
+  num: { label: 'ぬめり調教', flavor: 'ガラス板すべり' },
+  sta: { label: '体力調教', flavor: 'ながい散歩' },
+  gut: { label: '根性調教', flavor: 'タカとにらめっこ' },
+};
+
+function doTrain(key) {
+  const c = C();
+  applyFeed();
+  const def = TRAIN_DEFS[key];
+  // 疲労による失敗判定
+  if (c.fatigue >= TUNE.failFatigue && rnd() < TUNE.failChance) {
+    c.fatigue = clamp(c.fatigue + 6, 0, 100);
+    log(`${def.label}(${def.flavor})…しかし つかれがピークで、カラにこもって出てこなかった。`, 'log-bad');
+    endTurn();
+    return;
+  }
+  const fatMod = c.fatigue < 40 ? 1.0 : (c.fatigue < 70 ? 0.85 : 0.55);
+  const base = ri(TUNE.trainBaseMin, TUNE.trainBaseMax);
+  const raw = base * c.hidden.apt[key] * c.hidden.gf * fatMod;
+  const gain = Math.max(1, Math.round(raw));
+  const before = c.stats[key];
+  c.stats[key] = clamp(c.stats[key] + gain, 0, TUNE.statMax);
+  const actual = c.stats[key] - before;
+  c.fatigue = clamp(c.fatigue + TUNE.trainFatigue + ri(-3, 3), 0, 100);
+  // 伸びの実感コメント → 隠し調教効果のヒントになる
+  let cmt = '';
+  const power = c.hidden.apt[key] * c.hidden.gf;
+  if (actual === 0) cmt = 'もう限界まで仕上がっている!';
+  else if (power >= 1.35 && actual >= 6) cmt = 'ものすごい伸びだ! この子は天才かもしれない!';
+  else if (power >= 1.15 && actual >= 5) cmt = 'グングン伸びている!';
+  else if (power <= 0.80) cmt = 'うーん、あまり手ごたえがない…。';
+  else cmt = 'まずまずの手ごたえ。';
+  log(`${def.label}(${def.flavor})を行った。${key === 'num' ? 'ぬめり' : key === 'sta' ? '体力' : '根性'} +${actual}。${cmt}`, actual >= 5 ? 'log-good' : '');
+  endTurn();
+}
+
+function doRest() {
+  const c = C();
+  applyFeed();
+  c.fatigue = clamp(c.fatigue - TUNE.restRecover, 0, 100);
+  if (rnd() < 0.65) c.cond = clamp(c.cond + 1, 0, 4);
+  log('ゆっくり休んだ。つかれがとれて、ごきげんだ。', 'log-good');
+  endTurn();
+}
+
+/* ---------- ターン進行 ---------- */
+function endTurn() {
+  const c = C();
+  // 調子はゆらぐ
+  if (rnd() < 0.4) c.cond = clamp(c.cond + (rnd() < 0.5 ? -1 : 1), 0, 4);
+  c.turn++;
+  persist();
+  if (c.turn >= 24) {
+    retireSnail(false);
+    return;
+  }
+  renderMain();
+}
+
+/* ---------- レース検索・出走条件 ---------- */
+function raceOfTurn(turn) { return RACES.find(r => r.turn === turn) || null; }
+
+function eligibility(race) {
+  const c = C();
+  const g = race.grade;
+  if (g === 'G3') return { ok: true };
+  if (g === 'G2') {
+    if (c.wins >= 1 || c.prize >= 1500) return { ok: true };
+    return { ok: false, reason: '出走には 1勝 か 賞金1500G 以上が必要' };
+  }
+  if (g === 'G1') {
+    const placed = c.results.some(r => (r.grade === 'G2' || r.grade === 'G1' || r.grade === 'MC') && r.place <= 3);
+    if (placed || c.prize >= 6000) return { ok: true };
+    return { ok: false, reason: '出走には G2以上で3着内 か 賞金6000G 以上が必要' };
+  }
+  // MC
+  const g1placed = c.results.some(r => (r.grade === 'G1' || r.grade === 'MC') && r.place <= 3);
+  if (g1placed || c.prize >= 15000) return { ok: true };
+  return { ok: false, reason: '出走には G1で3着内 か 賞金15000G 以上が必要' };
+}
+
+/* ---------- 天候・地面 ---------- */
+// 月ごとの雨ベース確率(6月=梅雨、7-8月=カラカラ気味)
+const MONTH_WET = [0.30, 0.30, 0.35, 0.40, 0.40, 0.75, 0.25, 0.15, 0.35, 0.35, 0.40, 0.35];
+const GROUNDS = {
+  dry: { key:'dry', label:'カラカラ', cls:'ground-dry', weather:'☀ 晴れ' },
+  mid: { key:'mid', label:'しっとり', cls:'ground-mid', weather:'☁ くもり' },
+  wet: { key:'wet', label:'ぬれぬれ', cls:'ground-wet', weather:'☔ 雨' },
+};
+function rollGround(race) {
+  const month = Math.floor(race.turn / 2);
+  let p = clamp(MONTH_WET[month] + race.wetBias * 0.45, 0.05, 0.95);
+  const r = rnd();
+  if (r < p) return GROUNDS.wet;
+  if (r < p + (1 - p) * 0.45) return GROUNDS.mid;
+  return GROUNDS.dry;
+}
+
+/* ---------- レース参加者生成 ---------- */
+function makeNpc(grade, usedNames) {
+  const base = GRADE_NPC[grade];
+  let name;
+  do { name = NPC_NAMES[ri(0, NPC_NAMES.length - 1)]; } while (usedNames.has(name));
+  usedNames.add(name);
+  const st = () => clamp(Math.round(base + gauss(0, 9)), 5, TUNE.statMax);
+  return {
+    isPlayer: false, name: name,
+    stats: { num: st(), sta: st(), gut: st(), shl: clamp(Math.round(base + gauss(-8, 22)), 5, TUNE.statMax) },
+    cond: ri(1, 3), fatigue: ri(0, 30),
+    bodyHue: ri(0, 359),
+  };
+}
+
+function buildField(race) {
+  const c = C();
+  const used = new Set();
+  const field = [{
+    isPlayer: true, name: c.name,
+    stats: { num: c.stats.num, sta: c.stats.sta, gut: c.stats.gut, shl: c.stats.shl },
+    cond: c.cond, fatigue: c.fatigue, bodyHue: c.bodyHue,
+  }];
+  for (let i = 1; i < TUNE.laneCount; i++) field.push(makeNpc(race.grade, used));
+  // レーンをシャッフル
+  for (let i = field.length - 1; i > 0; i--) {
+    const j = ri(0, i);
+    [field[i], field[j]] = [field[j], field[i]];
+  }
+  return field;
+}
+
+/* ---------- レースシミュレーション ---------- */
+function groundSpeedMul(ground, shl) {
+  if (ground.key === 'wet') return TUNE.wetSpeedMul;
+  if (ground.key === 'dry') return TUNE.drySpeedMin + (1 - TUNE.drySpeedMin) * (shl / TUNE.statMax);
+  return 0.97 + 0.03 * (shl / TUNE.statMax); // しっとり: ごくわずかにカラ寄与
+}
+
+function setupRace(race, ground, field) {
+  const racers = field.map((f, lane) => {
+    const st = f.stats;
+    const gMul = groundSpeedMul(ground, st.shl);
+    const condMul = TUNE.condMods[f.cond];
+    let fatMul = 1;
+    if (f.fatigue > TUNE.fatPenaltyStart) fatMul = 1 - (f.fatigue - TUNE.fatPenaltyStart) * TUNE.fatPenaltyPer;
+    const baseSpeed = (TUNE.baseV + st.num * TUNE.vPerNum) * gMul * condMul * fatMul;
+    let drain = TUNE.drainPerSec;
+    if (ground.key === 'dry') drain *= TUNE.dryDrainMul - (TUNE.dryDrainMul - 1) * (st.shl / TUNE.statMax);
+    return {
+      f: f, lane: lane,
+      pos: 0, done: false, time: 0, place: 0,
+      baseSpeed: baseSpeed,
+      stamina: TUNE.stBase + st.sta * TUNE.stPerSta,
+      drain: drain,
+      gut: st.gut,
+      noise: 1, noiseT: 0, noiseTarget: 1,
+      startDelay: rnd() * 0.7,   // 出足のばらつき
+      wobblePhase: rnd() * Math.PI * 2,
+    };
+  });
+  return {
+    race: race, ground: ground, racers: racers,
+    t: 0, finished: 0, over: false, overTimer: 0,
+    speedMult: 1, skip: false,
+  };
+}
+
+function stepRace(R, dt) {
+  R.t += dt;
+  const dist = R.race.dist;
+  for (const r of R.racers) {
+    if (r.done) continue;
+    if (R.t < r.startDelay) continue;
+    // ペースのゆらぎ
+    r.noiseT -= dt;
+    if (r.noiseT <= 0) {
+      r.noiseT = TUNE.noisePeriod * (0.6 + rnd() * 0.8);
+      r.noiseTarget = 1 + (rnd() * 2 - 1) * TUNE.noiseAmp;
+    }
+    r.noise += (r.noiseTarget - r.noise) * Math.min(1, dt * 3);
+    let v = r.baseSpeed * r.noise;
+    // スパート
+    const remain = 1 - r.pos / dist;
+    if (remain <= TUNE.spurtZone) {
+      v *= 1 + r.gut * TUNE.spurtPerGut * (0.7 + rnd() * 0.6);
+    }
+    // スタミナ
+    if (r.stamina > 0) {
+      r.stamina -= r.drain * dt * (remain <= TUNE.spurtZone ? 1.35 : 1);
+      if (r.stamina < 0) r.stamina = 0;
+    }
+    if (r.stamina <= 0) {
+      v *= TUNE.bateBase + r.gut * TUNE.batePerGut;
+    }
+    r.pos += v * dt;
+    if (r.pos >= dist) {
+      r.pos = dist;
+      r.done = true;
+      r.time = R.t;
+      R.finished++;
+      r.place = R.finished;
+    }
+  }
+  // 全員ゴール or 3秒待って残りは打ち切り(順位は位置順)
+  if (R.finished >= R.racers.length) {
+    R.over = true;
+  } else if (R.finished >= 1) {
+    R.overTimer += dt;
+    if (R.overTimer > 25) { // 保険: 極端に遅い個体を待ちすぎない
+      finalizeStragglers(R);
+      R.over = true;
+    }
+  }
+  if (R.over && R.finished < R.racers.length) finalizeStragglers(R);
+}
+
+function finalizeStragglers(R) {
+  const rest = R.racers.filter(r => !r.done).sort((a, b) => b.pos - a.pos);
+  for (const r of rest) {
+    r.done = true;
+    R.finished++;
+    r.place = R.finished;
+    r.time = R.t + (R.race.dist - r.pos) / Math.max(0.5, r.baseSpeed * 0.7);
+  }
+}
+
+// スキップ用: 一気にシミュレート
+function fastForwardRace(R) {
+  let guard = 0;
+  while (!R.over && guard++ < 20000) stepRace(R, 0.1);
+  R.over = true;
+}
+
+/* ---------- レース結果の適用 ---------- */
+function applyRaceResult(R) {
+  const c = C();
+  const race = R.race;
+  const grade = GRADES[race.grade];
+  const me = R.racers.find(r => r.f.isPlayer);
+  const place = me.place;
+  c.starts++;
+  c.fatigue = clamp(c.fatigue + TUNE.raceFatigue, 0, 100);
+  let prizeWon = 0;
+  if (place <= 3) prizeWon = grade.prize[place - 1];
+  if (place === 1) {
+    c.wins++;
+    if (race.grade !== 'G3') c.titles.push(race.name);
+    if (race.grade === 'MC') c.mcWon = true;
+  }
+  c.prize += prizeWon;
+  S().money += prizeWon;
+  c.results.push({ raceId: race.id, name: race.name, grade: race.grade, place: place, field: R.racers.length, ground: R.ground.key });
+  c.turn++;   // レースで1ターン消費
+  persist();
+  return { place: place, prizeWon: prizeWon };
+}
+
+/* ---------- 引退 ---------- */
+function retireSnail(early) {
+  const c = C();
+  const entry = {
+    name: c.name, dice: c.dice, stats: { ...c.stats },
+    hidden: { gf: c.hidden.gf, apt: { ...c.hidden.apt } },
+    prize: c.prize, wins: c.wins, starts: c.starts,
+    titles: c.titles.slice(), mcWon: c.mcWon,
+    results: c.results.slice(),
+    bodyHue: c.bodyHue,
+    retiredYear: S().year,
+    retiredEarly: !!early,
+    canBreed: true,   // 引退したら一生繁殖に使える(v1.1で実装)
+  };
+  S().hall.push(entry);
+  S().current = null;
+  S().year++;
+  persist();
+  showRetire(entry);
+}
+
+/* =====================================================
+   サウンド (Web Audio, 依存なし)
+   ===================================================== */
+const SFX = {
+  ctx: null, muted: false,
+  init() {
+    if (!this.ctx) {
+      try { this.ctx = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) { this.ctx = null; }
+    }
+    if (this.ctx && this.ctx.state === 'suspended') this.ctx.resume();
+  },
+  tone(freq, dur, type, vol, when) {
+    if (this.muted || !this.ctx) return;
+    const t0 = this.ctx.currentTime + (when || 0);
+    const o = this.ctx.createOscillator();
+    const g = this.ctx.createGain();
+    o.type = type || 'square';
+    o.frequency.value = freq;
+    g.gain.setValueAtTime(vol || 0.08, t0);
+    g.gain.exponentialRampToValueAtTime(0.001, t0 + dur);
+    o.connect(g); g.connect(this.ctx.destination);
+    o.start(t0); o.stop(t0 + dur + 0.02);
+  },
+  tap() { this.tone(660, 0.06, 'square', 0.05); },
+  dice() { for (let i = 0; i < 5; i++) this.tone(300 + rnd() * 500, 0.05, 'square', 0.04, i * 0.07); },
+  coin() { this.tone(880, 0.08, 'square', 0.06); this.tone(1320, 0.12, 'square', 0.06, 0.08); },
+  good() { this.tone(523, 0.1, 'square', 0.06); this.tone(659, 0.1, 'square', 0.06, 0.1); this.tone(784, 0.16, 'square', 0.06, 0.2); },
+  bad() { this.tone(220, 0.2, 'sawtooth', 0.05); this.tone(180, 0.3, 'sawtooth', 0.05, 0.18); },
+  start() { this.tone(440, 0.12, 'square', 0.07); this.tone(880, 0.3, 'square', 0.07, 0.35); },
+  fanfare() {
+    const seq = [523, 523, 523, 659, 784, 784, 1047];
+    seq.forEach((f, i) => this.tone(f, i === seq.length - 1 ? 0.5 : 0.14, 'square', 0.07, i * 0.16));
+  },
+  setMute(m) {
+    this.muted = m;
+    try { localStorage.setItem(LS_MUTE, m ? '1' : '0'); } catch (e) {}
+    const b = $('btn-mute'); if (b) b.textContent = m ? '🔇' : '🔊';
+  },
+};
+
+/* =====================================================
+   画面遷移
+   ===================================================== */
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  $(id).classList.add('active');
+  window.scrollTo(0, 0);
+}
+function openModal(id) { $(id).classList.add('active'); }
+function closeModal(id) { $(id).classList.remove('active'); }
+
+function askConfirm(title, text, onYes) {
+  $('confirm-title').textContent = title;
+  $('confirm-text').innerHTML = text;
+  G._confirmYes = onYes;
+  openModal('modal-confirm');
+}
+
+/* =====================================================
+   カタツムリ描画 (procedural)
+   ===================================================== */
+// x,y = 足元中央。size = 体長px。dir = 1(右向き)。t = アニメ時刻。
+function drawSnail(ctx, x, y, size, hue, shl, t, opt) {
+  opt = opt || {};
+  const s = size / 60;   // 標準体長60px基準
+  const crawl = Math.sin(t * 4) * 0.06 + 1;   // のび〜ちぢみ
+  const bodyLen = 60 * s * crawl;
+  const bodyH = 14 * s;
+  ctx.save();
+  ctx.translate(x, y);
+  // 体
+  ctx.fillStyle = `hsl(${hue}, 45%, 62%)`;
+  ctx.strokeStyle = `hsl(${hue}, 45%, 38%)`;
+  ctx.lineWidth = Math.max(1, 1.5 * s);
+  ctx.beginPath();
+  ctx.moveTo(-bodyLen * 0.45, 0);
+  ctx.quadraticCurveTo(-bodyLen * 0.45, -bodyH, 0, -bodyH * 0.9);
+  ctx.quadraticCurveTo(bodyLen * 0.38, -bodyH * 0.85, bodyLen * 0.5, -bodyH * 1.6);
+  ctx.quadraticCurveTo(bodyLen * 0.58, -bodyH * 0.5, bodyLen * 0.52, 0);
+  ctx.closePath();
+  ctx.fill(); ctx.stroke();
+  // ツノ + 目
+  const headX = bodyLen * 0.5, headY = -bodyH * 1.55;
+  const sway = Math.sin(t * 3 + 1) * 2 * s;
+  for (const dx of [-4 * s, 5 * s]) {
+    ctx.beginPath();
+    ctx.moveTo(headX + dx * 0.4, headY);
+    ctx.quadraticCurveTo(headX + dx + sway, headY - 10 * s, headX + dx * 1.4 + sway, headY - 13 * s);
+    ctx.stroke();
+    ctx.fillStyle = '#fff';
+    ctx.beginPath(); ctx.arc(headX + dx * 1.4 + sway, headY - 14 * s, 3.2 * s, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+    ctx.fillStyle = '#222';
+    ctx.beginPath(); ctx.arc(headX + dx * 1.4 + sway + 1 * s, headY - 14 * s, 1.4 * s, 0, Math.PI * 2); ctx.fill();
+  }
+  // カラ(殻): カラの強さで大きく・輝く
+  const shellR = (16 + 8 * (shl / TUNE.statMax)) * s;
+  const scx = -bodyLen * 0.12, scy = -bodyH * 0.9 - shellR * 0.65;
+  const shellHue = (hue + 40) % 360;
+  const grad = ctx.createRadialGradient(scx - shellR * 0.3, scy - shellR * 0.3, shellR * 0.2, scx, scy, shellR);
+  grad.addColorStop(0, `hsl(${shellHue}, 60%, ${70 + 12 * (shl / TUNE.statMax)}%)`);
+  grad.addColorStop(1, `hsl(${shellHue}, 55%, 45%)`);
+  ctx.fillStyle = grad;
+  ctx.strokeStyle = `hsl(${shellHue}, 50%, 30%)`;
+  ctx.beginPath(); ctx.arc(scx, scy, shellR, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+  // うずまき
+  ctx.beginPath();
+  let a0 = t * (opt.spinShell ? 2 : 0);
+  for (let a = 0; a < Math.PI * 5; a += 0.15) {
+    const rr = shellR * 0.9 * (a / (Math.PI * 5));
+    const px = scx + Math.cos(a + a0) * rr, py = scy + Math.sin(a + a0) * rr;
+    if (a === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+  }
+  ctx.stroke();
+  // カラつよ個体はキラッ
+  if (shl >= 80) {
+    ctx.fillStyle = 'rgba(255,255,220,0.9)';
+    const tw = (Math.sin(t * 5) + 1) / 2;
+    ctx.save();
+    ctx.translate(scx + shellR * 0.45, scy - shellR * 0.5);
+    ctx.scale(0.7 + tw * 0.5, 0.7 + tw * 0.5);
+    ctx.beginPath();
+    for (let i = 0; i < 4; i++) {
+      ctx.rotate(Math.PI / 2);
+      ctx.moveTo(0, 0); ctx.lineTo(2 * s, 2 * s); ctx.lineTo(0, 5 * s); ctx.lineTo(-2 * s, 2 * s);
+    }
+    ctx.fill();
+    ctx.restore();
+  }
+  ctx.restore();
+}
+
+/* ---------- タイトル画面アニメ ---------- */
+let titleAnimId = 0;
+function startTitleAnim() {
+  const cv = $('title-canvas'), ctx = cv.getContext('2d');
+  cancelAnimationFrame(titleAnimId);
+  const loop = () => {
+    if (!$('scr-title').classList.contains('active')) return;
+    const t = performance.now() / 1000;
+    ctx.clearRect(0, 0, cv.width, cv.height);
+    // 空と虹
+    ctx.fillStyle = '#cfeaff'; ctx.fillRect(0, 0, cv.width, 150);
+    const rainbow = ['#e88','#ea8','#ed8','#8c8','#8ad','#a8d'];
+    rainbow.forEach((col, i) => {
+      ctx.strokeStyle = col; ctx.lineWidth = 6; ctx.globalAlpha = 0.55;
+      ctx.beginPath(); ctx.arc(240, 220, 150 - i * 7, Math.PI, Math.PI * 2); ctx.stroke();
+    });
+    ctx.globalAlpha = 1;
+    // 雨つぶ(ぱらぱら)
+    ctx.strokeStyle = 'rgba(100,150,220,0.5)'; ctx.lineWidth = 2;
+    for (let i = 0; i < 12; i++) {
+      const rx = ((i * 97 + t * 60) % 480), ry = ((i * 53 + t * 130) % 150);
+      ctx.beginPath(); ctx.moveTo(rx, ry); ctx.lineTo(rx - 2, ry + 8); ctx.stroke();
+    }
+    // 地面
+    ctx.fillStyle = '#b8dd9a'; ctx.fillRect(0, 150, cv.width, cv.height - 150);
+    // 走るマイマイたち
+    const xs = (t * 40) % 560 - 40;
+    drawSnail(ctx, xs, 190, 66, 120, 90, t);
+    drawSnail(ctx, xs - 90, 195, 52, 20, 40, t + 1);
+    drawSnail(ctx, xs - 170, 188, 46, 280, 60, t + 2);
+    // ぬめり跡
+    ctx.strokeStyle = 'rgba(255,255,255,0.5)'; ctx.lineWidth = 5;
+    ctx.beginPath(); ctx.moveTo(0, 192); ctx.lineTo(xs, 192); ctx.stroke();
+    titleAnimId = requestAnimationFrame(loop);
+  };
+  loop();
+}
+
+/* =====================================================
+   スロット画面
+   ===================================================== */
+function renderSlots() {
+  const list = $('slot-list');
+  list.innerHTML = '';
+  for (let i = 0; i < 3; i++) {
+    const data = loadSlot(i);
+    const div = document.createElement('div');
+    div.className = 'slot-card';
+    let mainHtml, subHtml;
+    if (!data) {
+      mainHtml = `<div class="slot-title">スロット ${i + 1}</div>`;
+      subHtml = '<div class="slot-sub">— あたらしくはじめる —</div>';
+    } else {
+      const cur = data.current;
+      const state = cur
+        ? `${esc(cur.name)} / ${turnLabel(cur.turn)} / ${cur.starts}戦${cur.wins}勝`
+        : `育成中の子なし(殿堂 ${data.hall.length}頭)`;
+      const mc = data.hall.some(h => h.mcWon) || (cur && cur.mcWon) ? ' 🏆MC制覇!' : '';
+      mainHtml = `<div class="slot-title">スロット ${i + 1}${mc}</div>`;
+      subHtml = `<div class="slot-sub">${state}<br>${data.year}年目 / 💰${fmtG(data.money)} / 殿堂${data.hall.length}頭</div>`;
+    }
+    div.innerHTML = mainHtml + `<div class="slot-main">${subHtml}</div>`;
+    const btnPlay = document.createElement('button');
+    btnPlay.className = 'primary';
+    btnPlay.textContent = data ? 'つづき' : 'はじめる';
+    btnPlay.onclick = () => { SFX.init(); SFX.tap(); enterSlot(i); };
+    div.appendChild(btnPlay);
+    if (data) {
+      const btnDel = document.createElement('button');
+      btnDel.className = 'danger small';
+      btnDel.textContent = '削除';
+      btnDel.onclick = () => {
+        SFX.tap();
+        askConfirm('データ削除', `スロット ${i + 1} のデータを完全に削除します。<br>殿堂のマイマイも消えます。よろしいですか?`, () => {
+          deleteSlot(i);
+          renderSlots();
+        });
+      };
+      div.appendChild(btnDel);
+    }
+    list.appendChild(div);
+  }
+}
+
+function enterSlot(i) {
+  G.slot = i;
+  let data = loadSlot(i);
+  if (!data) { data = newSaveData(); saveSlotData(i, data); }
+  G.save = data;
+  G.logs = [];
+  if (data.current) {
+    log(`おかえりなさい。${esc(data.current.name)} の育成を続けよう。`);
+    showScreen('scr-main');
+    renderMain();
+  } else {
+    startDiceScreen();
+  }
+}
+
+/* =====================================================
+   サイコロ画面
+   ===================================================== */
+const DICE_GROUPS = ['g-num','g-num','g-num','g-sta','g-sta','g-sta','g-gut','g-gut','g-shl','g-shl'];
+const DICE_PIPS = ['','⚀','⚁','⚂','⚃','⚄','⚅'];
+
+function startDiceScreen() {
+  G.pendingDice = null;
+  $('dice-area').innerHTML = '';
+  $('dice-total-line').textContent = '';
+  $('dice-result-box').style.display = 'none';
+  $('btn-roll-dice').style.display = '';
+  $('btn-roll-dice').disabled = false;
+  for (let i = 0; i < 10; i++) {
+    const d = document.createElement('div');
+    d.className = `die ${DICE_GROUPS[i]}`;
+    d.id = `die-${i}`;
+    d.textContent = '?';
+    $('dice-area').appendChild(d);
+  }
+  showScreen('scr-dice');
+}
+
+function rollDiceAnimated() {
+  SFX.init(); SFX.dice();
+  $('btn-roll-dice').disabled = true;
+  const dice = rollDiceSet();
+  const els = [];
+  for (let i = 0; i < 10; i++) { const el = $(`die-${i}`); el.classList.add('rolling'); els.push(el); }
+  // パラパラ表示
+  let ticks = 0;
+  const iv = setInterval(() => {
+    ticks++;
+    for (const el of els) el.textContent = DICE_PIPS[ri(1, 6)];
+    if (ticks > 8) {
+      clearInterval(iv);
+      // 1個ずつ確定
+      dice.forEach((v, i) => {
+        setTimeout(() => {
+          els[i].classList.remove('rolling');
+          els[i].textContent = DICE_PIPS[v];
+          SFX.tone(500 + v * 60, 0.07, 'square', 0.05);
+          if (i === 9) finishDiceRoll(dice);
+        }, 150 * i);
+      });
+    }
+  }, 80);
+}
+
+function finishDiceRoll(dice) {
+  const total = dice.reduce((a, b) => a + b, 0);
+  const snail = makeSnailFromDice(dice, '');
+  G.pendingDice = snail;
+  let totalCmt;
+  if (total >= 48) totalCmt = 'すごい目だ!!';
+  else if (total >= 40) totalCmt = 'なかなかの目!';
+  else if (total >= 30) totalCmt = 'ふつうの目。';
+  else totalCmt = 'ひかえめな目…でも育て方しだい!';
+  $('dice-total-line').textContent = `合計 ${total} — ${totalCmt}`;
+  const st = snail.stats;
+  $('dice-stats-preview').innerHTML = `
+    <table class="list" style="margin:8px 0;">
+      <tr><th>ぬめり</th><th>体力</th><th>根性</th><th>カラ</th></tr>
+      <tr><td><b>${st.num}</b> (${rankOf(st.num)})</td><td><b>${st.sta}</b> (${rankOf(st.sta)})</td>
+          <td><b>${st.gut}</b> (${rankOf(st.gut)})</td><td><b>${st.shl}</b> (${rankOf(st.shl)})</td></tr>
+    </table>`;
+  $('coach-comment').textContent = coachComment(snail);
+  $('name-input').value = randomSnailName();
+  $('btn-roll-dice').style.display = 'none';
+  $('dice-result-box').style.display = '';
+  SFX.good();
+}
+
+const NAME_HEADS = ['マイ','デン','ツム','ヌメ','カラ','ウズ','ラセン','アメ','ツユ','シェル','ノロ','グル','キラ','ペカ','モチ'];
+const NAME_TAILS = ['マイ号','デン丸','リン','スケ','ゾウ','ヒメ','キング','スター','ロード','チャン','ポン','太郎','次郎','姫','之介'];
+function randomSnailName() {
+  let n = NAME_HEADS[ri(0, NAME_HEADS.length - 1)] + NAME_TAILS[ri(0, NAME_TAILS.length - 1)];
+  return n.slice(0, 8);
+}
+
+function confirmName() {
+  const name = $('name-input').value.trim() || 'マイマイ号';
+  G.pendingDice.name = name.slice(0, 8);
+  S().current = G.pendingDice;
+  G.pendingDice = null;
+  persist();
+  G.logs = [];
+  log(`${esc(name)} がやってきた! ${S().year}年目のシーズンが始まる。`, 'log-gold');
+  log('12月後半の「マイマイカップ」制覇を目指そう!');
+  SFX.fanfare();
+  showScreen('scr-main');
+  renderMain();
+}
+
+/* =====================================================
+   メイン(厩舎)画面
+   ===================================================== */
+let portraitAnimId = 0;
+
+function renderMain() {
+  const c = C();
+  if (!c) return;
+  $('date-badge').textContent = `${S().year}年目 ${turnLabel(c.turn)}`;
+  $('money-badge').textContent = `💰 ${fmtG(S().money)}`;
+  $('snail-name-label').textContent = c.name + ' ';
+  $('snail-year-label').textContent = `(${S().year}年目)`;
+  for (const [k, id] of [['num','num'],['sta','sta'],['gut','gut'],['shl','shl']]) {
+    const v = c.stats[k];
+    $(`bar-${id}`).style.width = (v / TUNE.statMax * 100) + '%';
+    $(`rank-${id}`).textContent = rankOf(v);
+    $(`val-${id}`).textContent = v;
+  }
+  $('bar-fat').style.width = c.fatigue + '%';
+  $('val-fat').textContent = c.fatigue;
+  $('cond-label').textContent = COND_LABELS[c.cond];
+  $('cond-label').style.color = COND_COLORS[c.cond];
+  $('prize-label').textContent = fmtG(c.prize);
+  $('record-label').textContent = `${c.starts}戦${c.wins}勝`;
+  // エサ選択の見た目 & 買えるか
+  document.querySelectorAll('#feed-box label').forEach((l, i) => {
+    const affordable = TUNE.feeds[i].cost <= S().money;
+    l.style.opacity = affordable ? '1' : '.5';
+    l.classList.toggle('checked', l.querySelector('input').checked);
+  });
+  // 今ターンのレース
+  const race = raceOfTurn(c.turn);
+  const btn = $('race-action-btn');
+  if (race) {
+    const g = GRADES[race.grade];
+    const eli = eligibility(race);
+    btn.style.display = '';
+    btn.disabled = !eli.ok;
+    btn.innerHTML = eli.ok
+      ? `🏁 <b>${esc(race.name)}</b> (${g.label} / ${race.dist}cm) に出走する!`
+      : `🏁 ${esc(race.name)} — 出走条件を満たしていない`;
+    if (!btn.dataset.announced || btn.dataset.announced !== race.id) {
+      btn.dataset.announced = race.id;
+      log(`今週は <b>${esc(race.name)}</b> (${g.label} / ${race.dist}cm) の開催日だ!${eli.ok ? '' : ` <span class="warn">※${eli.reason}</span>`}`);
+    }
+  } else {
+    btn.style.display = 'none';
+  }
+  startPortraitAnim();
+}
+
+function startPortraitAnim() {
+  cancelAnimationFrame(portraitAnimId);
+  const cv = $('snail-portrait'), ctx = cv.getContext('2d');
+  const loop = () => {
+    if (!$('scr-main').classList.contains('active')) return;
+    const c = C();
+    if (!c) return;
+    const t = performance.now() / 1000;
+    ctx.clearRect(0, 0, cv.width, cv.height);
+    // 背景: 空 + 草
+    ctx.fillStyle = '#dff2ff'; ctx.fillRect(0, 0, cv.width, 170);
+    ctx.fillStyle = '#cfe9b8'; ctx.fillRect(0, 170, cv.width, cv.height - 170);
+    ctx.fillStyle = '#a8d888';
+    for (let i = 0; i < 10; i++) {
+      const gx = (i * 43 + 10) % cv.width;
+      ctx.fillRect(gx, 170 - 12, 4, 12);
+    }
+    // お日さま or 雨(調子で天気を変える遊び)
+    if (c.cond >= 3) {
+      ctx.fillStyle = '#ffd860';
+      ctx.beginPath(); ctx.arc(340, 46, 26, 0, Math.PI * 2); ctx.fill();
+    }
+    const wobble = Math.sin(t * 1.2) * 6;
+    drawSnail(ctx, 180 + wobble, 230, 90, c.bodyHue, c.stats.shl, t);
+    // つかれていたら汗
+    if (c.fatigue >= 60) {
+      ctx.fillStyle = '#6ab0e8';
+      const sy = 150 + (t * 40 % 20);
+      ctx.beginPath(); ctx.arc(240 + wobble, sy, 5, 0, Math.PI * 2); ctx.fill();
+    }
+    portraitAnimId = requestAnimationFrame(loop);
+  };
+  loop();
+}
+
+/* =====================================================
+   カレンダー
+   ===================================================== */
+function renderCalendar() {
+  const c = C();
+  let html = '<table class="list"><tr><th>時期</th><th>レース</th><th>格</th><th>きょり</th><th>1着賞金</th><th>成績</th></tr>';
+  for (const r of RACES) {
+    const g = GRADES[r.grade];
+    const res = c ? c.results.find(x => x.raceId === r.id) : null;
+    const past = c && r.turn < c.turn;
+    const isNow = c && r.turn === c.turn;
+    let resTxt = '—';
+    if (res) resTxt = res.place === 1 ? '🥇1着' : res.place === 2 ? '🥈2着' : res.place === 3 ? '🥉3着' : `${res.place}着`;
+    else if (past) resTxt = '不出走';
+    html += `<tr class="${isNow ? 'me' : (past ? 'done' : '')}">
+      <td>${turnLabel(r.turn)}</td><td>${esc(r.name)}</td>
+      <td><span class="tag ${g.cls}">${r.grade === 'MC' ? 'MC' : g.label}</span></td>
+      <td>${r.dist}cm</td><td>${fmtG(g.prize[0])}</td><td>${resTxt}</td></tr>`;
+  }
+  html += '</table>';
+  $('calendar-table-wrap').innerHTML = html;
+}
+
+/* =====================================================
+   出走 → レース実況
+   ===================================================== */
+function openEntry() {
+  const c = C();
+  const race = raceOfTurn(c.turn);
+  if (!race) return;
+  const g = GRADES[race.grade];
+  const ground = rollGround(race);
+  const field = buildField(race);
+  G.pendingEntry = { race, ground, field };
+  $('entry-title').textContent = `${race.name} 出走登録`;
+  $('entry-info').innerHTML = `
+    <p><span class="tag ${g.cls}">${race.grade === 'MC' ? 'マイマイカップ' : g.label}</span>
+      きょり <b>${race.dist}cm</b> / 出走料 <b>${fmtG(g.fee)}</b> / 1着賞金 <b class="gold">${fmtG(g.prize[0])}</b><br>
+      天気: <b>${ground.weather}</b> → 地面 <span class="ground-tag ${ground.cls}">${ground.label}</span>
+      ${ground.key === 'wet' ? '<br><small>ぬれぬれ! 全員が本気を出せるぞ!</small>' : ground.key === 'dry' ? '<br><small>カラカラだ…。カラのじょうぶさが問われる。</small>' : ''}</p>
+    ${c.fatigue >= TUNE.fatPenaltyStart ? '<p class="warn">⚠ つかれがたまっている。実力を出しきれないかも…</p>' : ''}
+    ${S().money < g.fee ? '<p class="warn">⚠ お金が足りない!</p>' : ''}`;
+  let rows = '<table class="list"><tr><th>枠</th><th>名まえ</th><th>コーチの見立て</th></tr>';
+  G.pendingEntry.field.forEach((f, i) => {
+    const pow = f.stats.num + f.stats.sta * 0.6 + f.stats.gut * 0.4;
+    const mark = pow >= 160 ? '◎ 強敵' : pow >= 130 ? '○ 有力' : pow >= 100 ? '△ 互角' : '─ 気にするな';
+    rows += `<tr class="${f.isPlayer ? 'me' : ''}"><td>${i + 1}</td><td>${esc(f.name)}${f.isPlayer ? ' (あなた)' : ''}</td><td>${f.isPlayer ? '─' : mark}</td></tr>`;
+  });
+  rows += '</table>';
+  $('entry-rivals').innerHTML = rows;
+  $('btn-entry-go').disabled = S().money < g.fee;
+  openModal('modal-entry');
+}
+
+let raceAnimId = 0;
+function startRace() {
+  const { race, ground, field } = G.pendingEntry;
+  const g = GRADES[race.grade];
+  S().money -= g.fee;
+  closeModal('modal-entry');
+  const R = setupRace(race, ground, field);
+  G.race = R;
+  $('race-banner').innerHTML = `${esc(race.name)} <span class="tag ${g.cls}">${race.grade === 'MC' ? 'MC' : g.label}</span> ${race.dist}cm`;
+  $('race-ground-line').innerHTML = `${ground.weather} / 地面 <span class="ground-tag ${ground.cls}">${ground.label}</span>`;
+  $('btn-race-speed').textContent = '▶ ばい速 ×1';
+  showScreen('scr-race');
+  SFX.start();
+  let last = performance.now();
+  let countdown = 1.6;   // スタート演出
+  const loop = (now) => {
+    const dtReal = Math.min(0.1, (now - last) / 1000);
+    last = now;
+    if (countdown > 0) {
+      countdown -= dtReal;
+      drawRace(R, countdown);
+      raceAnimId = requestAnimationFrame(loop);
+      return;
+    }
+    if (!R.over) stepRace(R, dtReal * R.speedMult);
+    drawRace(R, 0);
+    if (R.over) {
+      setTimeout(() => showResult(R), 900);
+      return;
+    }
+    raceAnimId = requestAnimationFrame(loop);
+  };
+  raceAnimId = requestAnimationFrame(loop);
+}
+
+function drawRace(R, countdown) {
+  const cv = $('race-canvas'), ctx = cv.getContext('2d');
+  const W = cv.width, H = cv.height;
+  const ground = R.ground;
+  // 背景
+  ctx.fillStyle = ground.key === 'wet' ? '#a8c4e0' : ground.key === 'dry' ? '#ffe9c0' : '#d8ecff';
+  ctx.fillRect(0, 0, W, 70);
+  const trackCol = ground.key === 'wet' ? '#8aa86a' : ground.key === 'dry' ? '#d8c890' : '#b0d090';
+  ctx.fillStyle = trackCol;
+  ctx.fillRect(0, 70, W, H - 70);
+  // 雨
+  if (ground.key === 'wet') {
+    ctx.strokeStyle = 'rgba(80,120,200,0.4)'; ctx.lineWidth = 2;
+    const t = performance.now() / 1000;
+    for (let i = 0; i < 40; i++) {
+      const rx = (i * 53 + t * 300) % W, ry = (i * 97 + t * 500) % H;
+      ctx.beginPath(); ctx.moveTo(rx, ry); ctx.lineTo(rx - 3, ry + 12); ctx.stroke();
+    }
+  } else if (ground.key === 'dry') {
+    ctx.fillStyle = '#ffd860';
+    ctx.beginPath(); ctx.arc(W - 70, 36, 24, 0, Math.PI * 2); ctx.fill();
+  }
+  const marginL = 150, marginR = 70;
+  const laneH = (H - 90) / TUNE.laneCount;
+  const courseW = W - marginL - marginR;
+  const dist = R.race.dist;
+  // コース線・ゴール
+  for (let i = 0; i <= TUNE.laneCount; i++) {
+    ctx.strokeStyle = 'rgba(255,255,255,0.5)'; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(0, 80 + i * laneH); ctx.lineTo(W, 80 + i * laneH); ctx.stroke();
+  }
+  // 距離マーカー
+  ctx.fillStyle = 'rgba(60,90,40,0.7)';
+  ctx.font = '14px sans-serif'; ctx.textAlign = 'center';
+  for (let d = 0; d <= dist; d += 25) {
+    const mx = marginL + d / dist * courseW;
+    ctx.fillRect(mx, 76, 2, H - 90 + 8);
+    ctx.fillText(d + 'cm', mx, H - 2);
+  }
+  // ゴール旗
+  const gx = marginL + courseW;
+  ctx.font = '22px sans-serif';
+  ctx.fillText('🏁', gx + 22, 66);
+  // レーサー
+  ctx.textAlign = 'left';
+  const t = performance.now() / 1000;
+  for (const r of R.racers) {
+    const y = 80 + (r.lane + 1) * laneH - 6;
+    const x = marginL + (r.pos / dist) * courseW;
+    // ぬめり跡
+    ctx.strokeStyle = 'rgba(255,255,255,0.55)';
+    ctx.lineWidth = 4;
+    ctx.beginPath(); ctx.moveTo(marginL - 40, y - 2); ctx.lineTo(x, y - 2); ctx.stroke();
+    // 名前
+    ctx.font = (r.f.isPlayer ? 'bold ' : '') + '18px sans-serif';
+    ctx.fillStyle = r.f.isPlayer ? '#a04000' : '#333';
+    ctx.fillText(r.f.name, 6, y - 14);
+    if (r.f.isPlayer) {
+      ctx.fillStyle = '#e05500';
+      ctx.font = '13px sans-serif';
+      ctx.fillText('▶', x - 26, y - 30);
+    }
+    const size = 40;
+    drawSnail(ctx, x, y, size, r.f.bodyHue, r.f.stats.shl, t + r.lane, {});
+    // バテ表示
+    if (r.stamina <= 0 && !r.done) {
+      ctx.font = '13px sans-serif'; ctx.fillStyle = '#c04a4a';
+      ctx.fillText('バテ!', x + 10, y - 32);
+    }
+    if (r.done && r.place <= 3) {
+      ctx.font = '15px sans-serif';
+      ctx.fillText(['🥇','🥈','🥉'][r.place - 1], x + 14, y - 30);
+    }
+  }
+  // カウントダウン
+  if (countdown > 0) {
+    ctx.fillStyle = 'rgba(0,0,0,0.35)'; ctx.fillRect(0, 0, W, H);
+    ctx.fillStyle = '#fff'; ctx.font = 'bold 60px sans-serif'; ctx.textAlign = 'center';
+    ctx.fillText(countdown > 0.8 ? 'よーい…' : 'ドン!', W / 2, H / 2);
+    ctx.textAlign = 'left';
+  }
+  // 経過時間
+  ctx.fillStyle = 'rgba(0,0,0,0.55)'; ctx.font = '15px sans-serif';
+  ctx.fillText(`⏱ ${R.t.toFixed(1)}s`, 8, 24);
+}
+
+function toggleRaceSpeed() {
+  const R = G.race;
+  if (!R) return;
+  R.speedMult = R.speedMult === 1 ? 4 : 1;
+  $('btn-race-speed').textContent = `▶ ばい速 ×${R.speedMult}`;
+}
+
+function skipRace() {
+  const R = G.race;
+  if (!R) return;
+  cancelAnimationFrame(raceAnimId);
+  fastForwardRace(R);
+  showResult(R);
+}
+
+/* =====================================================
+   結果画面
+   ===================================================== */
+function showResult(R) {
+  if (R.resultShown) return;   // スキップ連打等での二重適用ガード
+  R.resultShown = true;
+  cancelAnimationFrame(raceAnimId);
+  const { place, prizeWon } = applyRaceResult(R);
+  const race = R.race;
+  $('result-title').textContent = `${race.name} — 結果`;
+  let headline, cls = '';
+  if (place === 1) { headline = '🎉 優勝!!'; SFX.fanfare(); }
+  else if (place <= 3) { headline = `${['','','🥈 2着!','🥉 3着!'][place]}`; SFX.good(); }
+  else { headline = `${place}着…`; SFX.bad(); }
+  if (race.grade === 'MC' && place === 1) headline = '👑 マイマイカップ制覇!!! 👑';
+  $('result-headline').textContent = headline;
+  const sorted = R.racers.slice().sort((a, b) => a.place - b.place);
+  let html = '<table class="list"><tr><th>着</th><th>名まえ</th><th>タイム</th></tr>';
+  for (const r of sorted) {
+    html += `<tr class="${r.f.isPlayer ? 'me' : ''}"><td>${r.place}</td><td>${esc(r.f.name)}${r.f.isPlayer ? ' (あなた)' : ''}</td><td>${r.time.toFixed(1)}s</td></tr>`;
+  }
+  html += '</table>';
+  $('result-table-wrap').innerHTML = html;
+  $('result-prize-line').innerHTML = prizeWon > 0
+    ? `賞金 <b class="gold">${fmtG(prizeWon)}</b> を獲得!`
+    : '賞金はなし。つぎ、がんばろう。';
+  // ログにも記録
+  const g = GRADES[race.grade];
+  if (place === 1) log(`<b>${esc(race.name)}</b> 優勝!! 賞金${fmtG(prizeWon)}を獲得!`, 'log-gold');
+  else if (place <= 3) log(`${esc(race.name)} ${place}着。賞金${fmtG(prizeWon)}。`, 'log-good');
+  else log(`${esc(race.name)} ${place}着…。`, 'log-bad');
+  if (prizeWon > 0) SFX.coin();
+  showScreen('scr-result');
+}
+
+function closeResult() {
+  const c = C();
+  if (c && c.turn >= 24) { retireSnail(false); return; }
+  if (!c) { return; }
+  showScreen('scr-main');
+  renderMain();
+}
+
+/* =====================================================
+   引退式・殿堂
+   ===================================================== */
+let retireAnimId = 0;
+function showRetire(entry) {
+  $('retire-title').textContent = entry.mcWon ? '👑 栄光の引退式' : '引退式';
+  const st = entry.stats;
+  const titles = entry.titles.length ? entry.titles.map(esc).join(' / ') : 'なし';
+  $('retire-summary').innerHTML = `
+    <div class="center" style="font-size:20px;font-weight:bold;margin:6px 0;">${esc(entry.name)}</div>
+    ${entry.mcWon ? '<div class="center gold" style="font-size:16px;">マイマイカップ勝者!</div>' : ''}
+    <table class="list" style="margin:8px 0;">
+      <tr><th>戦績</th><td>${entry.starts}戦${entry.wins}勝</td><th>獲得賞金</th><td>${fmtG(entry.prize)}</td></tr>
+      <tr><th>重賞タイトル</th><td colspan="3">${titles}</td></tr>
+      <tr><th>最終能力</th><td colspan="3">ぬめり${st.num}(${rankOf(st.num)}) / 体力${st.sta}(${rankOf(st.sta)}) / 根性${st.gut}(${rankOf(st.gut)}) / カラ${st.shl}(${rankOf(st.shl)})</td></tr>
+    </table>
+    <p class="center">${entry.mcWon ? 'マイマイ界の頂点に立った伝説の1頭として、永遠に語りつがれるだろう。'
+      : entry.wins > 0 ? 'よくがんばった! ゆっくり休んでね。' : '勝てなかったけど、いっしょうけんめい走った。おつかれさま。'}</p>`;
+  showScreen('scr-retire');
+  if (entry.mcWon) SFX.fanfare(); else SFX.good();
+  // 花道アニメ
+  cancelAnimationFrame(retireAnimId);
+  const cv = $('retire-canvas'), ctx = cv.getContext('2d');
+  const petals = [];
+  for (let i = 0; i < 30; i++) petals.push({ x: rnd() * 480, y: rnd() * -200, vy: 20 + rnd() * 30, vx: (rnd() - 0.5) * 20, hue: entry.mcWon ? 45 : ri(300, 360) });
+  const loop = () => {
+    if (!$('scr-retire').classList.contains('active')) return;
+    const t = performance.now() / 1000;
+    ctx.clearRect(0, 0, cv.width, cv.height);
+    ctx.fillStyle = '#fff6e8'; ctx.fillRect(0, 0, cv.width, cv.height);
+    ctx.fillStyle = '#cfe9b8'; ctx.fillRect(0, 150, cv.width, 50);
+    drawSnail(ctx, 240, 170, 80, entry.bodyHue, st.shl, t);
+    for (const p of petals) {
+      p.y += p.vy / 60; p.x += p.vx / 60;
+      if (p.y > 200) { p.y = -10; p.x = rnd() * 480; }
+      ctx.fillStyle = `hsla(${p.hue}, 80%, 65%, .8)`;
+      ctx.beginPath(); ctx.arc(p.x, p.y, 4, 0, Math.PI * 2); ctx.fill();
+    }
+    retireAnimId = requestAnimationFrame(loop);
+  };
+  loop();
+}
+
+function renderHall() {
+  const list = $('hall-list');
+  const hall = S() ? S().hall : [];
+  if (!hall.length) {
+    list.innerHTML = '<div class="panel center muted">まだ殿堂入りしたマイマイはいない。<br>1年間育てて引退すると、ここに永久保存される。</div>';
+    return;
+  }
+  list.innerHTML = hall.slice().reverse().map(h => {
+    const st = h.stats;
+    return `<div class="hof-card">
+      <div class="hof-name">${h.mcWon ? '👑 ' : ''}${esc(h.name)} <small class="muted">(${h.retiredYear}年目 引退)</small></div>
+      <div class="hof-sub">${h.starts}戦${h.wins}勝 / 賞金${fmtG(h.prize)}${h.titles.length ? ' / ' + h.titles.map(esc).join('・') : ''}</div>
+      <div class="hof-sub">ぬめり${st.num} 体力${st.sta} 根性${st.gut} カラ${st.shl}</div>
+      <div class="hof-sub" style="color:#4a7ac0;">🌱 繁殖可能(v1.1 で世代交代に対応予定)</div>
+    </div>`;
+  }).join('');
+}
+
+/* =====================================================
+   イベント配線・起動
+   ===================================================== */
+function wireEvents() {
+  $('btn-title-start').onclick = () => { SFX.init(); SFX.tap(); renderSlots(); showScreen('scr-slots'); };
+  $('btn-title-help').onclick = () => { SFX.init(); SFX.tap(); openModal('modal-help'); };
+  $('btn-slots-back').onclick = () => { SFX.tap(); showScreen('scr-title'); startTitleAnim(); };
+  $('btn-roll-dice').onclick = rollDiceAnimated;
+  $('btn-random-name').onclick = () => { SFX.tap(); $('name-input').value = randomSnailName(); };
+  $('btn-name-ok').onclick = () => { SFX.tap(); confirmName(); };
+  $('btn-train-num').onclick = () => { SFX.tap(); doTrain('num'); };
+  $('btn-train-sta').onclick = () => { SFX.tap(); doTrain('sta'); };
+  $('btn-train-gut').onclick = () => { SFX.tap(); doTrain('gut'); };
+  $('btn-rest').onclick = () => { SFX.tap(); doRest(); };
+  $('race-action-btn').onclick = () => { SFX.tap(); openEntry(); };
+  $('btn-entry-go').onclick = () => { SFX.tap(); startRace(); };
+  $('btn-entry-cancel').onclick = () => { SFX.tap(); closeModal('modal-entry'); };
+  $('btn-race-speed').onclick = () => { SFX.tap(); toggleRaceSpeed(); };
+  $('btn-race-skip').onclick = () => { SFX.tap(); skipRace(); };
+  $('btn-result-ok').onclick = () => { SFX.tap(); closeResult(); };
+  $('btn-calendar').onclick = () => { SFX.tap(); renderCalendar(); openModal('modal-calendar'); };
+  $('btn-calendar-close').onclick = () => { SFX.tap(); closeModal('modal-calendar'); };
+  $('btn-help2').onclick = () => { SFX.tap(); openModal('modal-help'); };
+  $('btn-help-close').onclick = () => { SFX.tap(); closeModal('modal-help'); };
+  $('btn-hall').onclick = () => { SFX.tap(); renderHall(); G._hallBack = 'scr-main'; showScreen('scr-hall'); };
+  $('btn-retire-hall').onclick = () => { SFX.tap(); renderHall(); G._hallBack = 'scr-retire'; showScreen('scr-hall'); };
+  $('btn-hall-back').onclick = () => {
+    SFX.tap();
+    const back = G._hallBack || 'scr-main';
+    showScreen(back);
+    if (back === 'scr-main') renderMain();
+  };
+  $('btn-retire').onclick = () => {
+    SFX.tap();
+    askConfirm('引退の確認', `${esc(C().name)} を引退させますか?<br>引退すると今シーズンは終了し、殿堂入りします。<br><b>この操作はとりけせません。</b>`, () => retireSnail(true));
+  };
+  $('btn-retire-next').onclick = () => { SFX.tap(); startDiceScreen(); };
+  $('btn-to-slots').onclick = (e) => { e.preventDefault(); SFX.tap(); persist(); renderSlots(); showScreen('scr-slots'); };
+  $('btn-mute').onclick = () => { SFX.init(); SFX.setMute(!SFX.muted); if (!SFX.muted) SFX.tap(); };
+  $('btn-confirm-yes').onclick = () => {
+    SFX.tap(); closeModal('modal-confirm');
+    const fn = G._confirmYes; G._confirmYes = null;
+    if (fn) fn();
+  };
+  $('btn-confirm-no').onclick = () => { SFX.tap(); closeModal('modal-confirm'); };
+  // エサラベルの選択ハイライト
+  document.querySelectorAll('#feed-box input').forEach(inp => {
+    inp.addEventListener('change', () => {
+      document.querySelectorAll('#feed-box label').forEach(l => l.classList.toggle('checked', l.querySelector('input').checked));
+    });
+  });
+}
+
+function boot() {
+  $('title-ver').textContent = 'v' + GAME_VERSION;
+  try { SFX.muted = localStorage.getItem(LS_MUTE) === '1'; } catch (e) {}
+  const b = $('btn-mute'); if (b) b.textContent = SFX.muted ? '🔇' : '🔊';
+  wireEvents();
+  showScreen('scr-title');
+  startTitleAnim();
+}
+boot();
+</script>
+</body>
+</html>
