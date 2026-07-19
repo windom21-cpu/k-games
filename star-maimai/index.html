@@ -453,6 +453,7 @@
         <p>マイマイには目に見えない<b>「調教効果」</b>がある。サイコロの目が悪くても、調教でグングン伸びる大器晩成タイプがいる。コーチのコメントや調教の伸びぐあいから見きわめよう。</p>
         <h3>毎ターンやること</h3>
         <p>エサ(ふつう/カルシウム/特選)をえらんで、<b>調教・休養・レース出走</b>のどれかを行う。調教するとつかれがたまり、つかれたまま無理をすると調教に失敗したりレースで力を出せない。</p>
+        <p>ターンが終わるたびに、ファンから<b>さしいれ 10G</b> がもらえる。お金を使いはたしても、ためればまたG3レースに出られる。</p>
         <h3>レース</h3>
         <p>年間12レース。グレードは <span class="tag g3">G3</span> → <span class="tag g2">G2</span> → <span class="tag g1">G1</span> → <span class="tag mc">マイマイカップ</span> の順に強い相手と大きな賞金が待っている。きょりは 50cm / 100cm / 150cm の3種類。</p>
         <h3>引退と殿堂</h3>
@@ -487,9 +488,10 @@
    - セーブ3スロット / バージョン付きセーブ+マイグレーション
    - 隠しステータス: 調教効果(ステ別適性) + 成長係数
    - v1.1: 配合・世代交代(殿堂の2頭 or 1頭+野生から子をつくる)
+   - v1.2.1: 毎ターンさしいれ10G(破産による詰み防止)
    ===================================================== */
 
-const GAME_VERSION = '1.2.0';
+const GAME_VERSION = '1.2.1';
 const SAVE_VERSION = 3;
 const LS_PREFIX = 'starMaimai.slot';
 const LS_MUTE = 'starMaimai.mute';
@@ -498,6 +500,7 @@ const LS_MUTE = 'starMaimai.mute';
 const TUNE = {
   statMax: 120,
   startMoney: 1500,
+  turnAllowance: 10, // 毎ターンのさしいれ。破産しても10ターンためればG3(100G)に出られる
   // 初期ステータス: サイコロの目 → 値
   initNumMul: 3.0,   // 3個の合計(3-18) × 3 = 9〜54
   initStaMul: 3.0,
@@ -866,10 +869,21 @@ function doRest() {
 }
 
 /* ---------- ターン進行 ---------- */
+// 毎ターンのさしいれ。収入源が賞金だけだと破産で詰むため、時間をかければ必ずG3に出られる
+function giveAllowance() {
+  const poor = S().money < GRADES.G3.fee;
+  S().money += TUNE.turnAllowance;
+  if (!poor) return;
+  const lack = GRADES.G3.fee - S().money;
+  const hint = lack > 0 ? `(あと${Math.ceil(lack / TUNE.turnAllowance)}ターンためればG3に出られる)` : '(G3の出走料がたまった!)';
+  log(`ファンからさしいれで ${fmtG(TUNE.turnAllowance)} もらった。${hint}`, 'log-good');
+}
+
 function endTurn() {
   const c = C();
   // 調子はゆらぐ
   if (rnd() < 0.4) c.cond = clamp(c.cond + (rnd() < 0.5 ? -1 : 1), 0, 4);
+  giveAllowance();
   c.turn++;
   persist();
   if (c.turn >= 24) {
@@ -1080,6 +1094,7 @@ function applyRaceResult(R) {
     newRecord = !!rec;   // 初出走はレコード「樹立」扱いで騒がない
     S().records[race.id] = { time: myTime, name: c.name, year: S().year, ground: R.ground.key };
   }
+  giveAllowance();
   c.turn++;   // レースで1ターン消費
   persist();
   return { place: place, prizeWon: prizeWon, newRecord: newRecord, time: myTime };
