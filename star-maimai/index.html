@@ -491,7 +491,7 @@
    - v1.2.1: 毎ターンさしいれ10G(破産による詰み防止)
    ===================================================== */
 
-const GAME_VERSION = '1.2.1';
+const GAME_VERSION = '1.3.0';
 const SAVE_VERSION = 3;
 const LS_PREFIX = 'starMaimai.slot';
 const LS_MUTE = 'starMaimai.mute';
@@ -539,9 +539,12 @@ const TUNE = {
   laneCount: 8,
   // 配合(v1.1): 子 = サイコロ由来 + 両親の遺伝
   breed: {
-    statInheritRate: 0.15,   // 初期ステ加算 = 両親平均ステ × これ × 変異
-    statMutSd: 0.35,         // 遺伝加算の変異(gauss(1, sd))
+    statInheritRate: 0.15,   // 初期ステ加算の総量 = 両親平均ステの合計 × これ × 変異
+    statMutSd: 0.35,         // 遺伝加算の変異(gauss(1, sd))。総量に1回だけかける
     statMutMin: 0.20, statMutMax: 1.9,  // 変異のクランプ(上振れ広め=大物の余地)
+    statDomWeight: 0.80,     // ステごとに優勢な親(50/50で抽選)へ寄せる比率。0.5=単純平均
+    statProfilePow: 3,       // 配分の偏り。大きいほど親の得意ステに濃く出る(1=均等配分)
+    statSplitJitterSd: 0.12, // 配分にかけるゆらぎ。小さめ=血統の個性が埋もれない
     aptMutSd: 0.18,          // 調教効果: 両親平均を中心に gauss
     aptRegress: 0.25,        // 調教効果は少しだけ平均(1.0)へ戻る(インフレ防止)
     gfParentW: 0.45,         // 成長係数: 親平均の混合比(残りはサイコロ由来)
@@ -576,6 +579,7 @@ const GRADE_NPC = { G3: 30, G2: 48, G1: 62, MC: 76 };
 const MONTH_NAMES = ['1月','2月','3月','4月','5月','6月','7月','8月','9月','10月','11月','12月'];
 const COND_LABELS = ['ぜつ不調 ↓↓','不調 ↓','ふつう →','好調 ↑','ぜっ好調 ↑↑'];
 const COND_COLORS = ['#c0504a','#d2691e','#666','#3e9a4d','#e08830'];
+const STAT_LABELS = { num: 'ぬめり', sta: '体力', gut: '根性', shl: 'カラ' };
 
 const NPC_NAMES = ['デンデンマル','ツムジロウ','ラセンオー','ヌメリヒメ','カラツヨシ','アメアガリ','ウズマキング','マイマイダー','シェルブライト','ノロマックス','ツノダシくん','オツユチャン','カタツムラー','ヤドカリモドキ','グルグルポン','シットリーヌ','バンガードカラ','ハイスピードロ','ツバメガエシ','モーレツツムリ','アジサイオトメ','テルテルボーズ','ドロンコロン','カルシウムキッド'];
 
@@ -700,7 +704,9 @@ function rollDiceSet() {
 
 // breed = { p1, p2 } (殿堂エントリ or 野生親) を渡すと遺伝が乗る。null なら従来どおり野生誕生。
 // 直近の遺伝ボーナスは lastBreedBonus に入る(サイコロ画面の表示用。セーブしない)。
+// lastBreedNote は「どのステが濃く出たか・どちらの親ゆずりか」など台詞まわりの材料。
 let lastBreedBonus = null;
+let lastBreedNote = null;
 function makeSnailFromDice(dice, name, breed) {
   const sum3a = dice[0] + dice[1] + dice[2];          // ぬめり
   const sum3b = dice[3] + dice[4] + dice[5];          // 体力
@@ -716,22 +722,60 @@ function makeSnailFromDice(dice, name, breed) {
   let gf = TUNE.gfBase + (total - 10) * TUNE.gfPerPip;
   const apt = {};
   lastBreedBonus = null;
+  lastBreedNote = null;
   if (breed) {
     // ---- 遺伝: 初期ステ加算 + apt/gf の継承(変異幅広め=弱親から大物の余地) ----
     const B = TUNE.breed;
+    const KEYS = ['num', 'sta', 'gut', 'shl'];
     lastBreedBonus = {};
-    for (const k of ['num', 'sta', 'gut', 'shl']) {
-      const pAvg = (breed.p1.stats[k] + breed.p2.stats[k]) / 2;
-      const mut = clamp(gauss(1.0, B.statMutSd), B.statMutMin, B.statMutMax);
-      const bonus = Math.max(0, Math.round(pAvg * B.statInheritRate * mut));
+    // ステごとに「どちらの親の血が濃く出るか」を 50/50 で引く(dom = 優勢な親)。
+    // 両親を単純平均すると、ぬめり型×カラ型のような組み合わせで特化が打ち消されて
+    // しまい、遺伝している感が消える。片親に寄せることで、同じ両親からでも
+    // 「父ゆずりのぬめり型」「母ゆずりのカラ型」と兄弟の個性が分かれる。
+    // 優勢な親は 50/50 なので期待値は両親平均のまま = インフレしない。
+    const dom = {}, pMix = {}, wRaw = {};
+    let sumMix = 0, wSum = 0;
+    for (const k of KEYS) {
+      const first = rnd() < 0.5;
+      dom[k] = first ? breed.p1 : breed.p2;
+      const oth = first ? breed.p2 : breed.p1;
+      pMix[k] = dom[k].stats[k] * B.statDomWeight + oth.stats[k] * (1 - B.statDomWeight);
+      sumMix += pMix[k];
+      // 配分は優勢親ゆずりの値の statProfilePow 乗で決める(得意ステに濃く出る)
+      wRaw[k] = Math.pow(pMix[k], B.statProfilePow) * Math.max(0.15, gauss(1, B.statSplitJitterSd));
+      wSum += wRaw[k];
+    }
+    // 変異は総量に1回だけ。ステごとに振るとゆらぎで血統の個性が埋もれてしまう
+    const mut = clamp(gauss(1.0, B.statMutSd), B.statMutMin, B.statMutMax);
+    const budget = sumMix * B.statInheritRate * mut;
+    let topKey = null, aptTop = null, aptSum = 0, aptParSum = 0;
+    for (const k of KEYS) {
+      const w = wSum > 0 ? wRaw[k] / wSum : 0.25;
+      const bonus = Math.max(0, Math.round(budget * w));
       lastBreedBonus[k] = bonus;
+      if (topKey === null || bonus > lastBreedBonus[topKey]) topKey = k;
       stats[k] = clamp(stats[k] + bonus, 0, TUNE.statMax);
-      const aptMid = (breed.p1.hidden.apt[k] + breed.p2.hidden.apt[k]) / 2;
+      // 隠しステも同じ優勢親に寄せる(見えるステと血筋の向きをそろえる)
+      const oth = dom[k] === breed.p1 ? breed.p2 : breed.p1;
+      const aptMid = dom[k].hidden.apt[k] * B.statDomWeight + oth.hidden.apt[k] * (1 - B.statDomWeight);
       const aptCenter = aptMid + (TUNE.aptMean - aptMid) * B.aptRegress;   // 平均への回帰
       apt[k] = clamp(gauss(aptCenter, B.aptMutSd), TUNE.aptMin, TUNE.aptMax);
+      if (aptTop === null || apt[k] > apt[aptTop]) aptTop = k;
+      aptSum += apt[k];
+      aptParSum += aptMid;
     }
     const gfMid = (breed.p1.hidden.gf + breed.p2.hidden.gf) / 2;
     gf = clamp(gf * (1 - B.gfParentW) + gfMid * B.gfParentW + gauss(0, B.gfMutSd), B.gfMin, B.gfMax);
+    lastBreedNote = {
+      // 見えるステの表示用(top)と、コーチ台詞用の隠しステ側(aptTop)。
+      // どちらも「そのステで優勢だった親」を名指しするので血筋の説明が食いちがわない
+      top: lastBreedBonus[topKey] > 0 ? topKey : null,
+      topFrom: dom[topKey].name,
+      aptTop: aptTop,
+      aptFrom: dom[aptTop].name,
+      aptParent: aptParSum / KEYS.length, aptChild: aptSum / KEYS.length,
+      gfParent: gfMid, gfChild: gf,
+    };
   } else {
     for (const k of ['num', 'sta', 'gut', 'shl']) {
       apt[k] = clamp(gauss(TUNE.aptMean, TUNE.aptSd), TUNE.aptMin, TUNE.aptMax);
@@ -778,12 +822,25 @@ function coachComment(snail) {
   const a = snail.hidden.apt;
   const avg = (a.num + a.sta + a.gut) / 3 * snail.hidden.gf;
   const best = Math.max(a.num, a.sta, a.gut);
-  const bestName = best === a.num ? 'ぬめり' : (best === a.sta ? '体力' : '根性');
+  const bestName = STAT_LABELS[best === a.num ? 'num' : (best === a.sta ? 'sta' : 'gut')];
   if (avg >= 1.30) return 'コーチ「……この子、とんでもない大物かもしれんぞ。目の輝きがちがう」';
   if (avg >= 1.15) return `コーチ「いい素質を感じる。特に${bestName}の伸びしろに期待だ」`;
   if (avg >= 0.95) return `コーチ「素直そうな子だ。じっくり育てていこう。${bestName}が伸びるかもな」`;
   if (avg >= 0.80) return 'コーチ「うーん、マイペースな子だな。焦らず育てよう」';
   return 'コーチ「……のんびり屋さんだ。だが、カルシウムと愛情でどうにかなるさ」';
+}
+
+// 配合の子だけの追加コメント。隠しステ(apt/gf)がどれだけ受けつがれたかは
+// 数値を出さずここでだけ伝える(遺伝の手ごたえをプレイヤーに知覚させる唯一の窓口)。
+function breedComment() {
+  const n = lastBreedNote;
+  if (!n) return '';
+  const d = (n.aptChild - n.aptParent) + (n.gfChild - n.gfParent) * 0.5;
+  const s = STAT_LABELS[n.aptTop];
+  if (d >= 0.10) return `コーチ「おどろいた…両親をこえる素質だ。${s}の血が、とんでもない形で出ているぞ!」`;
+  if (d >= -0.03) return `コーチ「${esc(n.aptFrom)}の血をしっかり受けついでいるな。${s}に期待だ」`;
+  if (d >= -0.15) return `コーチ「血は少しうすまったか…。それでも${s}にはちゃんと面影がある」`;
+  return 'コーチ「両親とはずいぶんちがう子だな…。こういう子が、ときどき化けるんだ」';
 }
 
 /* ---------- ログ ---------- */
@@ -855,7 +912,7 @@ function doTrain(key) {
   else if (power >= 1.15 && actual >= 5) cmt = 'グングン伸びている!';
   else if (power <= 0.80) cmt = 'うーん、あまり手ごたえがない…。';
   else cmt = 'まずまずの手ごたえ。';
-  log(`${def.label}(${def.flavor})を行った。${key === 'num' ? 'ぬめり' : key === 'sta' ? '体力' : '根性'} +${actual}。${cmt}`, actual >= 5 ? 'log-good' : '');
+  log(`${def.label}(${def.flavor})を行った。${STAT_LABELS[key]} +${actual}。${cmt}`, actual >= 5 ? 'log-good' : '');
   endTurn();
 }
 
@@ -1501,16 +1558,25 @@ function finishDiceRoll(dice) {
   $('dice-total-line').textContent = `合計 ${total} — ${totalCmt}`;
   const st = snail.stats;
   const bb = lastBreedBonus;
+  const note = lastBreedNote;
+  // 一番濃く受けついだステはハイライトし、その血をくれた親の名を添える
+  const bonusCell = (k) => {
+    const top = note && note.top === k;
+    return `<td${top ? ' style="background:#fff0d0;font-weight:bold;color:var(--accent);"' : ''}>+${bb[k]}${top ? ' ✨' : ''}</td>`;
+  };
   const bonusRow = bb ? `
       <tr><th colspan="4" style="background:#fff4e2;">💕 両親ゆずりのちから</th></tr>
-      <tr><td>+${bb.num}</td><td>+${bb.sta}</td><td>+${bb.gut}</td><td>+${bb.shl}</td></tr>` : '';
+      <tr>${bonusCell('num')}${bonusCell('sta')}${bonusCell('gut')}${bonusCell('shl')}</tr>${note && note.top ? `
+      <tr><td colspan="4" style="background:#fff8ec;font-size:12.5px;">✨ ${STAT_LABELS[note.top]}は <b>${esc(note.topFrom)}</b> ゆずり!</td></tr>` : ''}` : '';
   $('dice-stats-preview').innerHTML = `
     <table class="list" style="margin:8px 0;">
       <tr><th>ぬめり</th><th>体力</th><th>根性</th><th>カラ</th></tr>
       <tr><td><b>${st.num}</b> (${rankOf(st.num)})</td><td><b>${st.sta}</b> (${rankOf(st.sta)})</td>
           <td><b>${st.gut}</b> (${rankOf(st.gut)})</td><td><b>${st.shl}</b> (${rankOf(st.shl)})</td></tr>${bonusRow}
     </table>`;
-  $('coach-comment').textContent = coachComment(snail);
+  const bc = breedComment();
+  $('coach-comment').innerHTML = esc(coachComment(snail))
+    + (bc ? `<br><span style="color:var(--accent);">${bc}</span>` : '');
   $('name-input').value = randomSnailName();
   $('btn-roll-dice').style.display = 'none';
   $('dice-result-box').style.display = '';
