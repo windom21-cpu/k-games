@@ -192,6 +192,25 @@
     max-width: 560px; width: 100%; padding: 14px; margin: auto 0;
   }
   .modal h2 { margin: 0 0 8px; font-size: 18px; color: var(--frame-dark); }
+  /* 見出しと✕は固定して中身だけスクロールさせる。「とじる」を探して
+     下までスクロールしないと閉じられない状態を避けるため(枠外タップでも閉じる) */
+  .modal-head { display: flex; align-items: flex-start; gap: 8px; margin-bottom: 8px; }
+  .modal-head h2 { margin: 0; flex: 1; min-width: 0; }
+  .modal-x { flex: none; width: 36px; height: 36px; padding: 0; font-size: 16px; line-height: 1; }
+  .modal-pane { max-height: 58vh; overflow-y: auto; overflow-x: auto; }
+  .tab-row { display: flex; gap: 6px; margin-bottom: 8px; }
+  .tab-row button { flex: 1; font-size: 13.5px; padding: 8px 4px; }
+  .tab-row button.active {
+    background: linear-gradient(#dff0cd, #b8d8a0); font-weight: bold; color: var(--frame-dark);
+  }
+
+  /* 配合の親えらび: 選択状況と決定ボタンを上に固定(カードを何枚めくっても押せる) */
+  #breed-bar {
+    position: sticky; top: 0; z-index: 5;
+    background: var(--bg); padding: 6px 0 8px;
+    border-bottom: 2px dashed #b8d8a0;
+  }
+  #breed-bar .btn-row { margin: 6px 0 0; }
 
   /* ---- misc ---- */
   .tag { display: inline-block; border-radius: 6px; padding: 1px 8px; font-size: 12px; font-weight: bold; color: #fff; }
@@ -260,13 +279,15 @@
   <!-- ========== 配合(親選び) ========== -->
   <section id="scr-breed" class="screen">
     <h1 class="game-title" style="font-size:22px;">💕 配合 — 親をえらぶ</h1>
-    <p class="center muted" style="font-size:13px;">殿堂から <b>2頭</b> えらぼう(1頭+「野生のマイマイ」でもOK)</p>
-    <div class="center" id="breed-status" style="min-height:24px;font-weight:bold;"></div>
-    <div id="breed-list"></div>
-    <div class="btn-row">
-      <button class="primary big" id="btn-breed-go" disabled>この2頭で配合!</button>
-      <button id="btn-breed-back">← もどる</button>
+    <div id="breed-bar">
+      <div class="center" id="breed-status" style="min-height:24px;font-weight:bold;"></div>
+      <div class="btn-row">
+        <button class="primary big" id="btn-breed-go" disabled>この2頭で配合!</button>
+        <button id="btn-breed-back">← もどる</button>
+      </div>
     </div>
+    <p class="center muted" style="font-size:13px;">殿堂から <b>2頭</b> えらぼう(1頭+「野生のマイマイ」でもOK)</p>
+    <div id="breed-list"></div>
   </section>
 
   <!-- ========== サイコロ(新しいマイマイ) ========== -->
@@ -312,6 +333,12 @@
       <button class="small" id="btn-mute">🔊</button>
     </div>
 
+    <!-- 日誌は最上部。調教やレースの結果コメントを、スクロールせずに読めるように -->
+    <div class="panel">
+      <h2>きゅう舎日誌</h2>
+      <div id="log-box"></div>
+    </div>
+
     <div class="panel">
       <div class="stable-flex">
         <canvas id="snail-portrait" width="400" height="300"></canvas>
@@ -352,10 +379,6 @@
       </div>
     </div>
 
-    <div class="panel">
-      <h2>きゅう舎日誌</h2>
-      <div id="log-box"></div>
-    </div>
     <footer><a href="#" id="btn-to-slots">セーブスロットへもどる</a></footer>
   </section>
 
@@ -413,10 +436,21 @@
   <!-- ========== モーダル: カレンダー ========== -->
   <div class="modal-back" id="modal-calendar">
     <div class="modal">
-      <h2>📅 レースカレンダー</h2>
-      <div id="calendar-table-wrap" style="overflow-x:auto;"></div>
-      <p class="muted" style="font-size:12px;">出走条件: G2=1勝 or 賞金1500G以上 / G1=G2以上で3着内 or 賞金6000G以上 / マイマイカップ=G1で3着内 or 賞金15000G以上</p>
-      <div id="calendar-records-wrap" style="overflow-x:auto;"></div>
+      <div class="modal-head">
+        <h2>📅 レースと記録</h2>
+        <button class="modal-x" title="とじる">✕</button>
+      </div>
+      <div class="tab-row">
+        <button class="active" id="tab-calendar">📅 カレンダー</button>
+        <button id="tab-records">🏅 これまでの記録</button>
+      </div>
+      <div class="modal-pane" id="pane-calendar">
+        <div id="calendar-table-wrap" style="overflow-x:auto;"></div>
+        <p class="muted" style="font-size:12px;">出走条件: G2=1勝 or 賞金1500G以上 / G1=G2以上で3着内 or 賞金6000G以上 / マイマイカップ=G1で3着内 or 賞金15000G以上</p>
+      </div>
+      <div class="modal-pane" id="pane-records" style="display:none;">
+        <div id="calendar-records-wrap" style="overflow-x:auto;"></div>
+      </div>
       <div class="btn-row"><button id="btn-calendar-close">とじる</button></div>
     </div>
   </div>
@@ -424,7 +458,10 @@
   <!-- ========== モーダル: 出走確認 ========== -->
   <div class="modal-back" id="modal-entry">
     <div class="modal">
-      <h2 id="entry-title">出走登録</h2>
+      <div class="modal-head">
+        <h2 id="entry-title">出走登録</h2>
+        <button class="modal-x" title="やめておく">✕</button>
+      </div>
       <div id="entry-info"></div>
       <div id="entry-rivals" style="max-height:220px;overflow-y:auto;margin:8px 0;"></div>
       <div class="btn-row">
@@ -437,8 +474,11 @@
   <!-- ========== モーダル: あそびかた ========== -->
   <div class="modal-back" id="modal-help">
     <div class="modal">
-      <h2>❓ あそびかた</h2>
-      <div style="font-size:13.5px;max-height:60vh;overflow-y:auto;" id="help-body">
+      <div class="modal-head">
+        <h2>❓ あそびかた</h2>
+        <button class="modal-x" title="とじる">✕</button>
+      </div>
+      <div class="modal-pane" style="font-size:13.5px;" id="help-body">
         <h3>ゲームの目的</h3>
         <p>カタツムリ(マイマイ)を1年間(24ターン=半月きざみ)育てて、レースで賞金をかせぎ、年末の最高峰レース<b>「マイマイカップ」</b>の制覇をめざす。</p>
         <h3>マイマイの能力</h3>
@@ -469,7 +509,10 @@
   <!-- ========== モーダル: 汎用確認 ========== -->
   <div class="modal-back" id="modal-confirm">
     <div class="modal">
-      <h2 id="confirm-title">確認</h2>
+      <div class="modal-head">
+        <h2 id="confirm-title">確認</h2>
+        <button class="modal-x" title="いいえ">✕</button>
+      </div>
       <p id="confirm-text"></p>
       <div class="btn-row">
         <button class="danger" id="btn-confirm-yes">はい</button>
@@ -491,7 +534,7 @@
    - v1.2.1: 毎ターンさしいれ10G(破産による詰み防止)
    ===================================================== */
 
-const GAME_VERSION = '1.3.0';
+const GAME_VERSION = '1.4.0';
 const SAVE_VERSION = 3;
 const LS_PREFIX = 'starMaimai.slot';
 const LS_MUTE = 'starMaimai.mute';
@@ -852,8 +895,9 @@ function log(msg, cls) {
 function renderLog() {
   const box = $('log-box');
   if (!box) return;
-  box.innerHTML = G.logs.map(l => `<p class="${l.cls}">${l.msg}</p>`).join('');
-  box.scrollTop = box.scrollHeight;
+  // 新しいできごとを先頭に。日誌が画面最上部にあるので、スクロールなしで最新が読める
+  box.innerHTML = G.logs.slice().reverse().map(l => `<p class="${l.cls}">${l.msg}</p>`).join('');
+  box.scrollTop = 0;
 }
 
 /* ---------- エサ ---------- */
@@ -1229,7 +1273,29 @@ function showScreen(id) {
   window.scrollTo(0, 0);
 }
 function openModal(id) { $(id).classList.add('active'); }
-function closeModal(id) { $(id).classList.remove('active'); }
+function closeModal(id) {
+  $(id).classList.remove('active');
+  // 確認モーダルを「はい」以外で閉じたら、保留中の処理は必ず捨てる
+  if (id === 'modal-confirm') G._confirmYes = null;
+}
+// 枠外タップ・✕・Esc のどれでも閉じられるようにする(とじるボタンは画面の
+// 一番下にあり、中身が長いと探して下までスクロールする必要があったため)
+function wireModalDismiss() {
+  document.querySelectorAll('.modal-back').forEach(back => {
+    back.addEventListener('click', (e) => {
+      if (e.target !== back) return;   // 中身のタップでは閉じない
+      SFX.tap();
+      closeModal(back.id);
+    });
+    const x = back.querySelector('.modal-x');
+    if (x) x.onclick = () => { SFX.tap(); closeModal(back.id); };
+  });
+  document.addEventListener('keydown', (e) => {
+    if (e.key !== 'Escape') return;
+    const open = document.querySelector('.modal-back.active');
+    if (open) closeModal(open.id);
+  });
+}
 
 function askConfirm(title, text, onYes) {
   $('confirm-title').textContent = title;
@@ -1718,7 +1784,7 @@ function renderCalendar() {
   html += '</table>';
   $('calendar-table-wrap').innerHTML = html;
   // 🏅 これまでの記録(スロット通算。自分が出走したレースだけ)
-  let rec = '<h3 style="margin:12px 0 4px;">🏅 これまでの記録</h3>';
+  let rec = '';   // 見出しはタブのラベルが兼ねる
   const played = RACES.filter(r => S().records[r.id]);
   if (!played.length) {
     rec += '<p class="muted" style="font-size:12.5px;margin:4px 0;">まだ出走したレースがない。出走するとレコードがここに刻まれる。</p>';
@@ -1738,6 +1804,16 @@ function renderCalendar() {
     rec += '<p class="muted" style="font-size:12px;margin:4px 0;">勝利回数とレコードは、この牧場(スロット)の歴代マイマイ通算。</p>';
   }
   $('calendar-records-wrap').innerHTML = rec;
+}
+
+// カレンダーと記録はタブで出し分ける。1画面に縦積みすると記録が
+// ずっと下になり、スクロールしないと見えなかったため
+function showCalendarTab(which) {
+  const onRecords = which === 'records';
+  $('pane-calendar').style.display = onRecords ? 'none' : '';
+  $('pane-records').style.display = onRecords ? '' : 'none';
+  $('tab-calendar').classList.toggle('active', !onRecords);
+  $('tab-records').classList.toggle('active', onRecords);
 }
 
 /* =====================================================
@@ -2034,8 +2110,10 @@ function wireEvents() {
   $('btn-race-speed').onclick = () => { SFX.tap(); toggleRaceSpeed(); };
   $('btn-race-skip').onclick = () => { SFX.tap(); skipRace(); };
   $('btn-result-ok').onclick = () => { SFX.tap(); closeResult(); };
-  $('btn-calendar').onclick = () => { SFX.tap(); renderCalendar(); openModal('modal-calendar'); };
+  $('btn-calendar').onclick = () => { SFX.tap(); renderCalendar(); showCalendarTab('calendar'); openModal('modal-calendar'); };
   $('btn-calendar-close').onclick = () => { SFX.tap(); closeModal('modal-calendar'); };
+  $('tab-calendar').onclick = () => { SFX.tap(); showCalendarTab('calendar'); };
+  $('tab-records').onclick = () => { SFX.tap(); showCalendarTab('records'); };
   $('btn-help2').onclick = () => { SFX.tap(); openModal('modal-help'); };
   $('btn-help-close').onclick = () => { SFX.tap(); closeModal('modal-help'); };
   $('btn-hall').onclick = () => { SFX.tap(); renderHall(); G._hallBack = 'scr-main'; showScreen('scr-hall'); };
@@ -2059,11 +2137,13 @@ function wireEvents() {
   $('btn-to-slots').onclick = (e) => { e.preventDefault(); SFX.tap(); persist(); renderSlots(); showScreen('scr-slots'); };
   $('btn-mute').onclick = () => { SFX.init(); SFX.setMute(!SFX.muted); if (!SFX.muted) SFX.tap(); };
   $('btn-confirm-yes').onclick = () => {
-    SFX.tap(); closeModal('modal-confirm');
-    const fn = G._confirmYes; G._confirmYes = null;
+    SFX.tap();
+    const fn = G._confirmYes;   // closeModal が G._confirmYes を消すので先に取っておく
+    closeModal('modal-confirm');
     if (fn) fn();
   };
   $('btn-confirm-no').onclick = () => { SFX.tap(); closeModal('modal-confirm'); };
+  wireModalDismiss();
   // エサラベルの選択ハイライト
   document.querySelectorAll('#feed-box input').forEach(inp => {
     inp.addEventListener('change', () => {
