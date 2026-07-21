@@ -231,6 +231,12 @@
   .hof-card.wild { border-color: #5a8a4a; background: #f4fbee; }
   .parent-badge { display: inline-block; background: var(--accent); color: #fff; border-radius: 6px; padding: 0 8px; font-size: 12px; font-weight: bold; margin-right: 4px; }
   .gen-badge { display: inline-block; background: #4a7ac0; color: #fff; border-radius: 6px; padding: 0 6px; font-size: 11.5px; font-weight: bold; }
+  /* 王者血統(両親ともマイマイカップ制覇者)の称号 */
+  .royal-badge {
+    display: inline-block; background: linear-gradient(#f6d365, #d4a017); color: #4a3400;
+    border: 1px solid #a67c00; border-radius: 6px; padding: 0 6px;
+    font-size: 11.5px; font-weight: bold;
+  }
 
   footer { text-align: center; margin-top: 24px; font-size: 12.5px; color: #7a9a6a; }
   footer a { color: #4a7ac0; }
@@ -534,8 +540,8 @@
    - v1.2.1: 毎ターンさしいれ10G(破産による詰み防止)
    ===================================================== */
 
-const GAME_VERSION = '1.4.0';
-const SAVE_VERSION = 3;
+const GAME_VERSION = '1.5.0';
+const SAVE_VERSION = 4;
 const LS_PREFIX = 'starMaimai.slot';
 const LS_MUTE = 'starMaimai.mute';
 
@@ -593,6 +599,11 @@ const TUNE = {
     gfParentW: 0.45,         // 成長係数: 親平均の混合比(残りはサイコロ由来)
     gfMutSd: 0.03, gfMin: 0.85, gfMax: 1.32,
     wildStatMin: 25, wildStatMax: 70,   // 野生親の能力レンジ
+    // 王者血統(両親ともマイマイカップ制覇者)だけの特典。
+    // 見えるステの初期値を盛るとレース勝率が直結でインフレするため、
+    // 「カラ」と「隠しの素質」という勝率に化けにくい軸だけに報酬を置いている。
+    mcShlBonus: 15,       // カラの初期値ボーナス(カラは調教で伸びず上限120に当たる=自己制限的)
+    mcAptRegress: 0.05,   // 調教効果の平均回帰をゆるめる(通常 aptRegress 0.25)= 素質がそのまま伝わる
   },
 };
 
@@ -680,6 +691,14 @@ const MIGRATIONS = {
     };
     for (const h of (d.hall || [])) tally(h);
     tally(d.current);
+    return d;
+  },
+  3: (d) => {
+    d.version = 4;
+    // 王者血統フラグ。既存個体は両親の mcWon を遡れない(parents は名前のみ)ので
+    // false 固定。以後に配合された子から正しく付く
+    if (d.current && d.current.royal == null) d.current.royal = false;
+    for (const h of (d.hall || [])) if (h.royal == null) h.royal = false;
     return d;
   },
 };
@@ -771,6 +790,9 @@ function makeSnailFromDice(dice, name, breed) {
     const B = TUNE.breed;
     const KEYS = ['num', 'sta', 'gut', 'shl'];
     lastBreedBonus = {};
+    // 王者血統: 両親ともマイマイカップ制覇者のときだけの特典
+    const royal = !!(breed.p1.mcWon && breed.p2.mcWon);
+    const aptRegress = royal ? B.mcAptRegress : B.aptRegress;
     // ステごとに「どちらの親の血が濃く出るか」を 50/50 で引く(dom = 優勢な親)。
     // 両親を単純平均すると、ぬめり型×カラ型のような組み合わせで特化が打ち消されて
     // しまい、遺伝している感が消える。片親に寄せることで、同じ両親からでも
@@ -801,15 +823,23 @@ function makeSnailFromDice(dice, name, breed) {
       // 隠しステも同じ優勢親に寄せる(見えるステと血筋の向きをそろえる)
       const oth = dom[k] === breed.p1 ? breed.p2 : breed.p1;
       const aptMid = dom[k].hidden.apt[k] * B.statDomWeight + oth.hidden.apt[k] * (1 - B.statDomWeight);
-      const aptCenter = aptMid + (TUNE.aptMean - aptMid) * B.aptRegress;   // 平均への回帰
+      const aptCenter = aptMid + (TUNE.aptMean - aptMid) * aptRegress;   // 平均への回帰
       apt[k] = clamp(gauss(aptCenter, B.aptMutSd), TUNE.aptMin, TUNE.aptMax);
       if (aptTop === null || apt[k] > apt[aptTop]) aptTop = k;
       aptSum += apt[k];
       aptParSum += aptMid;
     }
+    // 王者血統のカラ加算は「両親ゆずり」とは別枠。上限120で頭打ちになるので自己制限的
+    let royalShl = 0;
+    if (royal) {
+      const before = stats.shl;
+      stats.shl = clamp(stats.shl + B.mcShlBonus, 0, TUNE.statMax);
+      royalShl = stats.shl - before;
+    }
     const gfMid = (breed.p1.hidden.gf + breed.p2.hidden.gf) / 2;
     gf = clamp(gf * (1 - B.gfParentW) + gfMid * B.gfParentW + gauss(0, B.gfMutSd), B.gfMin, B.gfMax);
     lastBreedNote = {
+      royal: royal, royalShl: royalShl,
       // 見えるステの表示用(top)と、コーチ台詞用の隠しステ側(aptTop)。
       // どちらも「そのステで優勢だった親」を名指しするので血筋の説明が食いちがわない
       top: lastBreedBonus[topKey] > 0 ? topKey : null,
@@ -841,6 +871,7 @@ function makeSnailFromDice(dice, name, breed) {
     bodyHue: breed ? (rnd() < 0.5 ? breed.p1.bodyHue : breed.p2.bodyHue) + ri(-25, 25) : ri(0, 359),
     gen: breed ? Math.max(breed.p1.gen || 1, breed.p2.gen || 1) + 1 : 1,
     parents: breed ? [breed.p1.name, breed.p2.name] : null,
+    royal: !!(breed && breed.p1.mcWon && breed.p2.mcWon),   // 王者血統(両親ともMC制覇)
   };
 }
 
@@ -880,6 +911,11 @@ function breedComment() {
   if (!n) return '';
   const d = (n.aptChild - n.aptParent) + (n.gfChild - n.gfParent) * 0.5;
   const s = STAT_LABELS[n.aptTop];
+  // 王者血統は素質がほぼ薄まらずに伝わる(mcAptRegress)。それを台詞でも伝える
+  if (n.royal) {
+    if (d >= 0.05) return `コーチ「……王者どうしの子だ。${s}の素質が、両親そのままに宿っている。とんでもない子になるぞ」`;
+    return `コーチ「王者の血をひく子だ。${s}に、両親のおもかげがはっきり出ている」`;
+  }
   if (d >= 0.10) return `コーチ「おどろいた…両親をこえる素質だ。${s}の血が、とんでもない形で出ているぞ!」`;
   if (d >= -0.03) return `コーチ「${esc(n.aptFrom)}の血をしっかり受けついでいるな。${s}に期待だ」`;
   if (d >= -0.15) return `コーチ「血は少しうすまったか…。それでも${s}にはちゃんと面影がある」`;
@@ -1213,6 +1249,7 @@ function retireSnail(early) {
     bodyHue: c.bodyHue,
     gen: c.gen || 1,
     parents: c.parents || null,
+    royal: !!c.royal,
     retiredYear: S().year,
     retiredEarly: !!early,
     canBreed: true,   // 引退したら一生配合に使える
@@ -1519,7 +1556,7 @@ function renderBreedList() {
         <div class="hof-sub">どこからかやってきた。能力はひかえめだが、素質は未知数。</div>
         <div class="hof-sub">ぬめり${st.num} 体力${st.sta} 根性${st.gut} カラ${st.shl}</div>`;
     } else {
-      div.innerHTML = `<div class="hof-name">${badge}${h.mcWon ? '👑 ' : ''}${esc(h.name)} <span class="gen-badge">第${h.gen || 1}世代</span> <small class="muted">(${h.retiredYear}年目 引退)</small></div>
+      div.innerHTML = `<div class="hof-name">${badge}${h.mcWon ? '👑 ' : ''}${esc(h.name)} <span class="gen-badge">第${h.gen || 1}世代</span>${h.royal ? ' <span class="royal-badge">👑 王者の血</span>' : ''} <small class="muted">(${h.retiredYear}年目 引退)</small></div>
         <div class="hof-sub">${h.starts}戦${h.wins}勝 / 賞金${fmtG(h.prize)}${h.titles.length ? ' / ' + h.titles.map(esc).join('・') : ''}</div>
         <div class="hof-sub">ぬめり${st.num}(${rankOf(st.num)}) 体力${st.sta}(${rankOf(st.sta)}) 根性${st.gut}(${rankOf(st.gut)}) カラ${st.shl}(${rankOf(st.shl)})</div>`;
     }
@@ -1566,8 +1603,10 @@ function startDiceScreen() {
   G.pendingDice = null;
   const bl = $('dice-breed-line');
   if (G.pendingBreed) {
+    const royal = !!(G.pendingBreed.p1.mcWon && G.pendingBreed.p2.mcWon);
     bl.style.display = '';
-    bl.innerHTML = `💕 <b>${esc(G.pendingBreed.p1.name)}</b> × <b>${esc(G.pendingBreed.p2.name)}</b> の子ども<br><small>両親の能力と、かくれた素質が受けつがれる…!</small>`;
+    bl.innerHTML = `💕 <b>${esc(G.pendingBreed.p1.name)}</b> × <b>${esc(G.pendingBreed.p2.name)}</b> の子ども<br><small>両親の能力と、かくれた素質が受けつがれる…!</small>`
+      + (royal ? '<br><span class="royal-badge">👑 王者どうしの配合</span> <small>両親ともマイマイカップ制覇者!</small>' : '');
   } else {
     bl.style.display = 'none';
   }
@@ -1633,7 +1672,8 @@ function finishDiceRoll(dice) {
   const bonusRow = bb ? `
       <tr><th colspan="4" style="background:#fff4e2;">💕 両親ゆずりのちから</th></tr>
       <tr>${bonusCell('num')}${bonusCell('sta')}${bonusCell('gut')}${bonusCell('shl')}</tr>${note && note.top ? `
-      <tr><td colspan="4" style="background:#fff8ec;font-size:12.5px;">✨ ${STAT_LABELS[note.top]}は <b>${esc(note.topFrom)}</b> ゆずり!</td></tr>` : ''}` : '';
+      <tr><td colspan="4" style="background:#fff8ec;font-size:12.5px;">✨ ${STAT_LABELS[note.top]}は <b>${esc(note.topFrom)}</b> ゆずり!</td></tr>` : ''}${note && note.royal ? `
+      <tr><td colspan="4" style="background:#fff6d8;font-size:12.5px;">👑 <b>王者の血</b> — 生まれつきカラがじょうぶ(カラ +${note.royalShl})</td></tr>` : ''}` : '';
   $('dice-stats-preview').innerHTML = `
     <table class="list" style="margin:8px 0;">
       <tr><th>ぬめり</th><th>体力</th><th>根性</th><th>カラ</th></tr>
@@ -1667,6 +1707,7 @@ function confirmName() {
   G.logs = [];
   if (born.parents) {
     log(`${esc(born.parents[0])} × ${esc(born.parents[1])} のあいだに ${esc(name)} が生まれた!(第${born.gen}世代)`, 'log-gold');
+    if (born.royal) log(`👑 両親ともマイマイカップ制覇者 — ${esc(name)} は「王者の血」をひいている!`, 'log-gold');
   } else {
     log(`${esc(name)} がやってきた! ${S().year}年目のシーズンが始まる。`, 'log-gold');
   }
@@ -1687,7 +1728,8 @@ function renderMain() {
   $('date-badge').textContent = `${S().year}年目 ${turnLabel(c.turn)}`;
   $('money-badge').textContent = `💰 ${fmtG(S().money)}`;
   $('snail-name-label').textContent = c.name + ' ';
-  $('snail-year-label').textContent = `(${S().year}年目${(c.gen || 1) >= 2 ? '・第' + c.gen + '世代' : ''})`;
+  $('snail-year-label').innerHTML = `(${S().year}年目${(c.gen || 1) >= 2 ? '・第' + c.gen + '世代' : ''})`
+    + (c.royal ? ' <span class="royal-badge">👑 王者の血</span>' : '');
   for (const [k, id] of [['num','num'],['sta','sta'],['gut','gut'],['shl','shl']]) {
     const v = c.stats[k];
     $(`bar-${id}`).style.width = (v / TUNE.statMax * 100) + '%';
@@ -2081,7 +2123,7 @@ function renderHall() {
   list.innerHTML = hall.slice().reverse().map(h => {
     const st = h.stats;
     return `<div class="hof-card">
-      <div class="hof-name">${h.mcWon ? '👑 ' : ''}${esc(h.name)} <span class="gen-badge">第${h.gen || 1}世代</span> <small class="muted">(${h.retiredYear}年目 引退)</small></div>
+      <div class="hof-name">${h.mcWon ? '👑 ' : ''}${esc(h.name)} <span class="gen-badge">第${h.gen || 1}世代</span>${h.royal ? ' <span class="royal-badge">👑 王者の血</span>' : ''} <small class="muted">(${h.retiredYear}年目 引退)</small></div>
       ${h.parents ? `<div class="hof-sub">両親: ${esc(h.parents[0])} × ${esc(h.parents[1])}</div>` : ''}
       <div class="hof-sub">${h.starts}戦${h.wins}勝 / 賞金${fmtG(h.prize)}${h.titles.length ? ' / ' + h.titles.map(esc).join('・') : ''}</div>
       <div class="hof-sub">ぬめり${st.num} 体力${st.sta} 根性${st.gut} カラ${st.shl}</div>
